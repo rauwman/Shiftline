@@ -1,0 +1,116 @@
+﻿<UserControl x:Class="Shiftline.Plugin.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin"
+             xmlns:ui="clr-namespace:SimHub.Plugins.UI;assembly=SimHub.Plugins">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Download" Text="Receive profile updates" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Get updated LED profiles when they are published. The update check comes with the public release." />
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggle}" IsChecked="{Binding UpdateProfiles, Mode=TwoWay}" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Download" Text="Update the plugin automatically" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Install new plugin versions without asking. The update check comes with the public release." />
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggle}" IsChecked="{Binding AutoUpdate, Mode=TwoWay}" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Activity" Text="Live game state" />
+                <TextBlock Style="{StaticResource CardHint}" Text="What SimHub reports right now. If the LEDs behave oddly in a menu or the garage, look here and note which values change." />
+                <TextBlock x:Name="LiveState" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Keyboard" Text="Hotkeys and buttons" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Shiftline offers these actions. SimHub does the mapping: open SimHub's own menu Controls and events, add a new mapping, press the key or button you want, and choose the action under Shiftline." />
+                <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" LineHeight="22"
+                           Text="NextPreset - loads the next preset of the list&#10;PreviousPreset - loads the previous preset&#10;BrightnessUp / BrightnessDown - general brightness in steps of 10 %&#10;ToggleNightMode - halves the brightness, and back" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ListOrdered" Text="Priority of the effects" />
+                <TextBlock Style="{StaticResource CardHint}" Text="When several effects want the same LEDs, the one higher in this list wins. The standard order puts what you would most regret missing on top: flags, then the spotter, then pit warnings, brake bar and the rest. The fuel level always comes last and only shows where nothing else is lit." />
+                <ListBox x:Name="PriorityList" Style="{StaticResource GlassList}" Height="300" Margin="0,12,0,10" DisplayMemberPath="Display" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource GlassButton}" Content="Higher priority" Click="PriorityUp_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Lower priority" Click="PriorityDown_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Reset to standard order" Click="PriorityReset_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="Overlays" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Overlays for maps and telemetry inside iRacing are planned and will be switched on here." />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Archive" Text="Backups and restore" />
+                <TextBlock Style="{StaticResource CardHint}" Text="A backup is a copy of everything you can set: all settings, colour themes and the effect priority, whatever page they are on. Restoring replaces the current settings (they are saved into the active preset); a backup of the current state is made first, so nothing is lost." />
+                <StackPanel Margin="0,14,0,0">
+                <ListBox x:Name="BackupList" Style="{StaticResource GlassList}" Height="140" Margin="0,12,0,10" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource GlassButton}" Content="Create backup" Click="CreateBackup_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Restore" Click="RestoreBackup_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Delete" Click="DeleteBackup_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Open folder" Click="OpenBackupsFolder_Click" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Back to standard" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Sets every setting, the colour themes and the effect priority back to the standard values. A backup is made first." />
+                <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Reset everything to standard" Click="ResetButton_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Log" Text="System log" />
+                <TextBlock Style="{StaticResource CardHint}" Text="What the plugin did: start, saving, loading and backups." />
+                <StackPanel Margin="0,14,0,0">
+                <ListBox x:Name="LogList" Style="{StaticResource GlassList}" Height="200" Margin="0,12,0,10" FontFamily="Consolas" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource GlassButton}" Content="Copy" Click="CopyLog_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Clear" Click="ClearLog_Click" />
+                </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Flask" Text="Test mode" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Try the LEDs without a game. Manual shows one scenario; Auto runs through all of them. Set it back to Off before driving." />
+                <StackPanel Margin="0,14,0,0">
+                <WrapPanel>
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="testmode" Content="Off (real game data)" IsChecked="{Binding TestMode, Converter={StaticResource StrEq}, ConverterParameter=Off}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="testmode" Content="Manual" IsChecked="{Binding TestMode, Converter={StaticResource StrEq}, ConverterParameter=Manual}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="testmode" Content="Auto (all scenarios)" IsChecked="{Binding TestMode, Converter={StaticResource StrEq}, ConverterParameter=Auto}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Scenario (Manual)" />
+                <ComboBox Width="340" HorizontalAlignment="Left" ItemsSource="{x:Static local:TestScenarios.Names}" SelectedIndex="{Binding TestScenario, Mode=TwoWay}" />
+                <local:SlSlider Title="RPM (% of redline)" Minimum="0" Maximum="120" Value="{Binding TestRpmPercent, Mode=TwoWay}" Margin="0,4" />
+                <local:SlSlider Title="Brake pedal (%)" Minimum="0" Maximum="100" Value="{Binding TestBrakePercent, Mode=TwoWay}" Margin="0,4" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

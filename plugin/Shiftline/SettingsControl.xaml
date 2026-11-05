@@ -1,0 +1,146 @@
+﻿<UserControl x:Class="Shiftline.Plugin.SettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Border Background="{StaticResource PageBackground}" CornerRadius="18" BorderThickness="0">
+        <Grid Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left navigation. Add future areas (dashboards, overlays, ...) as more NavTile buttons above Settings. -->
+            <Border Grid.Column="0" Style="{StaticResource GlassCard}" Margin="0,0,16,0" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Image Source="/Shiftline.Plugin;component/Assets/logo.png" Width="135" HorizontalAlignment="Center" Margin="0,6,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="LED control for SimHub" HorizontalAlignment="Center" Margin="0,0,0,20" />
+                        <RadioButton x:Name="NavHome" Style="{StaticResource NavTile}" GroupName="nav" Tag="Home" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconHome}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Home" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <ToggleButton x:Name="NavLedGroup" Style="{StaticResource NavGroupHeader}" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconLedStrip}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="LED Devices" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <StackPanel Visibility="{Binding IsChecked, ElementName=NavLedGroup, Converter={StaticResource BoolVis}}">
+                            <RadioButton x:Name="NavLed" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Led" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconLedPanel}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Dash Panel" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        </StackPanel>
+                        <RadioButton x:Name="NavPresets" Style="{StaticResource NavTile}" GroupName="nav" Tag="Presets" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconPresets}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Presets" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavColours" Style="{StaticResource NavTile}" GroupName="nav" Tag="Colours" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconThemeStudio}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Theme Studio" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavSettings" Style="{StaticResource NavTile}" GroupName="nav" Tag="Settings" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconSettings}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Settings" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Right side: the header bar (status, preset, search) above the page -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource GlassCard}" Padding="12,8" Margin="0,0,0,12" Height="54">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid x:Name="SearchGrid" Grid.Column="0" Width="230" Height="34" VerticalAlignment="Center">
+                            <TextBox x:Name="SearchBox" Style="{StaticResource GlassTextBox}" Padding="10,0" VerticalContentAlignment="Center" ToolTip="Search settings (Ctrl+K)"
+                                     TextChanged="SearchBox_TextChanged" PreviewKeyDown="SearchBox_PreviewKeyDown" GotKeyboardFocus="SearchBox_GotKeyboardFocus" LostKeyboardFocus="SearchBox_LostKeyboardFocus" />
+                            <TextBlock x:Name="SearchHint" Text="Search" IsHitTestVisible="False" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                        </Grid>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                            <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="{StaticResource WarnBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="StatusText" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                            <TextBlock x:Name="StatusGame" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                            <TextBlock Text="Preset" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <ComboBox x:Name="PresetCombo" Width="200" VerticalAlignment="Center" SelectionChanged="PresetCombo_SelectionChanged" DropDownOpened="PresetCombo_DropDownOpened" />
+                            <Button Style="{StaticResource GlassButton}" Margin="8,0,0,0" Height="34" Content="Manage" ToolTip="Create, rename, delete and assign presets" Click="ManagePresets_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" PreviewMouseWheel="PageScroll_PreviewMouseWheel">
+                    <ContentControl x:Name="PageHost" Margin="0,0,0,12" />
+                </ScrollViewer>
+
+                <!-- Search results float over the page, under the search box -->
+                <Border x:Name="SearchPanel" Grid.Row="1" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top" Width="440" Margin="12,-6,0,0"
+                        CornerRadius="10" Background="#FF161C26" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1">
+                    <ListBox x:Name="SearchResults" Style="{StaticResource GlassList}" Background="Transparent" BorderThickness="0" MaxHeight="320"
+                             DisplayMemberPath="Display" SelectionChanged="SearchResults_SelectionChanged" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

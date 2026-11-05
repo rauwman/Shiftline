@@ -1,0 +1,101 @@
+﻿<UserControl x:Class="Shiftline.Plugin.HomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin"
+             xmlns:ui="clr-namespace:SimHub.Plugins.UI;assembly=SimHub.Plugins">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}" Padding="26">
+            <StackPanel>
+                <Image Source="/Shiftline.Plugin;component/Assets/logo.png" Height="38" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
+                <TextBlock Style="{StaticResource CardHint}" FontSize="15" Margin="0,16,0,0" Text="Shiftline is a SimHub plugin that makes configuring your dashboard LEDs simple, from rev lights to flags and effects, with presets per game and car." />
+                <TextBlock x:Name="VersionText" Style="{StaticResource CardHint}" Margin="0,10,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                    <Button Style="{StaticResource GlassButton}" Content="Open on GitHub" Click="OpenGitHub_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Activity" Text="Status" />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <Ellipse x:Name="LoaderDot" Width="10" Height="10" Fill="{StaticResource WarnBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="LoaderText" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                </StackPanel>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="Game" Foreground="{StaticResource TextMuted}" Margin="0,0,24,4" />
+                    <TextBlock x:Name="GameText" Grid.Column="1" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4" />
+                    <TextBlock Grid.Row="1" Text="Car" Foreground="{StaticResource TextMuted}" Margin="0,0,24,4" />
+                    <TextBlock x:Name="CarText" Grid.Row="1" Grid.Column="1" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4" />
+                    <TextBlock Grid.Row="2" Text="Preset" Foreground="{StaticResource TextMuted}" Margin="0,0,24,0" />
+                    <TextBlock x:Name="PresetText" Grid.Row="2" Grid.Column="1" Foreground="{StaticResource TextPrimary}" />
+                </Grid>
+                <StackPanel x:Name="QuickStart" Margin="0,16,0,0">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="QUICK START" Margin="0,0,0,6" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="1. In SimHub, open your LED device and import the profile Shiftline Loader (profiles\Shiftline Loader.ledsprofile). This is needed once." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="2. Select that profile and make sure the LEDs are switched on." Margin="0,4,0,0" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="3. Choose what the LEDs do under LED Devices: Dash Panel." Margin="0,4,0,0" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Download" Text="Updates" />
+                <TextBlock x:Name="UpdateText" Style="{StaticResource CardHint}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                <WrapPanel Margin="0,12,0,0">
+                    <Button x:Name="CheckButton" Style="{StaticResource GlassButton}" Content="Check for updates" Click="CheckUpdates_Click" />
+                    <Button x:Name="InstallButton" Style="{StaticResource GlassButton}" Content="Install and restart SimHub" Click="InstallUpdate_Click" Visibility="Collapsed" />
+                    <Button x:Name="NotesButton" Style="{StaticResource GlassButton}" Content="Release notes" Click="UpdateNotes_Click" Visibility="Collapsed" />
+                </WrapPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <ToggleButton x:Name="AutoCheckToggle" Style="{StaticResource SegmentToggleSmall}" VerticalAlignment="Center" Click="AutoCheck_Click" />
+                    <TextBlock Text="Look for updates when SimHub starts" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="2,6,0,8" Text="WHAT YOU CAN DO" />
+        <WrapPanel>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
+                        <local:IconTitle IconKey="LedPanel" Text="LED Devices: Dash Panel" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Choose what the LEDs do (RPM, brake, throttle, fuel, flags) and set layout, RPM bar, brake bar, brightness and idle animations." />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
+                        <local:IconTitle IconKey="Zap" Text="Effects" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Switch every effect on or off and choose its colour: flags, spotter, pit lane, car and ERS effects." />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
+                        <local:IconTitle IconKey="ThemeStudio" Text="Theme Studio" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Create your own colour themes and use them for the rev bar, the idle animation and the fuel gauge." />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
+                        <local:IconTitle IconKey="Settings" Text="Settings" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Save settings profiles, create and restore backups, read the system log and test the LEDs without a game." />
+                    </StackPanel>
+                </Border>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="2,6,0,8" Text="COMING LATER" />
+        <WrapPanel>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
+                        <local:IconTitle IconKey="Layers" Text="Dashboards and overlays" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Dashboards, map and telemetry overlays, button boxes and flag LEDs." />
+                    </StackPanel>
+                </Border>
+        </WrapPanel>
+    </StackPanel>
+</UserControl>

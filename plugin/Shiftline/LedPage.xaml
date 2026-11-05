@@ -1,0 +1,1225 @@
+﻿<UserControl x:Class="Shiftline.Plugin.LedPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin"
+             xmlns:ui="clr-namespace:SimHub.Plugins.UI;assembly=SimHub.Plugins">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <local:IconTitle IconKey="Layout" Text="LED layout" />
+                        <StackPanel Orientation="Horizontal" Margin="28,6,0,0">
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" ToolTip="LEDs on the left side | top LEDs | LEDs on the right side">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} | {1} | {0}">
+                                        <Binding Path="SideLeds" />
+                                        <Binding Path="CentreLeds" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                    <ToggleButton Grid.Column="1" x:Name="LayoutToggle" Style="{StaticResource GlassToggleButton}" VerticalAlignment="Center" Content="Change" />
+                </Grid>
+                <StackPanel Margin="0,10,0,0" Visibility="{Binding IsChecked, ElementName=LayoutToggle, Converter={StaticResource BoolVis}}">
+                    <TextBlock Style="{StaticResource CardHint}" Text="Set this to the LEDs of your device: LEDs per side plus the top LEDs make up the whole strip. The first LED is the outer end of the left side." />
+                    <StackPanel Margin="0,14,0,0">
+                        <local:SlSlider Title="LEDs per side (outer groups)" Minimum="1" Maximum="8" Value="{Binding SideLeds, Mode=TwoWay}" Margin="0,4" />
+                        <local:SlSlider Title="Top LEDs" Minimum="2" Maximum="32" Value="{Binding CentreLeds, Mode=TwoWay}" Margin="0,4" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="TrafficLightH" Text="LED function" />
+                <TextBlock Style="{StaticResource CardHint}" Text="What the LEDs do. This decides which of the settings below apply. Effects, brightness, idle and the fuel colours are always available." />
+                <StackPanel Margin="0,14,0,0">
+                <WrapPanel>
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="RPM + Brake" Tag="RPM" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=rpmBrake}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="RPM" Tag="RPM" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=rpmOnly}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="Brake" Tag="Brake" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=brakeOnly}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="Pedals" Tag="Pedals" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=brakeThrottle}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="Fuel" Tag="Fuel" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=fuel}" />
+                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="ledfunction" Width="150" Content="Flags" Tag="Effects" Click="Function_Click" IsChecked="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=flags}" />
+                </WrapPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <TabControl x:Name="LedTabs" Style="{StaticResource ShiftlineTabControl}">
+            <TabItem Header="RPM" IsEnabled="{Binding LedFunction, Converter={StaticResource FnTab}, ConverterParameter=rpm}" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="RevBar" Text="Rev bar style" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="How the rev bar fills as the engine speeds up. Every tile plays its pattern with your colours. SimHub setting fills left to right on the shift points you set for each car in SimHub (Cars settings)." />
+                                <StackPanel Margin="0,14,0,0">
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="rpmstyle" IsChecked="{Binding RpmStyle, Converter={StaticResource StrEq}, ConverterParameter=middle}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="rpm" Pattern="middle" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Outside to centre" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="rpmstyle" IsChecked="{Binding RpmStyle, Converter={StaticResource StrEq}, ConverterParameter=leftRight}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="rpm" Pattern="leftRight" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Left to right" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="rpmstyle" IsChecked="{Binding RpmStyle, Converter={StaticResource StrEq}, ConverterParameter=simhub}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="rpm" Pattern="leftRight" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="SimHub setting" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </WrapPanel>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="RPM sweep" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="ThemeStudio" Text="Colours" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="Pick a colour theme. Create and edit themes in the Theme Studio." />
+                            <StackPanel Margin="0,14,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <local:GradientBar Theme="{Binding SelectedItem, ElementName=RpmThemeList}" Width="180" Height="22" CornerRadius="6" BorderBrush="#40FFFFFF" BorderThickness="1" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardHint}" FontSize="11" Margin="0" Text="COLOUR THEME" />
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="{Binding SelectedItem.Name, ElementName=RpmThemeList}" />
+                                </StackPanel>
+                                <ToggleButton x:Name="RpmThemeChange" Grid.Column="2" Style="{StaticResource GlassToggleButton}" Content="Change theme" VerticalAlignment="Center" />
+                            </Grid>
+                            <ListBox x:Name="RpmThemeList" Style="{StaticResource ThemeTileList}" Margin="0,14,0,0" ItemsSource="{Binding Themes}" SelectedValuePath="Id" SelectedValue="{Binding RpmThemeId, Mode=TwoWay}" Visibility="{Binding IsChecked, ElementName=RpmThemeChange, Converter={StaticResource BoolVis}}" />
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Colour mode" />
+                            <WrapPanel>
+                                <RadioButton Style="{StaticResource TileRadio}" GroupName="rpmmode" IsChecked="{Binding RpmColourMode, Converter={StaticResource StrEq}, ConverterParameter=blocks}">
+                                    <StackPanel>
+                                        <local:LedPreview Kind="rpm" Pattern="leftRight" ModeOverride="blocks" LedCount="14" Still="True" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                        <TextBlock Text="Blocks (solid zones)" HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource TileRadio}" GroupName="rpmmode" IsChecked="{Binding RpmColourMode, Converter={StaticResource StrEq}, ConverterParameter=gradient}">
+                                    <StackPanel>
+                                        <local:LedPreview Kind="rpm" Pattern="leftRight" ModeOverride="gradient" LedCount="14" Still="True" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                        <TextBlock Text="Gradient (smooth blend)" HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </RadioButton>
+                            </WrapPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="LedPanel" Text="RPM thresholds" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="Where on the rev range the first and the last LED light up, as a share of the car's redline. Not used by the SimHub setting style." />
+                            <StackPanel Margin="0,14,0,0">
+                            <local:SlSlider Title="First LED at (% of redline)" Minimum="0" Maximum="100" Value="{Binding RpmStartPercent, Mode=TwoWay}" IsEnabled="{Binding RpmStyle, Converter={StaticResource StrNotEq}, ConverterParameter=simhub}" Margin="0,4" />
+                            <local:SlSlider Title="Last LED at (% of redline)" Minimum="50" Maximum="120" Value="{Binding RpmEndPercent, Mode=TwoWay}" IsEnabled="{Binding RpmStyle, Converter={StaticResource StrNotEq}, ConverterParameter=simhub}" Margin="0,4" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="Alert" Text="Redline behaviour" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="What happens when the engine reaches the redline." />
+                                <StackPanel Margin="0,14,0,0">
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="redline" IsChecked="{Binding RpmRedline, Converter={StaticResource StrEq}, ConverterParameter=flash}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="redline" Pattern="flash" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Flash all LEDs" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="redline" IsChecked="{Binding RpmRedline, Converter={StaticResource StrEq}, ConverterParameter=flashAlt}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="redline" Pattern="flashAlt" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Alternate LEDs" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+    <RadioButton Style="{StaticResource TileRadio}" GroupName="redline" IsChecked="{Binding RpmRedline, Converter={StaticResource StrEq}, ConverterParameter=flashSwap}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="redline" Pattern="flashSwap" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Alternate colours" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="redline" IsChecked="{Binding RpmRedline, Converter={StaticResource StrEq}, ConverterParameter=off}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="redline" Pattern="off" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Nothing special" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </WrapPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <local:ColourPickerButton Colour="{Binding RpmFlashColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Flash colour" Margin="12,0,24,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                    <local:ColourPickerButton Colour="{Binding RpmFlashColour2, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Second colour (for Alternate LEDs and Alternate colours)" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding RpmShiftFlash, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Also at SimHub's shift point (per car and gear)" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource CardHint}" Margin="104,2,0,0" FontSize="11" Text="The redline behaviour then also plays when SimHub says it is time to shift (Car settings in SimHub), not only at the car's redline." />
+                                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding RpmNoFlashInTopGear, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="No redline behaviour in the highest gear" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource CardHint}" Margin="104,2,0,0" FontSize="11" Text="Nothing to shift into there, so the bar just stays full." />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="Redline reached (rev limiter)" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="RPM" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Brake" IsEnabled="{Binding LedFunction, Converter={StaticResource FnTab}, ConverterParameter=brake}" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="Brake" Text="Brake bar" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="Where the brake bar is shown and how it fills. The top row is available with the function Brake pressure only." />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Where" Margin="0,14,0,6" />
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="brakearea" Content="Both sides" IsChecked="{Binding BrakeArea, Converter={StaticResource StrEq}, ConverterParameter=both}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="brakearea" Content="Left side" IsChecked="{Binding BrakeArea, Converter={StaticResource StrEq}, ConverterParameter=left}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="brakearea" Content="Right side" IsChecked="{Binding BrakeArea, Converter={StaticResource StrEq}, ConverterParameter=right}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="brakearea" IsEnabled="{Binding BrakeTopAllowed}" Content="Top" IsChecked="{Binding BrakeArea, Converter={StaticResource StrEq}, ConverterParameter=top}" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="How it fills" Margin="0,14,0,6" />
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="brakedir" IsChecked="{Binding BrakeDirection, Converter={StaticResource StrEq}, ConverterParameter=outIn}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="brake" Pattern="outIn" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Out to In" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="brakedir" IsEnabled="{Binding BrakeOnTop}" IsChecked="{Binding BrakeDirection, Converter={StaticResource StrEq}, ConverterParameter=leftRight}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="brake" Pattern="leftRight" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Left to Right" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="brakedir" IsEnabled="{Binding BrakeOnTop}" IsChecked="{Binding BrakeDirection, Converter={StaticResource StrEq}, ConverterParameter=rightLeft}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="brake" Pattern="rightLeft" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="Right to Left" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource TileRadio}" GroupName="brakedir" IsChecked="{Binding BrakeDirection, Converter={StaticResource StrEq}, ConverterParameter=inOut}">
+                                        <StackPanel>
+                                            <local:LedPreview Kind="brake" Pattern="inOut" LedCount="14" Animate="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=RadioButton}, TargetNullValue=False, FallbackValue=False}" HorizontalAlignment="Center" Margin="0,0,0,9" />
+                                            <TextBlock Text="In to Out" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </WrapPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="Brake pedal sweep" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="ThemeStudio" Text="Colours and blinking" />
+                            <StackPanel Margin="0,14,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <local:ColourPickerButton Colour="{Binding BrakeColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="Brake colour" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding BrakeSmooth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="Smooth fill" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                            </StackPanel>
+                            <local:SlSlider Title="Blink from (% brake)" Minimum="0" Maximum="100" Value="{Binding BrakeBlinkStage1, Mode=TwoWay}" Margin="0,4" />
+                            <local:SlSlider Title="Blink faster from (% brake)" Minimum="0" Maximum="100" Value="{Binding BrakeBlinkStage2, Mode=TwoWay}" Margin="0,4" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Brake" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Pedals" IsEnabled="{Binding LedFunction, Converter={StaticResource FnTab}, ConverterParameter=pedals}" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="Pedals" Text="Pedal input presets" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="Shows what your feet do, not the engine: the position of the brake, throttle and clutch pedals as the game reports them. Pick a preset, or choose Custom and give every pedal its own area below. Changing an area below switches to Custom by itself." />
+                            <WrapPanel Margin="0,12,0,0">
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Brake left, throttle right" Tag="split" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=split}" Click="PedalPreset_Click" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Brake sides, throttle top" Tag="sidesTop" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=sidesTop}" Click="PedalPreset_Click" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Throttle only" Tag="throttle" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=throttle}" Click="PedalPreset_Click" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Brake only" Tag="brake" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=brake}" Click="PedalPreset_Click" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Clutch left, brake right, throttle top" Tag="three" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=three}" Click="PedalPreset_Click" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="pedalpreset" Content="Custom" Tag="custom" IsChecked="{Binding PedalPreset, Mode=OneWay, Converter={StaticResource StrEq}, ConverterParameter=custom}" Click="PedalPreset_Click" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="Pedals" Text="Area and colour of every pedal" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="When pedals share LEDs, the brake is drawn over the throttle and the throttle over the clutch. Side LEDs fill from the outermost LED inwards." />
+                                <StackPanel Margin="0,14,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding PedalsSmooth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Smooth fill" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Brake" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                    <ComboBox Grid.Column="1" Width="300" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedValue="{Binding PedalBrake, Mode=TwoWay}">
+                                        <ComboBoxItem Tag="off" Content="Off" />
+                                        <ComboBoxItem Tag="centreMiddle" Content="Top: from the middle outwards" />
+                                        <ComboBoxItem Tag="centreLeft" Content="Top: left to right" />
+                                        <ComboBoxItem Tag="centreRight" Content="Top: right to left" />
+                                        <ComboBoxItem Tag="halfLeft" Content="Top: from the middle to the left" />
+                                        <ComboBoxItem Tag="halfRight" Content="Top: from the middle to the right" />
+                                        <ComboBoxItem Tag="centreEnds" Content="Top: from both ends inwards" />
+                                        <ComboBoxItem Tag="sideLeft" Content="Left side LEDs" />
+                                        <ComboBoxItem Tag="sideRight" Content="Right side LEDs" />
+                                        <ComboBoxItem Tag="sideBoth" Content="Both side LEDs" />
+                                    </ComboBox>
+                                    <local:ColourPickerButton Grid.Column="2" Colour="{Binding BrakeColour, Mode=TwoWay}" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Throttle" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                    <ComboBox Grid.Column="1" Width="300" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedValue="{Binding PedalThrottle, Mode=TwoWay}">
+                                        <ComboBoxItem Tag="off" Content="Off" />
+                                        <ComboBoxItem Tag="centreMiddle" Content="Top: from the middle outwards" />
+                                        <ComboBoxItem Tag="centreLeft" Content="Top: left to right" />
+                                        <ComboBoxItem Tag="centreRight" Content="Top: right to left" />
+                                        <ComboBoxItem Tag="halfLeft" Content="Top: from the middle to the left" />
+                                        <ComboBoxItem Tag="halfRight" Content="Top: from the middle to the right" />
+                                        <ComboBoxItem Tag="centreEnds" Content="Top: from both ends inwards" />
+                                        <ComboBoxItem Tag="sideLeft" Content="Left side LEDs" />
+                                        <ComboBoxItem Tag="sideRight" Content="Right side LEDs" />
+                                        <ComboBoxItem Tag="sideBoth" Content="Both side LEDs" />
+                                    </ComboBox>
+                                    <local:ColourPickerButton Grid.Column="2" Colour="{Binding ThrottleColour, Mode=TwoWay}" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Clutch" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                    <ComboBox Grid.Column="1" Width="300" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedValue="{Binding PedalClutch, Mode=TwoWay}">
+                                        <ComboBoxItem Tag="off" Content="Off" />
+                                        <ComboBoxItem Tag="centreMiddle" Content="Top: from the middle outwards" />
+                                        <ComboBoxItem Tag="centreLeft" Content="Top: left to right" />
+                                        <ComboBoxItem Tag="centreRight" Content="Top: right to left" />
+                                        <ComboBoxItem Tag="halfLeft" Content="Top: from the middle to the left" />
+                                        <ComboBoxItem Tag="halfRight" Content="Top: from the middle to the right" />
+                                        <ComboBoxItem Tag="centreEnds" Content="Top: from both ends inwards" />
+                                        <ComboBoxItem Tag="sideLeft" Content="Left side LEDs" />
+                                        <ComboBoxItem Tag="sideRight" Content="Right side LEDs" />
+                                        <ComboBoxItem Tag="sideBoth" Content="Both side LEDs" />
+                                    </ComboBox>
+                                    <local:ColourPickerButton Grid.Column="2" Colour="{Binding FxClutchColour, Mode=TwoWay}" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Preview (pedals at about 60 %)" />
+                                <local:LedPreview Kind="layout" EffectName="Pedals" Animate="False" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="Pedal sweep" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Pedals" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Effects" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardHint}" Margin="2,0,0,0" Text="Switch every effect on or off and pick its colours. The preset colours are the ones the games use." />
+                    <Border Margin="2,14,0,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxMasterOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="All effects" />
+                                <TextBlock Style="{StaticResource CardHint}" FontSize="11" Text="Turns every effect below on or off at once. The RPM bar and the brake bar stay." />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <StackPanel IsEnabled="{Binding FxMasterOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxMasterOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Grid Margin="0,10,0,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="GroupIndicatorsToggle" Style="{StaticResource GroupHeaderToggle}" IsChecked="False" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Margin="0" Text="Indicator settings" VerticalAlignment="Center" />
+                                <TextBlock Margin="14,0,0,0" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource OnCount}">
+                                        <Binding Path="FxFlagsOn" />
+                                        <Binding Path="FxSpotterOn" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxGroupIndicatorsOn, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Switch this whole group on or off" />
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsChecked, ElementName=GroupIndicatorsToggle, Converter={StaticResource BoolVis}}" IsEnabled="{Binding FxGroupIndicatorsOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxGroupIndicatorsOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <WrapPanel>
+                    <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxFlagsOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Marshal flags" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Yellow flag" Click="TestEffect_Click" IsEnabled="{Binding FxFlagsOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <ToggleButton x:Name="FlagColoursButton" Grid.Column="2" Style="{StaticResource GlassToggleButton}" ToolTip="Edit flag colours" VerticalAlignment="Center" Width="44" Height="36" Padding="0">
+                                    <Viewbox Width="18" Height="18">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Data="{StaticResource IconThemeStudio}" Stroke="{StaticResource TextPrimary}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </ToggleButton>
+                            </Grid>
+                            <WrapPanel Margin="0,14,0,0" Visibility="{Binding IsChecked, ElementName=FlagColoursButton, Converter={StaticResource BoolVis}}">
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagRedColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Red flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagBlackColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Black flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagYellowColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Yellow flag and safety car" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagWhiteColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="White flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagOrangeColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Orange flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagBlueColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Blue flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagGreenColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Green flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Width="180" Margin="0,0,8,8">
+                                    <local:ColourPickerButton Colour="{Binding FxFlagCheckeredColour, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Chequered flag" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" FontSize="12" />
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxFlagsCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxFlagsCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxFlagsStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxFlagsCount, Mode=TwoWay}" Margin="0,4" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" IsEnabled="{Binding LedFunction, Converter={StaticResource StrEq}, ConverterParameter=flags}">
+                                        <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxFlagsCentre, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Light the top row too (function Flags)" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Flags" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxFlagsCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxSpotterOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Proximity spotter" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Spotter left (close)" Click="TestEffect_Click" IsEnabled="{Binding FxSpotterOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxSpotterColour, Mode=TwoWay}" ToolTip="Spotter colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxSpotterCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxSpotterCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxSpotterStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxSpotterCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Spotter" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxSpotterCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                    </StackPanel>
+                    <Grid Margin="0,10,0,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="GroupPitToggle" Style="{StaticResource GroupHeaderToggle}" IsChecked="False" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Margin="0" Text="Pit lane settings" VerticalAlignment="Center" />
+                                <TextBlock Margin="14,0,0,0" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource OnCount}">
+                                        <Binding Path="FxPitIndicatorOn" />
+                                        <Binding Path="FxPitAlertsOn" />
+                                        <Binding Path="FxPitSpeedingOn" />
+                                        <Binding Path="FxPitLimiterOn" />
+                                        <Binding Path="SidePit" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxGroupPitOn, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Switch this whole group on or off" />
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsChecked, ElementName=GroupPitToggle, Converter={StaticResource BoolVis}}" IsEnabled="{Binding FxGroupPitOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxGroupPitOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <WrapPanel>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxPitIndicatorOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Pit lane indicator" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Pit lane indicator" Click="TestEffect_Click" IsEnabled="{Binding FxPitIndicatorOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxPitIndicatorColour, Mode=TwoWay}" ToolTip="Indicator colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxPitAlertsOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Pit lane alerts" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Pit lane entry without limiter (LMU)" Click="TestEffect_Click" IsEnabled="{Binding FxPitAlertsOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxPitEntryColour, Mode=TwoWay}" ToolTip="Entry alert colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <local:ColourPickerButton Colour="{Binding FxPitExitColour, Mode=TwoWay}" ToolTip="Exit alert colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxPitSpeedingOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Pit lane speeding" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Pit lane speeding (LMU)" Click="TestEffect_Click" IsEnabled="{Binding FxPitSpeedingOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxPitSpeedingColour, Mode=TwoWay}" ToolTip="Speeding colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxPitLimiterOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Speed / pit limiter" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Pit limiter in pit lane" Click="TestEffect_Click" IsEnabled="{Binding FxPitLimiterOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxPitLimiterColour1, Mode=TwoWay}" ToolTip="First limiter colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <local:ColourPickerButton Colour="{Binding FxPitLimiterColour2, Mode=TwoWay}" ToolTip="Second limiter colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding SidePit, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Pit warnings on the side LEDs" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </WrapPanel>
+                    </StackPanel>
+                    <Grid Margin="0,10,0,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="GroupCarToggle" Style="{StaticResource GroupHeaderToggle}" IsChecked="False" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Margin="0" Text="Car system settings" VerticalAlignment="Center" />
+                                <TextBlock Margin="14,0,0,0" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource OnCount}">
+                                        <Binding Path="FxEngineStartOn" />
+                                        <Binding Path="FxLowFuelOn" />
+                                        <Binding Path="FxTcOn" />
+                                        <Binding Path="FxAbsOn" />
+                                        <Binding Path="FxHeadlightFlashOn" />
+                                        <Binding Path="FxTurnOn" />
+                                        <Binding Path="FxLiftCoastOn" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxGroupCarOn, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Switch this whole group on or off" />
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsChecked, ElementName=GroupCarToggle, Converter={StaticResource BoolVis}}" IsEnabled="{Binding FxGroupCarOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxGroupCarOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <WrapPanel>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxEngineStartOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Engine startup animation" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Engine start" Click="TestEffect_Click" IsEnabled="{Binding FxEngineStartOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxEngineStartColour, Mode=TwoWay}" ToolTip="Animation colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxLowFuelOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Low fuel" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Low fuel" Click="TestEffect_Click" IsEnabled="{Binding FxLowFuelOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxLowFuelColour, Mode=TwoWay}" ToolTip="Warning colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxLowFuelCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxLowFuelCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxLowFuelStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxLowFuelCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="LowFuel" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxLowFuelCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxTcOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Traction control (TC)" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ABS and TC active" Click="TestEffect_Click" IsEnabled="{Binding FxTcOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxTcColour, Mode=TwoWay}" ToolTip="TC colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxTcCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxTcCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxTcStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxTcCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Tc" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxTcCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxAbsOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Anti-lock braking (ABS)" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ABS and TC active" Click="TestEffect_Click" IsEnabled="{Binding FxAbsOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxAbsColour, Mode=TwoWay}" ToolTip="ABS colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxAbsCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxAbsCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxAbsStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxAbsCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Abs" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxAbsCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxHeadlightFlashOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Headlight flash" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Headlight flash (ACC)" Click="TestEffect_Click" IsEnabled="{Binding FxHeadlightFlashOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxHeadlightFlashColour, Mode=TwoWay}" ToolTip="Flash colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxHeadlightFlashCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxHeadlightFlashCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxHeadlightFlashStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxHeadlightFlashCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="HeadlightFlash" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxHeadlightFlashCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxTurnOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Turn indicators" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Indicator left" Click="TestEffect_Click" IsEnabled="{Binding FxTurnOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxTurnColour, Mode=TwoWay}" ToolTip="Indicator colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxTurnCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxTurnCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxTurnStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxTurnCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Turn" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxTurnCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxLiftCoastOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Lift and coast" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Lift and coast (LMU)" Click="TestEffect_Click" IsEnabled="{Binding FxLiftCoastOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxLiftCoastColour, Mode=TwoWay}" ToolTip="Lift and coast colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxLiftCoastCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxLiftCoastCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxLiftCoastStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxLiftCoastCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="LiftCoast" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxLiftCoastCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                    </StackPanel>
+                    <Grid Margin="0,10,0,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="GroupErsToggle" Style="{StaticResource GroupHeaderToggle}" IsChecked="False" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Margin="0" Text="ERS (energy recovery)" VerticalAlignment="Center" />
+                                <TextBlock Margin="14,0,0,0" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource OnCount}">
+                                        <Binding Path="FxErsModeOn" />
+                                        <Binding Path="FxErsDeployOn" />
+                                        <Binding Path="FxErsChargeOn" />
+                                        <Binding Path="ShowErsRegen" />
+                                        <Binding Path="FxErsLapLimitOn" />
+                                        <Binding Path="FxP2pOn" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxGroupErsOn, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Switch this whole group on or off" />
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsChecked, ElementName=GroupErsToggle, Converter={StaticResource BoolVis}}" IsEnabled="{Binding FxGroupErsOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxGroupErsOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <WrapPanel>
+                        <Border Style="{StaticResource EffectCard}">
+                            <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsModeOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="ERS mode" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ERS mode: overtake (F1)" Click="TestEffect_Click" IsEnabled="{Binding FxErsModeOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxErsModeMediumColour, Mode=TwoWay}" ToolTip="Medium" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <local:ColourPickerButton Colour="{Binding FxErsModeHotlapColour, Mode=TwoWay}" ToolTip="Hotlap" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <local:ColourPickerButton Colour="{Binding FxErsModeOvertakeColour, Mode=TwoWay}" ToolTip="Overtake" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsModeCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxErsModeCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxErsModeStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxErsModeCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="ErsMode" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxErsModeCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsDeployOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="ERS deploy" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ERS deploy (LMU)" Click="TestEffect_Click" IsEnabled="{Binding FxErsDeployOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxErsDeployColour, Mode=TwoWay}" ToolTip="Deploy colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsDeployCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxErsDeployCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxErsDeployStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxErsDeployCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="ErsDeploy" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxErsDeployCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsChargeOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="ERS state of charge" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ERS charge 70 % (F1)" Click="TestEffect_Click" IsEnabled="{Binding FxErsChargeOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsChargeCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxErsChargeCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxErsChargeStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxErsChargeCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="ErsCharge" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxErsChargeCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding ShowErsRegen, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="ERS regeneration" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ERS regeneration (LMU)" Click="TestEffect_Click" IsEnabled="{Binding ShowErsRegen}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxErsRegenColour, Mode=TwoWay}" ToolTip="Regeneration colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsLapLimitOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="ERS lap deploy limit" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="ERS lap limit 50 % (F1)" Click="TestEffect_Click" IsEnabled="{Binding FxErsLapLimitOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxErsLapLimitCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxErsLapLimitCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxErsLapLimitStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxErsLapLimitCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="ErsLapLimit" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxErsLapLimitCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxP2pOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Push to pass" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Push to pass" Click="TestEffect_Click" IsEnabled="{Binding FxP2pOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxP2pColour, Mode=TwoWay}" ToolTip="Push to pass colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxP2pCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxP2pCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxP2pStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxP2pCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="P2p" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxP2pCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                    </StackPanel>
+                    <Grid Margin="0,10,0,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="GroupExtrasToggle" Style="{StaticResource GroupHeaderToggle}" IsChecked="False" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Margin="0" Text="Extras" VerticalAlignment="Center" />
+                                <TextBlock Margin="14,0,0,0" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource OnCount}">
+                                        <Binding Path="ShowClutch" />
+                                        <Binding Path="FxDrsOn" />
+                                        <Binding Path="FxDrsDetectOn" />
+                                        <Binding Path="FxScDeltaOn" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxGroupExtrasOn, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Switch this whole group on or off" />
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsChecked, ElementName=GroupExtrasToggle, Converter={StaticResource BoolVis}}" IsEnabled="{Binding FxGroupExtrasOn}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FxGroupExtrasOn}" Value="False"><Setter Property="Opacity" Value="0.4" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <WrapPanel>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding ShowClutch, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Clutch bar" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Clutch pedal" Click="TestEffect_Click" IsEnabled="{Binding ShowClutch}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxClutchColour, Mode=TwoWay}" ToolTip="Clutch colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxDrsOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="DRS" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="DRS open" Click="TestEffect_Click" IsEnabled="{Binding FxDrsOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxDrsColour, Mode=TwoWay}" ToolTip="DRS colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        
+                            <StackPanel Margin="0,12,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxDrsCustom, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Use custom position" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding FxDrsCustom, Converter={StaticResource BoolVis}}">
+                                    <local:SlSlider Title="Start position (1 = outermost LED)" Minimum="1" Maximum="8" Value="{Binding FxDrsStart, Mode=TwoWay}" Margin="0,6,0,0" />
+                                    <local:SlSlider Title="Number of LEDs" Minimum="1" Maximum="8" Value="{Binding FxDrsCount, Mode=TwoWay}" Margin="0,4" />
+                                </StackPanel>
+                                <local:LedPreview Kind="layout" EffectName="Drs" Animate="False" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding FxDrsCustom, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxDrsDetectOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="DRS detection point" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="DRS detection point (iRacing)" Click="TestEffect_Click" IsEnabled="{Binding FxDrsDetectOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxDrsDetectColour, Mode=TwoWay}" ToolTip="Detection colour" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource EffectCard}">
+                            <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxScDeltaOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="Safety car delta" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource TestPlayButton}" Tag="Safety car delta: too slow (F1)" Click="TestEffect_Click" IsEnabled="{Binding FxScDeltaOn}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Show this effect on the LEDs for 3 seconds" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <local:ColourPickerButton Colour="{Binding FxScDeltaOkColour, Mode=TwoWay}" ToolTip="On the delta" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <local:ColourPickerButton Colour="{Binding FxScDeltaOffColour, Mode=TwoWay}" ToolTip="Off the delta" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FxScDeltaSwap, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="Swap the direction" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                            </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                    </StackPanel>
+                    </StackPanel>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Effects" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Brightness" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="Sun" Text="Brightness" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="The LEDs of your device can be very bright. These values scale all colours. SimHub's own profile brightness applies on top of them." />
+                                <StackPanel Margin="0,14,0,0">
+                                <local:SlSlider Title="General brightness (%)" Minimum="1" Maximum="100" Value="{Binding BrightnessGeneral, Mode=TwoWay}" Margin="0,4" />
+                                <local:SlSlider Title="Idle animation brightness (%)" Minimum="1" Maximum="100" Value="{Binding BrightnessIdle, Mode=TwoWay}" Margin="0,4" />
+                                <TextBlock Style="{StaticResource CardHint}" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0" Text="{Binding NightModeNote}"
+                                           Visibility="{Binding NightMode, Converter={StaticResource BoolVis}}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="All LEDs on|Idle (configured style)" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="Moon" Text="Night mode" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="One switch for driving in the dark: it halves the general and the idle brightness together. Switch it here or with a button (SimHub: Controls and events, action ToggleNightMode of Shiftline). The games do not tell reliably whether the headlights are on, so it is switched by hand." />
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding NightMode, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="Night mode" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Brightness" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Idle" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0">
+                                <local:IconTitle IconKey="Idle" Text="Idle animation" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="Plays on the LEDs while no game is running and while the car is off in the garage or the menu. Off keeps them dark." />
+                            </StackPanel>
+                            <ToggleButton Grid.Column="1" Style="{StaticResource SegmentToggle}" IsChecked="{Binding IdleEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="Sparkles" Text="Style and speed" />
+                                <StackPanel Margin="0,14,0,0">
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Style" />
+                                <ComboBox Width="340" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedValue="{Binding IdleStyle, Mode=TwoWay}">
+                                    <ComboBoxItem Tag="sweep" Content="Sweep" />
+                                    <ComboBoxItem Tag="wave" Content="Wave" />
+                                    <ComboBoxItem Tag="comet" Content="Comet" />
+                                    <ComboBoxItem Tag="fillDrain" Content="Fill and drain" />
+                                    <ComboBoxItem Tag="centreOut" Content="Centre out" />
+                                    <ComboBoxItem Tag="solid" Content="Solid" />
+                                    <ComboBoxItem Tag="colourFade" Content="Colour fade" />
+                                    <ComboBoxItem Tag="breathe" Content="Breathe" />
+                                    <ComboBoxItem Tag="bounce" Content="Bounce" />
+                                    <ComboBoxItem Tag="orbit" Content="Orbit" />
+                                    <ComboBoxItem Tag="theatreChase" Content="Theatre chase" />
+                                    <ComboBoxItem Tag="alternate" Content="Alternate" />
+                                    <ComboBoxItem Tag="wipe" Content="Wipe" />
+                                    <ComboBoxItem Tag="rain" Content="Rain" />
+                                    <ComboBoxItem Tag="ripple" Content="Ripple" />
+                                    <ComboBoxItem Tag="twinkle" Content="Twinkle" />
+                                </ComboBox>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Speed" />
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="idlespeed" Content="Slow" IsChecked="{Binding IdleSpeed, Converter={StaticResource StrEq}, ConverterParameter=slow}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="idlespeed" Content="Normal" IsChecked="{Binding IdleSpeed, Converter={StaticResource StrEq}, ConverterParameter=normal}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="idlespeed" Content="Fast" IsChecked="{Binding IdleSpeed, Converter={StaticResource StrEq}, ConverterParameter=fast}" />
+                                </WrapPanel>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="Idle (configured style)" Click="TestEffect_Click" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="ThemeStudio" Text="Colours" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="Pick a colour theme. Create and edit themes in the Theme Studio." />
+                            <StackPanel Margin="0,14,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <local:GradientBar Theme="{Binding SelectedItem, ElementName=IdleThemeList}" Width="180" Height="22" CornerRadius="6" BorderBrush="#40FFFFFF" BorderThickness="1" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardHint}" FontSize="11" Margin="0" Text="COLOUR THEME" />
+                                    <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="{Binding SelectedItem.Name, ElementName=IdleThemeList}" />
+                                </StackPanel>
+                                <ToggleButton x:Name="IdleThemeChange" Grid.Column="2" Style="{StaticResource GlassToggleButton}" Content="Change theme" VerticalAlignment="Center" />
+                            </Grid>
+                            <ListBox x:Name="IdleThemeList" Style="{StaticResource ThemeTileList}" Margin="0,14,0,0" ItemsSource="{Binding Themes}" SelectedValuePath="Id" SelectedValue="{Binding IdleThemeId, Mode=TwoWay}" Visibility="{Binding IsChecked, ElementName=IdleThemeChange, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Idle" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Fuel" Style="{StaticResource ShiftlineTabItem}">
+                <StackPanel>
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <local:IconTitle IconKey="Fuel" Text="Show fuel level on" />
+                            <TextBlock Style="{StaticResource CardHint}" Text="The fuel level has the lowest priority: it only shows while nothing else uses that area, and it disappears completely as soon as the brake bar, a flag or an effect lights an LED there. Areas that the chosen LED function already uses are greyed out. Choose one side to keep the other side free for other information." />
+                            <WrapPanel Margin="0,12,0,0">
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Off" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=off}" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Top" IsEnabled="{Binding FuelCentreAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=centre}" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Both sides" IsEnabled="{Binding FuelSidesAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=sides}" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Left side" IsEnabled="{Binding FuelLeftAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=left}" />
+                                <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Right side" IsEnabled="{Binding FuelRightAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=right}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource GlassCard}">
+                        <Grid>
+                            <StackPanel>
+                                <local:IconTitle IconKey="ThemeStudio" Text="Fuel colours" />
+                                <TextBlock Style="{StaticResource CardHint}" Text="Used by the fuel gauge on the top row (function Fuel gauge) and by the fuel level on the chosen LEDs. The first colour of the theme is empty, the last one is full." />
+                                <StackPanel Margin="0,14,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <local:GradientBar Theme="{Binding SelectedItem, ElementName=FuelThemeList}" Width="180" Height="22" CornerRadius="6" BorderBrush="#40FFFFFF" BorderThickness="1" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource CardHint}" FontSize="11" Margin="0" Text="COLOUR THEME" />
+                                        <TextBlock Style="{StaticResource CardTitle}" FontSize="14" Text="{Binding SelectedItem.Name, ElementName=FuelThemeList}" />
+                                    </StackPanel>
+                                    <ToggleButton x:Name="FuelThemeChange" Grid.Column="2" Style="{StaticResource GlassToggleButton}" Content="Change theme" VerticalAlignment="Center" />
+                                </Grid>
+                                <ListBox x:Name="FuelThemeList" Style="{StaticResource ThemeTileList}" Margin="0,14,0,0" ItemsSource="{Binding Themes}" SelectedValuePath="Id" SelectedValue="{Binding FuelThemeId, Mode=TwoWay}" Visibility="{Binding IsChecked, ElementName=FuelThemeChange, Converter={StaticResource BoolVis}}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Colour mode" />
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelmode" Content="Blocks (solid zones)" IsChecked="{Binding FuelColourMode, Converter={StaticResource StrEq}, ConverterParameter=blocks}" />
+                                    <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelmode" Content="Gradient (smooth blend)" IsChecked="{Binding FuelColourMode, Converter={StaticResource StrEq}, ConverterParameter=gradient}" />
+                                </WrapPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <ToggleButton Style="{StaticResource SegmentToggleSmall}" IsChecked="{Binding FuelSmooth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Smooth fill" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                                </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Style="{StaticResource TestPlayButton}" Tag="Fuel sweep" Click="TestEffect_Click" IsEnabled="{Binding FuelPlacement, Converter={StaticResource StrNotEq}, ConverterParameter=off}" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Show this on the LEDs for 3 seconds" />
+                        </Grid>
+                    </Border>
+                    <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,2,0,12" Content="Reset this tab" Tag="Fuel" Click="ResetTab_Click" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</UserControl>
