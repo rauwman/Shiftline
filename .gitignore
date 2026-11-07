@@ -12,3 +12,6 @@ Claude outputs/
 installer/Output/
 
 release/
+
+# private working notes
+.dev/
