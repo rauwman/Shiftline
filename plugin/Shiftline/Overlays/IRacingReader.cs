@@ -87,12 +87,9 @@ namespace Shiftline.Plugin
                     continue;
                 }
 
+                // Cars that are not in the world (garage, disconnected) stay in the list: standings show every entrant.
                 double dist = At(lapDist, i, -1);
                 int pos = (int)At(position, i, 0);
-                if (pos <= 0 && dist < 0)
-                {
-                    continue;               // not in the session world and never classified
-                }
 
                 rows.Add(new StandingsRow
                 {

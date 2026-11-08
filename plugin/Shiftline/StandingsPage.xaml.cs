@@ -136,7 +136,7 @@ namespace Shiftline.Plugin
                 text.Append((row.LapDistPct < 0 ? "-" : (row.LapDistPct * 100).ToString("0.0", CultureInfo.InvariantCulture)).PadRight(7));
                 text.Append(Lap(row.LastLap).PadRight(10));
                 text.Append(Lap(row.BestLap).PadRight(10));
-                text.Append((row.OnPitRoad ? "yes" : string.Empty).PadRight(5));
+                text.Append((row.TrackSurface < 0 ? "out" : row.OnPitRoad ? "yes" : string.Empty).PadRight(5));
                 text.Append(row.IRating);
                 text.AppendLine(row.IsPlayer ? "  <- you" : string.Empty);
             }
