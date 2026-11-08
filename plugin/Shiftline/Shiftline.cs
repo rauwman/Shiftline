@@ -65,6 +65,8 @@ namespace Shiftline.Plugin
                 return;
             }
 
+            OverlayData.Update(pluginManager);      // before the early return below: the standings change on every update
+
             // A new game: switch to the preset of that game (its favourite, otherwise the favourite of "any game").
             string game = pluginManager.GetPropertyValue("DataCorePlugin.CurrentGame") as string;
             string car = pluginManager.GetPropertyValue("DataCorePlugin.GameData.CarModel") as string ?? string.Empty;
@@ -139,6 +141,9 @@ namespace Shiftline.Plugin
             this.AttachDelegate("RpmColours", () => Settings.ResolveColours(Settings.RpmThemeId, Settings.DefaultRpmColours));
             this.AttachDelegate("IdleColours", () => Settings.ResolveColours(Settings.IdleThemeId, Settings.DefaultIdleColours));
             this.AttachDelegate("FuelColours", () => Settings.ResolveColours(Settings.FuelThemeId, Settings.DefaultFuelColours));
+
+            // Overlay data check properties (Shiftline.Standings.*).
+            OverlayData.Attach(this);
 
             // The LED script itself, for the loader profile (see profiles\Shiftline Loader.ledsprofile).
             this.AttachDelegate("ScriptBuild", () => { NoteScriptRead(); return Settings.ScriptBuild; });

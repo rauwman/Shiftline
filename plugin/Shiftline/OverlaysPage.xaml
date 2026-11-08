@@ -1,0 +1,36 @@
+<UserControl x:Class="Shiftline.Plugin.OverlaysPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="Overlays for iRacing" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The overlays are being built, step by step. This first step only reads the whole field from iRacing and shows it here, so the data can be checked before any overlay window exists. Start an iRacing session and look at the two cards below." />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Activity" Text="Data check" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Where the data comes from and whether each source delivers. A source that says missing is not available in your session." />
+                <TextBlock x:Name="SummaryText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ListOrdered" Text="Live standings" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The field as the plugin reads it, ten times per second. The same values are published as the SimHub properties Shiftline.Standings.01.Name, Shiftline.Standings.01.Position and so on (30 rows)." />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0">
+                    <TextBlock x:Name="TableText" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

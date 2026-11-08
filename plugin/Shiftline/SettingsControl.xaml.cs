@@ -162,6 +162,9 @@ namespace Shiftline.Plugin
                 case "Led":
                     page = new LedPage(Plugin);
                     break;
+                case "Overlays":
+                    page = new OverlaysPage(Plugin);
+                    break;
                 case "Presets":
                     page = new PresetsPage(Plugin);
                     break;
@@ -249,6 +252,9 @@ namespace Shiftline.Plugin
                 case "Led":
                     NavLedGroup.IsChecked = true;
                     NavLed.IsChecked = true;
+                    break;
+                case "Overlays":
+                    NavOverlays.IsChecked = true;
                     break;
                 case "Presets":
                     NavPresets.IsChecked = true;

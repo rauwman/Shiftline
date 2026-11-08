@@ -57,6 +57,17 @@
                             </StackPanel>
                         </RadioButton>
                         </StackPanel>
+                        <RadioButton x:Name="NavOverlays" Style="{StaticResource NavTile}" GroupName="nav" Tag="Overlays" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconLayers}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Overlays" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
                         <RadioButton x:Name="NavPresets" Style="{StaticResource NavTile}" GroupName="nav" Tag="Presets" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
