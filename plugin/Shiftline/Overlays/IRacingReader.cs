@@ -42,7 +42,9 @@ namespace Shiftline.Plugin
                     break;                  // the list has no gaps: the first missing entry is its end
                 }
 
-                if (IsTrue(get(prefix + "IsSpectator")) || IsTrue(get(prefix + "CarIsPaceCar")) || IsTrue(get(prefix + "IsPaceCar")))
+                // Only iRacing's own CarIsPaceCar marks the pace car. The field IsPaceCar was True for the player's own car in a
+                // real session, so it is not used.
+                if (IsTrue(get(prefix + "IsSpectator")) || IsTrue(get(prefix + "CarIsPaceCar")))
                 {
                     continue;
                 }
