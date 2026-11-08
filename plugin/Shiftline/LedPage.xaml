@@ -1185,6 +1185,7 @@
                                 <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Left side" IsEnabled="{Binding FuelLeftAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=left}" />
                                 <RadioButton Style="{StaticResource TileRadioDot}" GroupName="fuelplace" Content="Right side" IsEnabled="{Binding FuelRightAllowed}" IsChecked="{Binding FuelPlacement, Converter={StaticResource StrEq}, ConverterParameter=right}" />
                             </WrapPanel>
+                            <TextBlock Style="{StaticResource CardHint}" Margin="0,10,0,0" Text="Fuel moves out of the way while the brake bar is showing on the same side." Visibility="{Binding FuelYieldsToBrake, Converter={StaticResource BoolVis}}" />
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource GlassCard}">

@@ -41,6 +41,11 @@ namespace Shiftline.Plugin
                     UpdateBrakeRules();
                 }
 
+                if (name == "FuelPlacement")
+                {
+                    Raise("FuelYieldsToBrake");
+                }
+
                 if (name == "NightMode" || name == "BrightnessGeneral" || name == "BrightnessIdle")
                 {
                     Raise("NightModeNote");
@@ -141,6 +146,7 @@ namespace Shiftline.Plugin
         {
             Raise("BrakeTopAllowed");
             Raise("BrakeOnTop");
+            Raise("FuelYieldsToBrake");
             if (!BrakeTopAllowed && BrakeArea == "top")
             {
                 BrakeArea = "both";
@@ -194,6 +200,38 @@ namespace Shiftline.Plugin
         public bool FuelRightAllowed
         {
             get { return !PedalsUse(UsesRight); }
+        }
+
+        /// <summary>
+        /// True while the fuel level shares LEDs with the brake bar (the bar runs with the functions rev bar + brake and brake
+        /// only). The fuel level then goes dark while the bar is showing, so the Fuel tab says so.
+        /// </summary>
+        public bool FuelYieldsToBrake
+        {
+            get
+            {
+                if ((LedFunction != "rpmBrake" && LedFunction != "brakeOnly") || string.IsNullOrEmpty(FuelPlacement) || FuelPlacement == "off")
+                {
+                    return false;
+                }
+
+                if (BrakeArea == "top")
+                {
+                    return FuelPlacement == "centre";
+                }
+
+                if (BrakeArea == "left")
+                {
+                    return FuelPlacement == "sides" || FuelPlacement == "left";
+                }
+
+                if (BrakeArea == "right")
+                {
+                    return FuelPlacement == "sides" || FuelPlacement == "right";
+                }
+
+                return FuelPlacement == "sides" || FuelPlacement == "left" || FuelPlacement == "right";    // both sides
+            }
         }
 
         /// <summary>Tells the page which fuel areas are available now and switches the fuel level off when its area is no longer allowed.</summary>
