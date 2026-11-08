@@ -8,10 +8,16 @@ namespace Shiftline.Plugin
     /// </summary>
     internal sealed class RateClock
     {
-        private readonly long _interval;
+        private long _interval;
         private long _next;
 
         public RateClock(double hertz)
+        {
+            _interval = (long)(Stopwatch.Frequency / hertz);
+        }
+
+        /// <summary>Changes the rate; the next interval already uses it.</summary>
+        public void SetRate(double hertz)
         {
             _interval = (long)(Stopwatch.Frequency / hertz);
         }

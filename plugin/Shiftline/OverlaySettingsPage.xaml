@@ -1,0 +1,44 @@
+<UserControl x:Class="Shiftline.Plugin.OverlaySettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="Overlays: layout and settings" />
+                <TextBlock Style="{StaticResource CardHint}" Text="General settings for all overlays. The overlay window itself is not built yet, so the choices below arrive with it. Overlays work for iRacing only for now." />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layout" Text="Monitors" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. Later you choose here on which of them the overlays appear. iRacing must run in windowed or borderless mode for overlays to show above it." />
+                <TextBlock x:Name="MonitorText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Zap" Text="Update rate" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Affects how often bars and numbers will update. A lower rate saves computing time. More than 60 per second brings nothing. Each overlay can use its own rate on its own page; this value applies to all that do not." />
+                </StackPanel>
+                <ComboBox x:Name="RateCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RateCombo_SelectionChanged" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Zap" Text="Planned here" />
+                <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" LineHeight="22"
+                           Text="Monitor choice (one or several)&#10;Edit mode to move and resize overlays, also by hotkey&#10;Transparency&#10;Reset all positions" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

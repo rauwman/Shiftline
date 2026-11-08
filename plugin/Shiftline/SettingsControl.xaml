@@ -33,7 +33,7 @@
                                 <TextBlock Text="Home" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
-                        <ToggleButton x:Name="NavLedGroup" Style="{StaticResource NavGroupHeader}" IsChecked="True">
+                        <ToggleButton x:Name="NavLedGroup" Style="{StaticResource NavGroupHeader}" IsChecked="False">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
                                     <Canvas Width="24" Height="24">
@@ -57,17 +57,118 @@
                             </StackPanel>
                         </RadioButton>
                         </StackPanel>
-                        <RadioButton x:Name="NavOverlays" Style="{StaticResource NavTile}" GroupName="nav" Tag="Overlays" Checked="Nav_Checked">
+                        <ToggleButton x:Name="NavOverlaysGroup" Style="{StaticResource NavGroupHeader}" IsChecked="False">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
                                     <Canvas Width="24" Height="24">
                                         <Path Data="{StaticResource IconLayers}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                                     </Canvas>
                                 </Viewbox>
                                 <TextBlock Text="Overlays" VerticalAlignment="Center" />
                             </StackPanel>
-                        </RadioButton>
+                        </ToggleButton>
+                        <StackPanel Visibility="{Binding IsChecked, ElementName=NavOverlaysGroup, Converter={StaticResource BoolVis}}">
+                            <RadioButton x:Name="NavOverlayOverlaySettings" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="OverlaySettings" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconSettings}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Layout &amp; Settings" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayStandings" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Overlays" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconListOrdered}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Standings" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayRelatives" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Relatives" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconListOrdered}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Relatives" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayTrackMap" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="TrackMap" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconLayout}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Track Map" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayFuel" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Fuel" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconFuel}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Fuel Calculator" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayPitHelper" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="PitHelper" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconTrafficLight}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Pit Helper" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayPedals" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Pedals" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconPedals}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Pedals" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlayInputsGraph" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="InputsGraph" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconActivity}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Inputs Graph" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavOverlaySpotter" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Spotter" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconAlert}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Spotter" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
                         <RadioButton x:Name="NavPresets" Style="{StaticResource NavTile}" GroupName="nav" Tag="Presets" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">

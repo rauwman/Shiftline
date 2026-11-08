@@ -104,10 +104,11 @@
     </Compile>
     <Compile Include="Overlays\IRacingReader.cs" />
     <Compile Include="Overlays\OverlayData.cs" />
+    <Compile Include="Overlays\OverlaySettings.cs" />
     <Compile Include="Overlays\RateClock.cs" />
     <Compile Include="Overlays\StandingsModel.cs" />
-    <Compile Include="OverlaysPage.xaml.cs">
-      <DependentUpon>OverlaysPage.xaml</DependentUpon>
+    <Compile Include="OverlaySettingsPage.xaml.cs">
+      <DependentUpon>OverlaySettingsPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="PluginLog.cs" />
     <Compile Include="PresetStore.cs" />
@@ -119,6 +120,9 @@
     <Compile Include="Settings.App.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Settings.Themes.cs" />
+    <Compile Include="StandingsPage.xaml.cs">
+      <DependentUpon>StandingsPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SettingsControl.xaml.cs">
       <DependentUpon>SettingsControl.xaml</DependentUpon>
     </Compile>
@@ -165,7 +169,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="OverlaysPage.xaml">
+    <Page Include="OverlaySettingsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="StandingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

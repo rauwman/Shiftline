@@ -16,6 +16,9 @@ namespace Shiftline.Plugin
         /// <summary>How many rows are published as flat properties (Shiftline.Standings.NN.*), for checking the data in SimHub.</summary>
         public const int FlatRows = 30;
 
+        /// <summary>The name under which the standings overlay keeps its own settings.</summary>
+        public const string StandingsKey = "Standings";
+
         private static readonly RateClock StandingsClock = new RateClock(10);
         private static readonly RateClock DriverClock = new RateClock(0.5);
 
@@ -47,6 +50,7 @@ namespace Shiftline.Plugin
                     return;
                 }
 
+                StandingsClock.SetRate(OverlaySettings.RateFor(StandingsKey));
                 if (!StandingsClock.Due())
                 {
                     return;
