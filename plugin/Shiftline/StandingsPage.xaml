@@ -21,9 +21,55 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Layers" Text="Show overlay" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Shows the standings above the game. This first version is a plain list (the leaders, and the cars around you when you are further back) to test the overlay window; the real design comes next. Place it in edit mode on the General page." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows the standings above the game. Place and size it in edit mode on the General page." />
                 </StackPanel>
                 <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <local:IconTitle IconKey="Sparkles" Text="Preview" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="How the overlay looks with your choices, filled with invented data. Click a column to change its look. Edit mode shows the same sample on screen while no session is running." />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                        <ToggleButton x:Name="PreviewRace" Style="{StaticResource GlassToggleButton}" Content="Race" Margin="0,0,6,0" Click="PreviewMode_Click" />
+                        <ToggleButton x:Name="PreviewPractice" Style="{StaticResource GlassToggleButton}" Content="Practice / Qualify" Click="PreviewMode_Click" />
+                    </StackPanel>
+                </Grid>
+                <Border x:Name="PreviewHost" Margin="0,12,0,0" Padding="12" CornerRadius="10" Background="#FF2A3240" HorizontalAlignment="Left" />
+                <TextBlock x:Name="ColumnOptionsTitle" Margin="0,16,0,0" Style="{StaticResource CardTitle}" Text="Column options" />
+                <TextBlock x:Name="ColumnOptionsHint" Style="{StaticResource CardHint}" Text="Click a column in the preview to change how it looks." />
+                <StackPanel x:Name="ColumnOptionsPanel" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layout" Text="Columns" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Choose what each row shows. Gap and interval come from iRacing's race timing; in practice and qualifying they compare best laps." />
+                <WrapPanel x:Name="ColumnPanel" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="ListOrdered" Text="Rows" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="How many cars the overlay shows. When you are further back, the last rows show you and the cars right before and after you." />
+                </StackPanel>
+                <ComboBox x:Name="RowsCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RowsCombo_SelectionChanged" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layout" Text="Header line" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="A line above the rows with the session, your car, laps or time left, the track temperature and your incidents." />
+                </StackPanel>
+                <ToggleButton x:Name="HeaderToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="HeaderToggle_Click" />
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">

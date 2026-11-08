@@ -17,6 +17,8 @@ namespace Shiftline.Plugin
         public int IRating;
         public string License;
         public string Make;
+        public string LicenseColor;
+        public string CarName;
     }
 
     /// <summary>
@@ -60,7 +62,9 @@ namespace Shiftline.Plugin
                     ClassColor = Text(get(prefix + "CarClassColor")),
                     IRating = ToInt(get(prefix + "IRating"), 0),
                     License = Text(get(prefix + "LicString")),
-                    Make = CarMakes.CodeFor(Text(get(prefix + "CarScreenName")))
+                    Make = CarMakes.CodeFor(Text(get(prefix + "CarScreenName"))),
+                    LicenseColor = Text(get(prefix + "LicColor")),
+                    CarName = Text(get(prefix + "CarScreenNameShort"))
                 });
             }
 
@@ -68,7 +72,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>Builds the standings from the per-car arrays and the driver list.</summary>
-        public static StandingsSnapshot Build(Func<string, object> get, List<DriverEntry> drivers, long sequence)
+        public static StandingsSnapshot Build(Func<string, object> get, List<DriverEntry> drivers, long sequence, SessionTracker tracker)
         {
             object position = get(Telemetry + "CarIdxPosition");
             object classPosition = get(Telemetry + "CarIdxClassPosition");
@@ -80,6 +84,8 @@ namespace Shiftline.Plugin
             object surface = get(Telemetry + "CarIdxTrackSurface");
             object f2 = get(Telemetry + "CarIdxF2Time");
             object est = get(Telemetry + "CarIdxEstTime");
+            object tire = get(Telemetry + "CarIdxTireCompound");
+            Dictionary<int, string> tireTypes = ReadTireTypes(get);
             int player = ToInt(get(Telemetry + "PlayerCarIdx"), -1);
 
             List<StandingsRow> rows = new List<StandingsRow>(drivers.Count);
@@ -108,6 +114,7 @@ namespace Shiftline.Plugin
                     IRating = driver.IRating,
                     License = driver.License,
                     Make = driver.Make,
+                    LicenseColor = driver.LicenseColor,
                     LapsCompleted = (int)At(lapCompleted, i, 0),
                     LapDistPct = dist,
                     LastLap = At(lastLap, i, -1),
@@ -116,7 +123,8 @@ namespace Shiftline.Plugin
                     TrackSurface = (int)At(surface, i, -1),
                     F2Time = At(f2, i, 0),
                     EstTime = At(est, i, 0),
-                    IsPlayer = i == player
+                    IsPlayer = i == player,
+                    TireType = TireTypeOf(tireTypes, (int)At(tire, i, -1))
                 });
             }
 
@@ -125,11 +133,26 @@ namespace Shiftline.Plugin
 
             int sessionNum = ToInt(get(Session + "SessionInfo.CurrentSessionNum"), 0);
             string sessionType = Text(get(Session + "SessionInfo.Sessions" + (sessionNum + 1).ToString("00", CultureInfo.InvariantCulture) + ".SessionType"));
+            if (tracker != null)
+            {
+                string key = Text(get(Session + "WeekendInfo.SubSessionID")) + "/" + sessionNum;
+                tracker.Apply(rows, key, sessionType.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0, ToDouble(get(Telemetry + "SessionTime"), 0));
+            }
+
+            DriverEntry own = drivers.Find(d => d.CarIdx == player);
+            int lapsTotal = ToInt(get(Telemetry + "SessionLapsTotal"), 0);
 
             return new StandingsSnapshot
             {
                 Rows = rows.ToArray(),
                 PlayerCarIdx = player,
+                CarName = own == null ? string.Empty : own.CarName,
+                StrengthOfField = SessionTracker.StrengthOfField(rows),
+                TimeRemaining = ToDouble(get(Telemetry + "SessionTimeRemain"), -1),
+                LapsTotal = lapsTotal > 0 && lapsTotal < 32767 ? lapsTotal : 0,
+                TrackTemp = Text(get(Session + "WeekendInfo.TrackSurfaceTemp")),
+                Incidents = ToInt(get(Telemetry + "PlayerCarMyIncidentCount"), 0),
+                IncidentLimit = Text(get(Session + "WeekendInfo.WeekendOptions.IncidentLimit")),
                 Track = Text(get(Session + "WeekendInfo.TrackDisplayName")),
                 SessionType = sessionType,
                 Sequence = sequence,
@@ -144,6 +167,34 @@ namespace Shiftline.Plugin
                     "drivers in the list: " + drivers.Count
                 }
             };
+        }
+
+        /// <summary>
+        /// The tyre compounds of the player's car (index to name, for example 0 = "Hard"). iRacing lists them only for the player's
+        /// car, so in multi-class races the names may not fit the other classes.
+        /// </summary>
+        private static Dictionary<int, string> ReadTireTypes(Func<string, object> get)
+        {
+            Dictionary<int, string> types = new Dictionary<int, string>();
+            for (int n = 1; n <= 8; n++)
+            {
+                string prefix = Session + "DriverInfo.DriverTires" + n.ToString("00", CultureInfo.InvariantCulture) + ".";
+                object index = get(prefix + "TireIndex");
+                if (index == null)
+                {
+                    break;
+                }
+
+                types[ToInt(index, -1)] = Text(get(prefix + "TireCompoundType"));
+            }
+
+            return types;
+        }
+
+        private static string TireTypeOf(Dictionary<int, string> types, int compound)
+        {
+            string type;
+            return compound >= 0 && types.TryGetValue(compound, out type) ? type : string.Empty;
         }
 
         private static int Compare(StandingsRow a, StandingsRow b)

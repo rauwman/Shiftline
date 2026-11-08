@@ -34,6 +34,7 @@ namespace Shiftline.Plugin
         private static readonly Dictionary<string, int> Overrides = new Dictionary<string, int>();
         private static readonly Dictionary<string, OverlayPlacement> Placements = new Dictionary<string, OverlayPlacement>();
         private static readonly HashSet<string> EnabledOverlays = new HashSet<string>();
+        private static readonly Dictionary<string, Dictionary<string, string>> Options = new Dictionary<string, Dictionary<string, string>>();
         private static int _globalRate = DefaultRate;
         private static bool _onlyWhenGameInFront = true;
 
@@ -115,6 +116,35 @@ namespace Shiftline.Plugin
                 {
                     Overrides[overlay] = Clamp(rate);
                 }
+            }
+
+            Save();
+            RaiseChanged();
+        }
+
+        /// <summary>A design option of one overlay (for example its columns), or the fallback when it was never set.</summary>
+        public static string GetOption(string overlay, string name, string fallback)
+        {
+            lock (Gate)
+            {
+                Dictionary<string, string> own;
+                string value;
+                return Options.TryGetValue(overlay, out own) && own.TryGetValue(name, out value) ? value : fallback;
+            }
+        }
+
+        public static void SetOption(string overlay, string name, string value)
+        {
+            lock (Gate)
+            {
+                Dictionary<string, string> own;
+                if (!Options.TryGetValue(overlay, out own))
+                {
+                    own = new Dictionary<string, string>();
+                    Options[overlay] = own;
+                }
+
+                own[name] = value;
             }
 
             Save();
@@ -247,6 +277,27 @@ namespace Shiftline.Plugin
                     }
                 }
 
+                JObject options = json["Options"] as JObject;
+                if (options != null)
+                {
+                    foreach (JProperty overlay in options.Properties())
+                    {
+                        JObject values = overlay.Value as JObject;
+                        if (values == null)
+                        {
+                            continue;
+                        }
+
+                        Dictionary<string, string> entries = new Dictionary<string, string>();
+                        foreach (JProperty value in values.Properties())
+                        {
+                            entries[value.Name] = (string)value.Value;
+                        }
+
+                        Options[overlay.Name] = entries;
+                    }
+                }
+
                 JObject placements = json["Placements"] as JObject;
                 if (placements != null)
                 {
@@ -280,6 +331,7 @@ namespace Shiftline.Plugin
                 JObject own = new JObject();
                 JArray enabled = new JArray();
                 JObject placements = new JObject();
+                JObject options = new JObject();
                 int global;
                 bool front;
                 lock (Gate)
@@ -296,6 +348,17 @@ namespace Shiftline.Plugin
                         enabled.Add(name);
                     }
 
+                    foreach (KeyValuePair<string, Dictionary<string, string>> overlay in Options)
+                    {
+                        JObject values = new JObject();
+                        foreach (KeyValuePair<string, string> value in overlay.Value)
+                        {
+                            values[value.Key] = value.Value;
+                        }
+
+                        options[overlay.Key] = values;
+                    }
+
                     foreach (KeyValuePair<string, OverlayPlacement> pair in Placements)
                     {
                         placements[pair.Key] = new JObject
@@ -308,7 +371,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "Rates", own }, { "Enabled", enabled }, { "Placements", placements }
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }
                 }.ToString());
             }
             catch (Exception ex)

@@ -30,6 +30,9 @@ namespace Shiftline.Plugin
         private IntPtr _hwnd;
         private bool _edit;
         private bool _placed;
+        private double _aspect;
+        private Point _dragStartMouse;
+        private Size _dragStartSize;
 
         public OverlayWindow(string key, string title, UIElement content, Size defaultSize)
         {
@@ -68,10 +71,32 @@ namespace Shiftline.Plugin
                 Background = FrameBrush,
                 Visibility = Visibility.Collapsed
             };
+            // The grip moves with the window while it is dragged, so its own deltas feed back into each other and the window
+            // flickers. Instead the size is computed from where the mouse is on screen, against where the drag started.
+            _grip.DragStarted += (sender, args) =>
+            {
+                _dragStartMouse = MouseOnScreen();
+                _dragStartSize = new Size(Width, Height);
+            };
             _grip.DragDelta += (sender, args) =>
             {
-                Width = Math.Max(MinSize, Width + args.HorizontalChange);
-                Height = Math.Max(MinSize, Height + args.VerticalChange);
+                Point mouse = MouseOnScreen();
+                double width = _dragStartSize.Width + (mouse.X - _dragStartMouse.X);
+                double height = _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y);
+                if (_aspect > 0)
+                {
+                    // The content keeps its proportions, so the window does too: the larger of both moves decides the size.
+                    width = Math.Max(width, height * _aspect);
+                    height = width / _aspect;
+                }
+
+                width = Math.Max(MinSize, width);
+                height = Math.Max(MinSize, height);
+                if (Math.Abs(width - Width) >= 1 || Math.Abs(height - Height) >= 1)
+                {
+                    Width = width;
+                    Height = height;
+                }
             };
             _grip.DragCompleted += (sender, args) => SavePlacement();
 
@@ -123,6 +148,21 @@ namespace Shiftline.Plugin
             get { return _key; }
         }
 
+        /// <summary>
+        /// Width divided by height of the content. The window keeps this shape when it is resized, so the content always fills it.
+        /// Changing it keeps the current width and adapts the height.
+        /// </summary>
+        public void SetAspect(double aspect)
+        {
+            if (aspect <= 0 || Math.Abs(aspect - _aspect) < 0.0001)
+            {
+                return;
+            }
+
+            _aspect = aspect;
+            Height = Math.Max(MinSize, Width / aspect);
+        }
+
         public void SetEditMode(bool edit)
         {
             _edit = edit;
@@ -143,6 +183,14 @@ namespace Shiftline.Plugin
             int style = NativeMethods.GetExStyle(_hwnd) | NativeMethods.WsExToolWindow | NativeMethods.WsExNoActivate;
             style = _edit ? style & ~NativeMethods.WsExTransparent : style | NativeMethods.WsExTransparent;
             NativeMethods.SetExStyle(_hwnd, style);
+        }
+
+        /// <summary>The mouse position on screen in device-independent units.</summary>
+        private Point MouseOnScreen()
+        {
+            DpiScale dpi = VisualTreeHelper.GetDpi(this);
+            System.Drawing.Point pixels = Forms.Cursor.Position;
+            return new Point(pixels.X / dpi.DpiScaleX, pixels.Y / dpi.DpiScaleY);
         }
 
         /// <summary>The screen area in device-independent units, as WPF measures Left, Top, Width and Height.</summary>
@@ -168,14 +216,14 @@ namespace Shiftline.Plugin
             if (placement == null || placement.W <= 0 || placement.H <= 0)
             {
                 Width = _defaultSize.Width;
-                Height = _defaultSize.Height;
+                Height = _aspect > 0 ? _defaultSize.Width / _aspect : _defaultSize.Height;
                 Left = area.Left + area.Width * 0.75;
                 Top = area.Top + area.Height * 0.15;
                 return;
             }
 
             Width = Math.Max(MinSize, placement.W * area.Width);
-            Height = Math.Max(MinSize, placement.H * area.Height);
+            Height = _aspect > 0 ? Math.Max(MinSize, Width / _aspect) : Math.Max(MinSize, placement.H * area.Height);
             Left = area.Left + Clamp01(placement.X) * area.Width;
             Top = area.Top + Clamp01(placement.Y) * area.Height;
         }

@@ -136,6 +136,16 @@ namespace Shiftline.Plugin
                 return;
             }
 
+            if (_standingsView != null)
+            {
+                _standingsView.ApplyOptions(StandingsOptions.Load());
+                if (_standingsWindow != null)
+                {
+                    Size design = _standingsView.DesignSize;
+                    _standingsWindow.SetAspect(design.Width / design.Height);
+                }
+            }
+
             _standingsTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.StandingsKey));
             _standingsTimer.Start();
             TickStandings();
@@ -162,11 +172,14 @@ namespace Shiftline.Plugin
                 if (_standingsWindow == null)
                 {
                     _standingsView = new StandingsOverlay();
-                    _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", _standingsView, StandingsOverlay.DefaultSize);
+                    _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", _standingsView, _standingsView.DesignSize);
                     _standingsWindow.SetEditMode(_edit);
+                    Size design = _standingsView.DesignSize;
+                    _standingsWindow.SetAspect(design.Width / design.Height);
                 }
 
-                _standingsView.Update(snapshot, _edit);
+                // In edit mode without a session the overlay shows invented data, so it can be sized and placed.
+                _standingsView.Update(snapshot.HasData ? snapshot : StandingsSample.Create(true));
                 if (!_standingsWindow.IsVisible)
                 {
                     _standingsWindow.Show();

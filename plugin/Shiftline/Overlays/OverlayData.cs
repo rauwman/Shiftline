@@ -25,6 +25,7 @@ namespace Shiftline.Plugin
         private static StandingsSnapshot _current = StandingsSnapshot.Empty;
         private static List<DriverEntry> _drivers = new List<DriverEntry>();
         private static long _sequence;
+        private static readonly SessionTracker Tracker = new SessionTracker();
 
         /// <summary>The latest standings. Never null; the object never changes after it was returned.</summary>
         public static StandingsSnapshot Current
@@ -38,7 +39,8 @@ namespace Shiftline.Plugin
             try
             {
                 string game = pluginManager.GetPropertyValue("DataCorePlugin.CurrentGame") as string;
-                if (!string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase))
+                bool running = IRacingReader.ToInt(pluginManager.GetPropertyValue("DataCorePlugin.GameRunning"), 0) != 0;
+                if (!running || !string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Current.HasData)
                     {
@@ -62,7 +64,7 @@ namespace Shiftline.Plugin
                     _drivers = IRacingReader.ReadDrivers(get);
                 }
 
-                Volatile.Write(ref _current, IRacingReader.Build(get, _drivers, ++_sequence));
+                Volatile.Write(ref _current, IRacingReader.Build(get, _drivers, ++_sequence, Tracker));
             }
             catch (Exception ex)
             {
@@ -103,7 +105,7 @@ namespace Shiftline.Plugin
                 Field("ClassColor", r => r.ClassColor), Field("IRating", r => r.IRating), Field("License", r => r.License), Field("Make", r => r.Make),
                 Field("Laps", r => r.LapsCompleted), Field("LapDistPct", r => r.LapDistPct), Field("LastLap", r => r.LastLap),
                 Field("BestLap", r => r.BestLap), Field("OnPitRoad", r => r.OnPitRoad), Field("IsPlayer", r => r.IsPlayer),
-                Field("F2Time", r => r.F2Time), Field("EstTime", r => r.EstTime)
+                Field("StartPosition", r => r.StartPosition), Field("PitLap", r => r.PitLap), Field("PitCount", r => r.PitCount), Field("StintLaps", r => r.StintLaps), Field("Towing", r => r.Towing), Field("F2Time", r => r.F2Time), Field("EstTime", r => r.EstTime)
             };
 
             for (int n = 1; n <= FlatRows; n++)

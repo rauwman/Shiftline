@@ -23,12 +23,152 @@ namespace Shiftline.Plugin
             {
                 FillRates();
                 ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
+                BuildDesignControls();
                 Start();
             };
             Unloaded += (sender, args) => Stop();
         }
 
         public Shiftline Plugin { get; }
+
+        // ---------------------------------------------------------------- design and preview
+
+        private StandingsOverlay _preview;
+        private bool _previewRace = true;
+        private bool _building;
+
+        private void BuildDesignControls()
+        {
+            _building = true;
+            ColumnPanel.Children.Clear();
+            foreach (StandingsColumn column in StandingsOptions.AllColumns)
+            {
+                System.Windows.Controls.Primitives.ToggleButton toggle = new System.Windows.Controls.Primitives.ToggleButton
+                {
+                    Content = column.Label,
+                    Tag = column.Key,
+                    Margin = new System.Windows.Thickness(0, 0, 8, 8),
+                    Style = (System.Windows.Style)FindResource("GlassToggleButton"),
+                    IsChecked = StandingsOptions.IsColumnOn(column.Key)
+                };
+                toggle.Click += (sender, args) =>
+                {
+                    System.Windows.Controls.Primitives.ToggleButton clicked = (System.Windows.Controls.Primitives.ToggleButton)sender;
+                    StandingsOptions.SetColumn((string)clicked.Tag, clicked.IsChecked == true);
+                    RefreshPreview();
+                };
+                ColumnPanel.Children.Add(toggle);
+            }
+
+            StandingsOptions options = StandingsOptions.Load();
+            RowsCombo.Items.Clear();
+            foreach (int rows in StandingsOptions.RowChoices)
+            {
+                RowsCombo.Items.Add(rows + " rows");
+            }
+
+            RowsCombo.SelectedIndex = Math.Max(0, Array.IndexOf(StandingsOptions.RowChoices, options.Rows));
+            HeaderToggle.IsChecked = options.Header;
+            PreviewRace.IsChecked = _previewRace;
+            PreviewPractice.IsChecked = !_previewRace;
+            _building = false;
+            RefreshPreview();
+        }
+
+        private void RefreshPreview()
+        {
+            if (_preview == null)
+            {
+                _preview = new StandingsOverlay(true);
+                _preview.ColumnClicked += ShowColumnOptions;
+                PreviewHost.Child = _preview;
+            }
+            else
+            {
+                _preview.ApplyOptions(StandingsOptions.Load());
+            }
+
+            System.Windows.Size size = _preview.DesignSize;
+            _preview.Width = size.Width;
+            _preview.Height = size.Height;
+            _preview.Update(StandingsSample.Create(_previewRace));
+        }
+
+        private string _optionsColumn;
+
+        /// <summary>Shows the choices of one column (for example the name format) under the preview.</summary>
+        private void ShowColumnOptions(string column)
+        {
+            _optionsColumn = column;
+            ColumnOptionsPanel.Children.Clear();
+            StandingsColumn info = Array.Find(StandingsOptions.AllColumns, c => c.Key == column);
+            ColumnOptionsTitle.Text = "Column options: " + (info == null ? column : info.Label);
+            StandingsOptions options = StandingsOptions.Load();
+            bool any = false;
+            foreach (StandingsChoice choice in StandingsOptions.AllChoices)
+            {
+                if (choice.Column != column)
+                {
+                    continue;
+                }
+
+                any = true;
+                Grid row = new Grid { Margin = new System.Windows.Thickness(0, 0, 0, 8) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(260) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = System.Windows.GridLength.Auto });
+                TextBlock label = new TextBlock { Text = choice.Label, VerticalAlignment = System.Windows.VerticalAlignment.Center, Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary") };
+                ComboBox combo = new ComboBox { Width = 320, Height = 34, Tag = choice };
+                foreach (string text in choice.Labels)
+                {
+                    combo.Items.Add(text);
+                }
+
+                combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, options.Get(choice.Key)));
+                combo.SelectionChanged += (sender, args) =>
+                {
+                    ComboBox changed = (ComboBox)sender;
+                    StandingsChoice picked = (StandingsChoice)changed.Tag;
+                    if (changed.SelectedIndex >= 0)
+                    {
+                        StandingsOptions.SetChoice(picked.Key, picked.Values[changed.SelectedIndex]);
+                        RefreshPreview();
+                    }
+                };
+                Grid.SetColumn(combo, 1);
+                row.Children.Add(label);
+                row.Children.Add(combo);
+                ColumnOptionsPanel.Children.Add(row);
+            }
+
+            ColumnOptionsHint.Text = any
+                ? "Click another column in the preview to change it."
+                : "This column has no further options. Click another column in the preview.";
+        }
+
+        private void PreviewMode_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            _previewRace = sender == PreviewRace;
+            PreviewRace.IsChecked = _previewRace;
+            PreviewPractice.IsChecked = !_previewRace;
+            RefreshPreview();
+        }
+
+        private void RowsCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_building || RowsCombo.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            StandingsOptions.SetRows(StandingsOptions.RowChoices[RowsCombo.SelectedIndex]);
+            RefreshPreview();
+        }
+
+        private void HeaderToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            StandingsOptions.SetHeader(HeaderToggle.IsChecked == true);
+            RefreshPreview();
+        }
 
         private void ShowToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
