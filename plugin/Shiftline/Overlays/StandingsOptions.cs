@@ -8,19 +8,25 @@ namespace Shiftline.Plugin
     /// <summary>A column of the standings overlay: its key (stored in the settings), its label and its width in the design.</summary>
     internal sealed class StandingsColumn
     {
-        public StandingsColumn(string key, string label, double width, bool rightAligned, bool onByDefault)
+        public const int Left = 0;
+        public const int Center = 1;
+        public const int Right = 2;
+
+        public StandingsColumn(string key, string label, string shortLabel, double width, int align, bool onByDefault)
         {
             Key = key;
             Label = label;
+            ShortLabel = shortLabel;
             Width = width;
-            RightAligned = rightAligned;
+            Align = align;
             OnByDefault = onByDefault;
         }
 
         public string Key { get; }
-        public string Label { get; }
+        public string Label { get; }          // on the settings page
+        public string ShortLabel { get; }     // in the label row of the overlay
         public double Width { get; }
-        public bool RightAligned { get; }
+        public int Align { get; }
         public bool OnByDefault { get; }
     }
 
@@ -55,20 +61,21 @@ namespace Shiftline.Plugin
     {
         public static readonly StandingsColumn[] AllColumns =
         {
-            new StandingsColumn("Pos", "Position", 30, true, true),
-            new StandingsColumn("Gain", "Places gained", 40, false, true),
-            new StandingsColumn("Num", "Car number", 42, true, true),
-            new StandingsColumn("Name", "Name", 160, false, true),
-            new StandingsColumn("Make", "Make", 46, false, true),
-            new StandingsColumn("Lic", "Safety rating", 58, false, true),
-            new StandingsColumn("iR", "iRating", 48, true, true),
-            new StandingsColumn("Gap", "Gap", 56, true, true),
-            new StandingsColumn("Int", "Interval", 52, true, true),
-            new StandingsColumn("Last", "Lap time", 72, true, true),
-            new StandingsColumn("Tyre", "Tyres", 52, false, true),
-            new StandingsColumn("Pit", "Pit", 66, false, true),
-            new StandingsColumn("Stint", "Stint laps", 34, true, false),
-            new StandingsColumn("Delta", "Gain to you", 96, true, true)
+            new StandingsColumn("Class", "Class colour", "", 8, StandingsColumn.Left, true),
+            new StandingsColumn("Pos", "Position", "P", 26, StandingsColumn.Right, true),
+            new StandingsColumn("Gain", "Places gained", "+/-", 34, StandingsColumn.Left, true),
+            new StandingsColumn("Num", "Car number", "#", 38, StandingsColumn.Center, true),
+            new StandingsColumn("Name", "Name", "Driver", 130, StandingsColumn.Left, true),
+            new StandingsColumn("Make", "Make", "Make", 44, StandingsColumn.Center, true),
+            new StandingsColumn("Lic", "Safety rating", "SR", 54, StandingsColumn.Center, true),
+            new StandingsColumn("iR", "iRating", "iR", 44, StandingsColumn.Right, true),
+            new StandingsColumn("Gap", "Gap", "Gap", 48, StandingsColumn.Right, true),
+            new StandingsColumn("Int", "Interval", "Int", 48, StandingsColumn.Right, true),
+            new StandingsColumn("Last", "Lap time", "Last", 70, StandingsColumn.Right, true),
+            new StandingsColumn("Tyre", "Tyres", "Tyre", 44, StandingsColumn.Left, true),
+            new StandingsColumn("Pit", "Pit", "Pit", 60, StandingsColumn.Center, true),
+            new StandingsColumn("Stint", "Stint laps", "Stint", 36, StandingsColumn.Right, false),
+            new StandingsColumn("Delta", "Gain to you", "Gain", 96, StandingsColumn.Right, true)
         };
 
         private static readonly string[] Decimals = { "3", "3 decimals", "2", "2 decimals", "1", "1 decimal" };
@@ -82,12 +89,13 @@ namespace Shiftline.Plugin
                 "Full", "Joshua K Rogers", "FirstLast", "Joshua Rogers", "InitialLast", "J. Rogers", "Last", "Rogers"),
             new StandingsChoice("Name", "Name.Case", "Style", "Normal",
                 "Normal", "Normal", "SmallCaps", "Small caps", "Upper", "UPPERCASE"),
-            new StandingsChoice("Name", "Name.Width", "Maximum width", "160",
+            new StandingsChoice("Name", "Name.Width", "Maximum width", "130",
                 "100", "100 px", "130", "130 px", "160", "160 px", "190", "190 px", "220", "220 px", "260", "260 px"),
             new StandingsChoice("Lic", "Lic.Mode", "Look", "Full",
                 "Full", "Class and rating (A3.48)", "Short", "Class and rating, 1 decimal (A3.4)", "Round", "Class and whole rating (A3)", "Letter", "Class only (A)", "Number", "Rating only, in class colour (3.48)"),
             new StandingsChoice("iR", "iR.Mode", "Look", "Full",
                 "Full", "Full value (4567)", "K1", "Thousands, 1 decimal (4.5k)", "K0", "Whole thousands (5k)"),
+            new StandingsChoice("iR", "iR.Gain", "Expected change if the race ended now (estimate)", "1", OnOff),
             new StandingsChoice("Gap", "Gap.DecRace", "Decimals in races", "1", Decimals),
             new StandingsChoice("Gap", "Gap.DecPQ", "Decimals in practice and qualifying", "3", Decimals),
             new StandingsChoice("Gap", "Gap.ShowRace", "Show in races", "1", OnOff),
@@ -102,10 +110,26 @@ namespace Shiftline.Plugin
             new StandingsChoice("Pit", "Pit.Mode", "Look", "Info",
                 "Info", "With time in the pit lane or the lap of the last stop (PIT 0:23)", "Plain", "Word only (PIT)"),
             new StandingsChoice("Delta", "Delta.Count", "Number of laps", "3",
-                "1", "1 lap", "2", "2 laps", "3", "3 laps", "4", "4 laps", "5", "5 laps")
+                "1", "1 lap", "2", "2 laps", "3", "3 laps", "4", "4 laps", "5", "5 laps"),
+            new StandingsChoice("Look", "Opacity", "Background opacity", "90",
+                "100", "100 %", "90", "90 %", "80", "80 %", "70", "70 %", "60", "60 %", "50", "50 %", "40", "40 %", "30", "30 %", "20", "20 %", "0", "0 % (no background)"),
+            new StandingsChoice("Look", "RowGap", "Space between rows", "0",
+                "0", "None (one panel)", "1", "1 px", "2", "2 px", "3", "3 px", "4", "4 px"),
+            new StandingsChoice("Look", "Font", "Font", "Segoe UI",
+                "Segoe UI", "Segoe UI", "Bahnschrift", "Bahnschrift", "Arial", "Arial", "Calibri", "Calibri", "Verdana", "Verdana", "Tahoma", "Tahoma", "Consolas", "Consolas"),
+            new StandingsChoice("Look", "Weight", "Font weight", "Normal",
+                "Normal", "Normal", "SemiBold", "Semi-bold", "Bold", "Bold"),
+            new StandingsChoice("General", "Classes", "Classes in multi-class races", "Own",
+                "Own", "Only my class", "Grouped", "My class first, then the leaders of the other classes", "Mixed", "All classes mixed (overall order)"),
+            new StandingsChoice("Animation", "Anim.Car", "When a car changes position, in the car", "Normal",
+                "Off", "Off", "Fast", "Fast", "Normal", "Normal", "Slow", "Slow"),
+            new StandingsChoice("Animation", "Anim.Replay", "When a car changes position, in replays", "Off",
+                "Off", "Off", "Fast", "Fast", "Normal", "Normal", "Slow", "Slow")
         };
 
-        public static readonly int[] RowChoices = { 6, 8, 10, 12, 15, 20, 25 };
+        public static readonly int[] RowChoices = Enumerable.Range(3, 38).ToArray();
+
+        public static readonly int[] ScaleChoices = Enumerable.Range(10, 51).Select(i => i * 5).ToArray();   // 50 % to 300 %
 
         private const string Key = OverlayData.StandingsKey;
 
@@ -114,6 +138,20 @@ namespace Shiftline.Plugin
         public List<StandingsColumn> Columns { get; private set; }
         public int Rows { get; private set; }
         public bool Header { get; private set; }
+        public bool Labels { get; private set; }
+        public double Scale { get; private set; }
+
+        /// <summary>The same options with another number of rows (while the window is being resized).</summary>
+        public StandingsOptions WithRows(int rows)
+        {
+            return new StandingsOptions { Columns = Columns, Rows = Math.Max(3, Math.Min(40, rows)), Header = Header, Labels = Labels, Scale = Scale, _values = _values };
+        }
+
+        /// <summary>The same options at another size (while the window is being pulled wider).</summary>
+        public StandingsOptions WithScale(double scale)
+        {
+            return new StandingsOptions { Columns = Columns, Rows = Rows, Header = Header, Labels = Labels, Scale = Math.Max(0.5, Math.Min(3, scale)), _values = _values };
+        }
 
         public static StandingsOptions Load()
         {
@@ -137,6 +175,8 @@ namespace Shiftline.Plugin
                 Columns = AllColumns.Where(c => on.Contains(c.Key)).ToList(),
                 Rows = Math.Max(3, Math.Min(40, rows)),
                 Header = OverlaySettings.GetOption(Key, "Header", "1") == "1",
+                Labels = OverlaySettings.GetOption(Key, "Labels", "0") == "1",
+                Scale = ScaleOf(OverlaySettings.GetOption(Key, "Scale", "100")),
                 _values = values
             };
         }
@@ -168,9 +208,11 @@ namespace Shiftline.Plugin
                 case "Delta":
                     return 32 * Math.Max(1, GetInt("Delta.Count"));
                 case "Tyre":
-                    return GetBool("Tyre.Laps") ? 52 : 28;
+                    return GetBool("Tyre.Laps") ? 46 : 26;
                 case "Pit":
-                    return Get("Pit.Mode") == "Plain" ? 44 : 66;
+                    return Get("Pit.Mode") == "Plain" ? 40 : 56;
+                case "iR":
+                    return GetBool("iR.Gain") ? 82 : column.Width;
                 default:
                     return column.Width;
             }
@@ -205,6 +247,34 @@ namespace Shiftline.Plugin
         public static void SetRows(int rows)
         {
             OverlaySettings.SetOption(Key, "Rows", rows.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static double ScaleOf(string text)
+        {
+            int percent;
+            if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out percent))
+            {
+                percent = 100;
+            }
+
+            return Math.Max(50, Math.Min(300, percent)) / 100.0;
+        }
+
+        public static void SetLabels(bool on)
+        {
+            OverlaySettings.SetOption(Key, "Labels", on ? "1" : "0");
+        }
+
+        /// <summary>Saves a size, rounded to 5 %.</summary>
+        public static void SetScale(double scale)
+        {
+            int percent = (int)Math.Round(Math.Max(0.5, Math.Min(3, scale)) * 20) * 5;
+            SetScale(percent);
+        }
+
+        public static void SetScale(int percent)
+        {
+            OverlaySettings.SetOption(Key, "Scale", percent.ToString(CultureInfo.InvariantCulture));
         }
 
         public static void SetHeader(bool on)

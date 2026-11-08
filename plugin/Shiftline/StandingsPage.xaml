@@ -36,7 +36,8 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                         <ToggleButton x:Name="PreviewRace" Style="{StaticResource GlassToggleButton}" Content="Race" Margin="0,0,6,0" Click="PreviewMode_Click" />
-                        <ToggleButton x:Name="PreviewPractice" Style="{StaticResource GlassToggleButton}" Content="Practice / Qualify" Click="PreviewMode_Click" />
+                        <ToggleButton x:Name="PreviewPractice" Style="{StaticResource GlassToggleButton}" Content="Practice / Qualify" Margin="0,0,6,0" Click="PreviewMode_Click" />
+                        <ToggleButton x:Name="PreviewAnimation" Style="{StaticResource GlassToggleButton}" Content="Animation" Click="PreviewMode_Click" />
                     </StackPanel>
                 </Grid>
                 <Border x:Name="PreviewHost" Margin="0,12,0,0" Padding="12" CornerRadius="10" Background="#FF2A3240" HorizontalAlignment="Left" />
@@ -57,10 +58,41 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="ListOrdered" Text="Rows" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="How many cars the overlay shows. When you are further back, the last rows show you and the cars right before and after you." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="How many cars the overlay shows. You can also pull the bottom edge of the overlay in edit mode. When you are further back, the last rows show you and the cars right before and after you." />
                 </StackPanel>
                 <ComboBox x:Name="RowsCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RowsCombo_SelectionChanged" />
             </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layout" Text="Size" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="How large text and rows are drawn. In edit mode you can also pull the right edge of the overlay. Pulling the bottom edge only adds or removes rows." />
+                </StackPanel>
+                <ComboBox x:Name="ScaleCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="ScaleCombo_SelectionChanged" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ThemeStudio" Text="Look" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Background, spacing and font of the whole overlay." />
+                <StackPanel x:Name="LookPanel" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="Classes" />
+                <TextBlock Style="{StaticResource CardHint}" Text="What the overlay shows in multi-class races. In single-class races all choices look the same." />
+                <StackPanel x:Name="ClassesPanel" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Sparkles" Text="Animation" />
+                <TextBlock Style="{StaticResource CardHint}" Text="When a car gains or loses a place, its row slides to the new position. Choose Animation above the preview to see it." />
+                <StackPanel x:Name="AnimationPanel" Margin="0,12,0,0" />
+            </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <Grid>

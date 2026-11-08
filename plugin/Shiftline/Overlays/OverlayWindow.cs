@@ -27,10 +27,12 @@ namespace Shiftline.Plugin
         private readonly Border _frame;
         private readonly Border _label;
         private readonly Thumb _grip;
+        private readonly Thumb _sideGrip;
         private IntPtr _hwnd;
         private bool _edit;
         private bool _placed;
         private double _aspect;
+        private bool _fixedWidth;
         private Point _dragStartMouse;
         private Size _dragStartSize;
 
@@ -81,6 +83,19 @@ namespace Shiftline.Plugin
             _grip.DragDelta += (sender, args) =>
             {
                 Point mouse = MouseOnScreen();
+                if (_fixedWidth)
+                {
+                    // Only the length changes: the owner turns the height into whole rows and sets the size itself.
+                    double pulled = Math.Max(MinSize, _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y));
+                    Action<double> dragging = HeightDragging;
+                    if (dragging != null)
+                    {
+                        dragging(pulled);
+                    }
+
+                    return;
+                }
+
                 double width = _dragStartSize.Width + (mouse.X - _dragStartMouse.X);
                 double height = _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y);
                 if (_aspect > 0)
@@ -98,13 +113,60 @@ namespace Shiftline.Plugin
                     Height = height;
                 }
             };
-            _grip.DragCompleted += (sender, args) => SavePlacement();
+            _grip.DragCompleted += (sender, args) =>
+            {
+                if (_fixedWidth)
+                {
+                    Action<double> dragged = HeightDragged;
+                    if (dragged != null)
+                    {
+                        dragged(Height);
+                    }
+                }
+
+                SavePlacement();
+            };
+
+            // In fixed-size mode the right edge changes the size of the content (the owner turns the width into a scale).
+            _sideGrip = new Thumb
+            {
+                Width = 8,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Cursor = Cursors.SizeWE,
+                Background = FrameBrush,
+                Opacity = 0.8,
+                Visibility = Visibility.Collapsed
+            };
+            _sideGrip.DragStarted += (sender, args) =>
+            {
+                _dragStartMouse = MouseOnScreen();
+                _dragStartSize = new Size(Width, Height);
+            };
+            _sideGrip.DragDelta += (sender, args) =>
+            {
+                double pulled = Math.Max(MinSize, _dragStartSize.Width + (MouseOnScreen().X - _dragStartMouse.X));
+                Action<double> dragging = WidthDragging;
+                if (dragging != null)
+                {
+                    dragging(pulled / _dragStartSize.Width);
+                }
+            };
+            _sideGrip.DragCompleted += (sender, args) =>
+            {
+                Action dragged = WidthDragged;
+                if (dragged != null)
+                {
+                    dragged();
+                }
+            };
 
             Grid root = new Grid { Background = Brushes.Transparent };
             root.Children.Add(content);
             root.Children.Add(_frame);
             root.Children.Add(_label);
             root.Children.Add(_grip);
+            root.Children.Add(_sideGrip);
             Content = root;
 
             MouseLeftButtonDown += (sender, args) =>
@@ -143,6 +205,40 @@ namespace Shiftline.Plugin
             };
         }
 
+        /// <summary>While the bottom edge is pulled in fixed-width mode: the new window height.</summary>
+        public event Action<double> HeightDragging;
+
+        /// <summary>After the bottom edge was released in fixed-width mode: the final window height.</summary>
+        public event Action<double> HeightDragged;
+
+        /// <summary>While the right edge is pulled in fixed-size mode: the new width as a factor of the width at the start.</summary>
+        public event Action<double> WidthDragging;
+
+        /// <summary>After the right edge was released in fixed-size mode.</summary>
+        public event Action WidthDragged;
+
+        /// <summary>
+        /// Fixed size set by the owner. The width never changes by hand; the bottom edge can be pulled to make the overlay longer
+        /// or shorter, and the owner answers with a new size.
+        /// </summary>
+        public void SetFixedSize(Size size)
+        {
+            if (!_fixedWidth)
+            {
+                _fixedWidth = true;
+                _grip.Width = double.NaN;
+                _grip.Height = 8;
+                _grip.HorizontalAlignment = HorizontalAlignment.Stretch;
+                _grip.Cursor = Cursors.SizeNS;
+                _grip.Opacity = 0.8;
+                _grip.Margin = new Thickness(0, 0, 8, 0);
+                _sideGrip.Visibility = _edit ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            Width = size.Width;
+            Height = size.Height;
+        }
+
         public string Key
         {
             get { return _key; }
@@ -170,6 +266,7 @@ namespace Shiftline.Plugin
             _frame.Visibility = shown;
             _label.Visibility = shown;
             _grip.Visibility = shown;
+            _sideGrip.Visibility = edit && _fixedWidth ? Visibility.Visible : Visibility.Collapsed;
             ApplyStyles();
         }
 
@@ -215,15 +312,23 @@ namespace Shiftline.Plugin
             Rect area = ScreenRect(screen);
             if (placement == null || placement.W <= 0 || placement.H <= 0)
             {
-                Width = _defaultSize.Width;
-                Height = _aspect > 0 ? _defaultSize.Width / _aspect : _defaultSize.Height;
+                if (!_fixedWidth)
+                {
+                    Width = _defaultSize.Width;
+                    Height = _aspect > 0 ? _defaultSize.Width / _aspect : _defaultSize.Height;
+                }
+
                 Left = area.Left + area.Width * 0.75;
                 Top = area.Top + area.Height * 0.15;
                 return;
             }
 
-            Width = Math.Max(MinSize, placement.W * area.Width);
-            Height = _aspect > 0 ? Math.Max(MinSize, Width / _aspect) : Math.Max(MinSize, placement.H * area.Height);
+            if (!_fixedWidth)
+            {
+                Width = Math.Max(MinSize, placement.W * area.Width);
+                Height = _aspect > 0 ? Math.Max(MinSize, Width / _aspect) : Math.Max(MinSize, placement.H * area.Height);
+            }
+
             Left = area.Left + Clamp01(placement.X) * area.Width;
             Top = area.Top + Clamp01(placement.Y) * area.Height;
         }

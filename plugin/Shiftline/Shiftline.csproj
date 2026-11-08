@@ -105,6 +105,7 @@
     <Compile Include="Overlays\CarMakes.cs" />
     <Compile Include="Overlays\GameFocus.cs" />
     <Compile Include="Overlays\IRacingReader.cs" />
+    <Compile Include="Overlays\IRatingEstimate.cs" />
     <Compile Include="Overlays\NativeMethods.cs" />
     <Compile Include="Overlays\OverlayHost.cs" />
     <Compile Include="Overlays\OverlayWindow.cs" />

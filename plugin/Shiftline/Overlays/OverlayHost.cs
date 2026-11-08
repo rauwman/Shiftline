@@ -141,8 +141,7 @@ namespace Shiftline.Plugin
                 _standingsView.ApplyOptions(StandingsOptions.Load());
                 if (_standingsWindow != null)
                 {
-                    Size design = _standingsView.DesignSize;
-                    _standingsWindow.SetAspect(design.Width / design.Height);
+                    _standingsWindow.SetFixedSize(_standingsView.DesignSize);
                 }
             }
 
@@ -174,8 +173,11 @@ namespace Shiftline.Plugin
                     _standingsView = new StandingsOverlay();
                     _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", _standingsView, _standingsView.DesignSize);
                     _standingsWindow.SetEditMode(_edit);
-                    Size design = _standingsView.DesignSize;
-                    _standingsWindow.SetAspect(design.Width / design.Height);
+                    _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+                    _standingsWindow.HeightDragging += StandingsHeightDragging;
+                    _standingsWindow.HeightDragged += StandingsHeightDragged;
+                    _standingsWindow.WidthDragging += StandingsWidthDragging;
+                    _standingsWindow.WidthDragged += StandingsWidthDragged;
                 }
 
                 // In edit mode without a session the overlay shows invented data, so it can be sized and placed.
@@ -190,6 +192,68 @@ namespace Shiftline.Plugin
                 _standingsTimer.Stop();
                 PluginLog.Info("Standings overlay stopped: " + ex);
             }
+        }
+
+        private static int _draggedRows;
+
+        /// <summary>Pulling the bottom edge shows more or fewer rows right away; they are saved when the edge is released.</summary>
+        private static void StandingsHeightDragging(double height)
+        {
+            int rows = _standingsView.RowsForHeight(height);
+            if (rows == _draggedRows)
+            {
+                return;
+            }
+
+            _draggedRows = rows;
+            _standingsView.ApplyOptions(StandingsOptions.Load().WithRows(rows));
+            RefreshStandingsNow();
+        }
+
+        private static double _scaleAtDragStart;
+        private static double _draggedScale;
+
+        /// <summary>Pulling the right edge makes everything larger or smaller; the size is saved when the edge is released.</summary>
+        private static void StandingsWidthDragging(double factor)
+        {
+            if (_scaleAtDragStart <= 0)
+            {
+                _scaleAtDragStart = StandingsOptions.Load().Scale;
+            }
+
+            double scale = Math.Max(0.5, Math.Min(3, _scaleAtDragStart * factor));
+            if (Math.Abs(scale - _draggedScale) < 0.01)
+            {
+                return;
+            }
+
+            _draggedScale = scale;
+            _standingsView.ApplyOptions(StandingsOptions.Load().WithScale(scale));
+            RefreshStandingsNow();
+        }
+
+        private static void StandingsWidthDragged()
+        {
+            double scale = _draggedScale > 0 ? _draggedScale : StandingsOptions.Load().Scale;
+            _scaleAtDragStart = 0;
+            _draggedScale = 0;
+            StandingsOptions.SetScale(scale);         // raises Changed: the window snaps to the saved (rounded) size
+            _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+        }
+
+        private static void RefreshStandingsNow()
+        {
+            StandingsSnapshot snapshot = OverlayData.Current;
+            _standingsView.Update(snapshot.HasData ? snapshot : StandingsSample.Create(true));
+            _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+        }
+
+        private static void StandingsHeightDragged(double height)
+        {
+            int rows = _standingsView.RowsForHeight(height);
+            _draggedRows = 0;
+            StandingsOptions.SetRows(rows);           // raises Changed: the window snaps to the exact size of these rows
+            _standingsWindow.SetFixedSize(_standingsView.DesignSize);
         }
 
         private static void OnUi(Action action)

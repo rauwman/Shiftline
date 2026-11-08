@@ -27,13 +27,22 @@ namespace Shiftline.Plugin
         public double EstTime { get; internal set; }        // raw iRacing value, not checked yet
         public bool IsPlayer { get; internal set; }
         public int StartPosition { get; internal set; }     // 0 = not known (not a race, or not started yet)
+        public int StartClassPosition { get; internal set; }
         public int PitLap { get; internal set; }            // lap of the last pit stop, 0 = none
         public int PitCount { get; internal set; }
         public int StintLaps { get; internal set; }         // laps since the last pit exit (or since the plugin saw the car)
         public bool Towing { get; internal set; }           // guessed, see SessionTracker
         public double PitLaneSeconds { get; internal set; } // time in the pit lane while on pit road, -1 otherwise
         public double[] RecentLaps { get; internal set; }   // last completed lap times, newest first (up to 5)
-        public string TireType { get; internal set; }       // for example "Hard", "Wet"; empty when unknown
+        public string TireType { get; internal set; }
+        public int IRatingChange { get; internal set; }     // estimate if the race ended now, see IRatingEstimate
+        public bool HasIRatingChange { get; internal set; }       // for example "Hard", "Wet"; empty when unknown
+
+        /// <summary>A copy, for invented data that changes (the animation preview).</summary>
+        internal StandingsRow Copy()
+        {
+            return (StandingsRow)MemberwiseClone();
+        }
 
         /// <summary>Laps plus the part of the current lap: the order of cars that have no position yet.</summary>
         public double Progress
@@ -73,6 +82,7 @@ namespace Shiftline.Plugin
         public string IncidentLimit { get; internal set; }    // for example "25" or "unlimited"
         public bool IsSample { get; internal set; }           // invented data for the preview
         public int StrengthOfField { get; internal set; }     // 0 = unknown
+        public bool IsReplay { get; internal set; }
 
         public bool IsRace
         {

@@ -20,6 +20,7 @@ namespace Shiftline.Plugin
         private const int OnTrack = 3;
 
         private readonly int[] _startPosition = new int[Cars];
+        private readonly int[] _startClassPosition = new int[Cars];
         private readonly int[] _pitLap = new int[Cars];
         private readonly int[] _pitCount = new int[Cars];
         private readonly int[] _stintStartLap = new int[Cars];
@@ -80,6 +81,7 @@ namespace Shiftline.Plugin
                 if (race && _startPosition[i] == 0 && row.Position > 0)
                 {
                     _startPosition[i] = row.Position;
+                    _startClassPosition[i] = row.ClassPosition;
                 }
 
                 if (row.OnPitRoad && !_wasOnPitRoad[i])
@@ -97,6 +99,7 @@ namespace Shiftline.Plugin
                 TrackTow(i, row);
 
                 row.StartPosition = _startPosition[i];
+                row.StartClassPosition = _startClassPosition[i];
                 row.PitLap = _pitCount[i] > 0 ? _pitLap[i] : 0;
                 row.PitCount = _pitCount[i];
                 row.StintLaps = Math.Max(0, laps - _stintStartLap[i]);
@@ -136,6 +139,7 @@ namespace Shiftline.Plugin
         private void Reset()
         {
             Array.Clear(_startPosition, 0, Cars);
+            Array.Clear(_startClassPosition, 0, Cars);
             Array.Clear(_pitLap, 0, Cars);
             Array.Clear(_pitCount, 0, Cars);
             Array.Clear(_stintStartLap, 0, Cars);

@@ -26,7 +26,14 @@ namespace Shiftline.Plugin
                 BuildDesignControls();
                 Start();
             };
-            Unloaded += (sender, args) => Stop();
+            Unloaded += (sender, args) =>
+            {
+                Stop();
+                if (_animationTimer != null)
+                {
+                    _animationTimer.Stop();
+                }
+            };
         }
 
         public Shiftline Plugin { get; }
@@ -69,6 +76,16 @@ namespace Shiftline.Plugin
 
             RowsCombo.SelectedIndex = Math.Max(0, Array.IndexOf(StandingsOptions.RowChoices, options.Rows));
             HeaderToggle.IsChecked = options.Header;
+            AddChoices(LookPanel, "Look");
+            AddChoices(ClassesPanel, "General");
+            AddChoices(AnimationPanel, "Animation");
+            ScaleCombo.Items.Clear();
+            foreach (int percent in StandingsOptions.ScaleChoices)
+            {
+                ScaleCombo.Items.Add(percent + " %");
+            }
+
+            ScaleCombo.SelectedIndex = Math.Max(0, Array.IndexOf(StandingsOptions.ScaleChoices, (int)Math.Round(options.Scale * 100)));
             PreviewRace.IsChecked = _previewRace;
             PreviewPractice.IsChecked = !_previewRace;
             _building = false;
@@ -91,7 +108,37 @@ namespace Shiftline.Plugin
             System.Windows.Size size = _preview.DesignSize;
             _preview.Width = size.Width;
             _preview.Height = size.Height;
-            _preview.Update(StandingsSample.Create(_previewRace));
+            _preview.Update(_previewAnimation ? StandingsSample.Shuffled(_animationStep) : StandingsSample.Create(_previewRace));
+        }
+
+        private bool _previewAnimation;
+        private int _animationStep;
+        private DispatcherTimer _animationTimer;
+
+        private void SetAnimationPreview(bool on)
+        {
+            _previewAnimation = on;
+            if (_animationTimer == null)
+            {
+                _animationTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+                _animationTimer.Tick += (sender, args) =>
+                {
+                    _animationStep++;
+                    if (_preview != null)
+                    {
+                        _preview.Update(StandingsSample.Shuffled(_animationStep));
+                    }
+                };
+            }
+
+            if (on)
+            {
+                _animationTimer.Start();
+            }
+            else
+            {
+                _animationTimer.Stop();
+            }
         }
 
         private string _optionsColumn;
@@ -103,6 +150,16 @@ namespace Shiftline.Plugin
             ColumnOptionsPanel.Children.Clear();
             StandingsColumn info = Array.Find(StandingsOptions.AllColumns, c => c.Key == column);
             ColumnOptionsTitle.Text = "Column options: " + (info == null ? column : info.Label);
+            bool any = AddChoices(ColumnOptionsPanel, column);
+            ColumnOptionsHint.Text = any
+                ? "Click another column in the preview to change it."
+                : "This column has no further options. Click another column in the preview.";
+        }
+
+        /// <summary>Adds one drop-down per choice of a column (or of a group such as "Animation"). False when there is none.</summary>
+        private bool AddChoices(StackPanel panel, string column)
+        {
+            panel.Children.Clear();
             StandingsOptions options = StandingsOptions.Load();
             bool any = false;
             foreach (StandingsChoice choice in StandingsOptions.AllChoices)
@@ -137,19 +194,20 @@ namespace Shiftline.Plugin
                 Grid.SetColumn(combo, 1);
                 row.Children.Add(label);
                 row.Children.Add(combo);
-                ColumnOptionsPanel.Children.Add(row);
+                panel.Children.Add(row);
             }
 
-            ColumnOptionsHint.Text = any
-                ? "Click another column in the preview to change it."
-                : "This column has no further options. Click another column in the preview.";
+            return any;
         }
 
         private void PreviewMode_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            _previewRace = sender == PreviewRace;
-            PreviewRace.IsChecked = _previewRace;
+            bool animation = sender == PreviewAnimation;
+            _previewRace = animation || sender == PreviewRace;
+            PreviewRace.IsChecked = !animation && _previewRace;
             PreviewPractice.IsChecked = !_previewRace;
+            PreviewAnimation.IsChecked = animation;
+            SetAnimationPreview(animation);
             RefreshPreview();
         }
 
@@ -161,6 +219,17 @@ namespace Shiftline.Plugin
             }
 
             StandingsOptions.SetRows(StandingsOptions.RowChoices[RowsCombo.SelectedIndex]);
+            RefreshPreview();
+        }
+
+        private void ScaleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_building || ScaleCombo.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            StandingsOptions.SetScale(StandingsOptions.ScaleChoices[ScaleCombo.SelectedIndex]);
             RefreshPreview();
         }
 

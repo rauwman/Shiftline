@@ -139,6 +139,11 @@ namespace Shiftline.Plugin
                 tracker.Apply(rows, key, sessionType.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0, ToDouble(get(Telemetry + "SessionTime"), 0));
             }
 
+            if (sessionType.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                IRatingEstimate.Apply(rows);
+            }
+
             DriverEntry own = drivers.Find(d => d.CarIdx == player);
             int lapsTotal = ToInt(get(Telemetry + "SessionLapsTotal"), 0);
 
@@ -153,6 +158,7 @@ namespace Shiftline.Plugin
                 TrackTemp = Text(get(Session + "WeekendInfo.TrackSurfaceTemp")),
                 Incidents = ToInt(get(Telemetry + "PlayerCarMyIncidentCount"), 0),
                 IncidentLimit = Text(get(Session + "WeekendInfo.WeekendOptions.IncidentLimit")),
+                IsReplay = ToInt(get(Telemetry + "IsReplayPlaying"), 0) != 0,
                 Track = Text(get(Session + "WeekendInfo.TrackDisplayName")),
                 SessionType = sessionType,
                 Sequence = sequence,
