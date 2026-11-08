@@ -13,13 +13,43 @@
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="Layers" Text="Overlays: layout and settings" />
-                <TextBlock Style="{StaticResource CardHint}" Text="General settings for all overlays. The overlay window itself is not built yet, so the choices below arrive with it. Overlays work for iRacing only for now." />
+                <TextBlock Style="{StaticResource CardHint}" Text="General settings for all overlays. Overlays work for iRacing only for now." />
             </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Pencil" Text="Edit mode" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows every switched-on overlay with a frame, also without a session. Drag an overlay to move it and pull its corner to resize it; the position is saved per monitor. Outside edit mode the overlays let every click through to the game. You can also switch edit mode with a key or wheel button: in SimHub's Controls and events, map the action ToggleOverlayEditMode of Shiftline." />
+                </StackPanel>
+                <ToggleButton x:Name="EditToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="EditToggle_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layers" Text="Only while the game is in front" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="The overlays hide as soon as you switch to the desktop, SimHub or any other program, and come back with the game. Switch this off to keep them visible, for example on a second monitor. Edit mode always shows them." />
+                </StackPanel>
+                <ToggleButton x:Name="FrontToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="FrontToggle_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layout" Text="Reset positions" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Puts every overlay back to its default place on the main screen." />
+                </StackPanel>
+                <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset positions" Click="ResetPositions_Click" />
+            </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="Layout" Text="Monitors" />
-                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. Later you choose here on which of them the overlays appear. iRacing must run in windowed or borderless mode for overlays to show above it." />
+                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. An overlay appears on the screen you drag it to. iRacing must run in windowed or borderless mode for overlays to show above it." />
                 <TextBlock x:Name="MonitorText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
             </StackPanel>
         </Border>
@@ -37,7 +67,7 @@
             <StackPanel>
                 <local:IconTitle IconKey="Zap" Text="Planned here" />
                 <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" LineHeight="22"
-                           Text="Monitor choice (one or several)&#10;Edit mode to move and resize overlays, also by hotkey&#10;Transparency&#10;Reset all positions" />
+                           Text="Choose the monitors on which overlays may appear&#10;Transparency&#10;Hide overlays in replay and in the garage" />
             </StackPanel>
         </Border>
     </StackPanel>

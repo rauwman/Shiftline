@@ -22,12 +22,18 @@ namespace Shiftline.Plugin
             Loaded += (sender, args) =>
             {
                 FillRates();
+                ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
                 Start();
             };
             Unloaded += (sender, args) => Stop();
         }
 
         public Shiftline Plugin { get; }
+
+        private void ShowToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlaySettings.SetEnabled(OverlayData.StandingsKey, ShowToggle.IsChecked == true);
+        }
 
         private bool _filling;
 
@@ -124,13 +130,14 @@ namespace Shiftline.Plugin
             }
 
             StringBuilder text = new StringBuilder();
-            text.AppendLine("Pos Cls  #     Name                   Class     Lap  Dist%  Last      Best      Pit  iR");
+            text.AppendLine("Pos Cls  #     Name                   Mk  Class     Lap  Dist%  Last      Best      Pit  iR");
             foreach (StandingsRow row in snapshot.Rows)
             {
                 text.Append((row.Position > 0 ? row.Position.ToString(CultureInfo.InvariantCulture) : "-").PadRight(4));
                 text.Append((row.ClassPosition > 0 ? row.ClassPosition.ToString(CultureInfo.InvariantCulture) : "-").PadRight(5));
                 text.Append(Cut(row.Number, 5).PadRight(6));
                 text.Append(Cut(row.Name, 21).PadRight(23));
+                text.Append(Cut(row.Make, 3).PadRight(4));
                 text.Append(Cut(row.ClassName, 8).PadRight(10));
                 text.Append(row.LapsCompleted.ToString(CultureInfo.InvariantCulture).PadRight(5));
                 text.Append((row.LapDistPct < 0 ? "-" : (row.LapDistPct * 100).ToString("0.0", CultureInfo.InvariantCulture)).PadRight(7));

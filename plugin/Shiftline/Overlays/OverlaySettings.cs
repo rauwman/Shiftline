@@ -5,9 +5,25 @@ using Newtonsoft.Json.Linq;
 
 namespace Shiftline.Plugin
 {
+    /// <summary>Where an overlay sits: the screen's device name, and position and size as parts (0..1) of that screen.</summary>
+    public sealed class OverlayPlacement
+    {
+        public string Screen { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double W { get; set; }
+        public double H { get; set; }
+
+        public OverlayPlacement Copy()
+        {
+            return new OverlayPlacement { Screen = Screen, X = X, Y = Y, W = W, H = H };
+        }
+    }
+
     /// <summary>
     /// General overlay settings, kept in their own small file (Overlays.json next to the other plugin data).
-    /// For now only the update rate: one global value, and an optional value per overlay that overrides it.
+    /// The update rate (one global value, and an optional value per overlay that overrides it), which overlays are switched on,
+    /// and where each overlay sits. Later the switches and positions move into the presets.
     /// </summary>
     public static class OverlaySettings
     {
@@ -16,7 +32,29 @@ namespace Shiftline.Plugin
 
         private static readonly object Gate = new object();
         private static readonly Dictionary<string, int> Overrides = new Dictionary<string, int>();
+        private static readonly Dictionary<string, OverlayPlacement> Placements = new Dictionary<string, OverlayPlacement>();
+        private static readonly HashSet<string> EnabledOverlays = new HashSet<string>();
         private static int _globalRate = DefaultRate;
+        private static bool _onlyWhenGameInFront = true;
+
+        /// <summary>Overlays show only while the game window is in front (edit mode shows them anyway). Default on.</summary>
+        public static bool OnlyWhenGameInFront
+        {
+            get { lock (Gate) { return _onlyWhenGameInFront; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _onlyWhenGameInFront = value;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
+
+        /// <summary>Raised after a switch, a rate or the positions changed (not when one overlay was moved). Any thread.</summary>
+        public static event Action Changed;
 
         static OverlaySettings()
         {
@@ -40,6 +78,7 @@ namespace Shiftline.Plugin
                 }
 
                 Save();
+                RaiseChanged();
             }
         }
 
@@ -79,6 +118,82 @@ namespace Shiftline.Plugin
             }
 
             Save();
+            RaiseChanged();
+        }
+
+        public static bool IsEnabled(string overlay)
+        {
+            lock (Gate)
+            {
+                return EnabledOverlays.Contains(overlay);
+            }
+        }
+
+        public static void SetEnabled(string overlay, bool enabled)
+        {
+            lock (Gate)
+            {
+                if (enabled)
+                {
+                    EnabledOverlays.Add(overlay);
+                }
+                else
+                {
+                    EnabledOverlays.Remove(overlay);
+                }
+            }
+
+            Save();
+            RaiseChanged();
+        }
+
+        /// <summary>A copy of the saved position, or null when the overlay was never placed.</summary>
+        public static OverlayPlacement GetPlacement(string overlay)
+        {
+            lock (Gate)
+            {
+                OverlayPlacement placement;
+                return Placements.TryGetValue(overlay, out placement) ? placement.Copy() : null;
+            }
+        }
+
+        public static void SetPlacement(string overlay, OverlayPlacement placement)
+        {
+            lock (Gate)
+            {
+                Placements[overlay] = placement.Copy();
+            }
+
+            Save();
+        }
+
+        public static void ResetPlacements()
+        {
+            lock (Gate)
+            {
+                Placements.Clear();
+            }
+
+            Save();
+            RaiseChanged();
+        }
+
+        private static void RaiseChanged()
+        {
+            Action handler = Changed;
+            if (handler == null)
+            {
+                return;
+            }
+
+            try
+            {
+                handler();
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Info("Overlay settings: " + ex.Message);
+            }
         }
 
         private static int Clamp(int rate)
@@ -113,6 +228,44 @@ namespace Shiftline.Plugin
                         }
                     }
                 }
+
+                JToken front = json["OnlyWhenGameInFront"];
+                if (front != null && front.Type == JTokenType.Boolean)
+                {
+                    _onlyWhenGameInFront = (bool)front;
+                }
+
+                JArray enabled = json["Enabled"] as JArray;
+                if (enabled != null)
+                {
+                    foreach (JToken name in enabled)
+                    {
+                        if (name.Type == JTokenType.String)
+                        {
+                            EnabledOverlays.Add((string)name);
+                        }
+                    }
+                }
+
+                JObject placements = json["Placements"] as JObject;
+                if (placements != null)
+                {
+                    foreach (JProperty property in placements.Properties())
+                    {
+                        JObject value = property.Value as JObject;
+                        if (value != null)
+                        {
+                            Placements[property.Name] = new OverlayPlacement
+                            {
+                                Screen = (string)value["Screen"],
+                                X = (double?)value["X"] ?? 0,
+                                Y = (double?)value["Y"] ?? 0,
+                                W = (double?)value["W"] ?? 0,
+                                H = (double?)value["H"] ?? 0
+                            };
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -125,18 +278,38 @@ namespace Shiftline.Plugin
             try
             {
                 JObject own = new JObject();
+                JArray enabled = new JArray();
+                JObject placements = new JObject();
                 int global;
+                bool front;
                 lock (Gate)
                 {
                     global = _globalRate;
+                    front = _onlyWhenGameInFront;
                     foreach (KeyValuePair<string, int> pair in Overrides)
                     {
                         own[pair.Key] = pair.Value;
                     }
+
+                    foreach (string name in EnabledOverlays)
+                    {
+                        enabled.Add(name);
+                    }
+
+                    foreach (KeyValuePair<string, OverlayPlacement> pair in Placements)
+                    {
+                        placements[pair.Key] = new JObject
+                        {
+                            { "Screen", pair.Value.Screen }, { "X", pair.Value.X }, { "Y", pair.Value.Y }, { "W", pair.Value.W }, { "H", pair.Value.H }
+                        };
+                    }
                 }
 
                 Directory.CreateDirectory(ProfileStore.RootFolder);
-                File.WriteAllText(FilePath, new JObject { { "GlobalRate", global }, { "Rates", own } }.ToString());
+                File.WriteAllText(FilePath, new JObject
+                {
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "Rates", own }, { "Enabled", enabled }, { "Placements", placements }
+                }.ToString());
             }
             catch (Exception ex)
             {

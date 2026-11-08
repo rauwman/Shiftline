@@ -77,7 +77,7 @@
                                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
                                     </Canvas>
                                 </Viewbox>
-                                    <TextBlock Text="Layout &amp; Settings" VerticalAlignment="Center" />
+                                    <TextBlock Text="General" VerticalAlignment="Center" />
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton x:Name="NavOverlayStandings" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Overlays" Checked="Nav_Checked">

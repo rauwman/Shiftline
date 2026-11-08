@@ -15,6 +15,7 @@ namespace Shiftline.Plugin
         public string ClassColor { get; internal set; }     // as iRacing reports it, for example 0xffda59
         public int IRating { get; internal set; }
         public string License { get; internal set; }
+        public string Make { get; internal set; }           // three-letter make code, for example POR
         public int LapsCompleted { get; internal set; }
         public double LapDistPct { get; internal set; }     // 0..1, -1 = not on the track
         public double LastLap { get; internal set; }        // seconds, -1 = none

@@ -100,7 +100,7 @@ namespace Shiftline.Plugin
             {
                 Field("Position", r => r.Position), Field("ClassPosition", r => r.ClassPosition), Field("Number", r => r.Number),
                 Field("Name", r => r.Name), Field("CarIdx", r => r.CarIdx), Field("ClassName", r => r.ClassName),
-                Field("ClassColor", r => r.ClassColor), Field("IRating", r => r.IRating), Field("License", r => r.License),
+                Field("ClassColor", r => r.ClassColor), Field("IRating", r => r.IRating), Field("License", r => r.License), Field("Make", r => r.Make),
                 Field("Laps", r => r.LapsCompleted), Field("LapDistPct", r => r.LapDistPct), Field("LastLap", r => r.LastLap),
                 Field("BestLap", r => r.BestLap), Field("OnPitRoad", r => r.OnPitRoad), Field("IsPlayer", r => r.IsPlayer),
                 Field("F2Time", r => r.F2Time), Field("EstTime", r => r.EstTime)

@@ -97,6 +97,7 @@ namespace Shiftline.Plugin
         /// <summary>Called when SimHub stops: persist the settings.</summary>
         public void End(PluginManager pluginManager)
         {
+            OverlayHost.Stop();
             SaveSettings();
         }
 
@@ -164,7 +165,10 @@ namespace Shiftline.Plugin
             this.AddAction(actionName: "PreviousPreset", actionStart: (a, b) => OnUi(() => CyclePreset(-1)));
             this.AddAction(actionName: "BrightnessUp", actionStart: (a, b) => OnUi(() => ChangeBrightness(10)));
             this.AddAction(actionName: "BrightnessDown", actionStart: (a, b) => OnUi(() => ChangeBrightness(-10)));
+            this.AddAction(actionName: "ToggleOverlayEditMode", actionStart: (a, b) => OverlayHost.ToggleEditMode());
             this.AddAction(actionName: "ToggleNightMode", actionStart: (a, b) => OnUi(() => Settings.NightMode = !Settings.NightMode));
+
+            OverlayHost.Start();
 
             string built = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location).ToString("yyyy-MM-dd HH:mm:ss");
             PluginLog.Info("started (DLL built " + built + "), " + Settings.Themes.Count + " colour themes, LED script " + Settings.ScriptBuild + " (" + ScriptSource.Text.Length + " characters)");

@@ -20,6 +20,16 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layers" Text="Show overlay" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows the standings above the game. This first version is a plain list (the leaders, and the cars around you when you are further back) to test the overlay window; the real design comes next. Place it in edit mode on the General page." />
+                </StackPanel>
+                <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Zap" Text="Update rate" />
                     <TextBlock Style="{StaticResource CardHint}" Text="Affects how often the standings update. Positions change slowly, so a low rate is enough. Choose the global rate to follow the general setting." />
                 </StackPanel>

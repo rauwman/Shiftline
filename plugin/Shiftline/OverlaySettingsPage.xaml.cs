@@ -15,7 +15,11 @@ namespace Shiftline.Plugin
             {
                 ShowMonitors();
                 FillRates();
+                EditToggle.IsChecked = OverlayHost.EditMode;
+                FrontToggle.IsChecked = OverlaySettings.OnlyWhenGameInFront;
+                OverlayHost.EditModeChanged += OnEditModeChanged;
             };
+            Unloaded += (sender, args) => OverlayHost.EditModeChanged -= OnEditModeChanged;
         }
 
         public OverlaySettingsPage(Shiftline plugin) : this()
@@ -24,6 +28,26 @@ namespace Shiftline.Plugin
         }
 
         public Shiftline Plugin { get; }
+
+        private void OnEditModeChanged()
+        {
+            EditToggle.IsChecked = OverlayHost.EditMode;
+        }
+
+        private void EditToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlayHost.SetEditMode(EditToggle.IsChecked == true);
+        }
+
+        private void FrontToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlaySettings.OnlyWhenGameInFront = FrontToggle.IsChecked == true;
+        }
+
+        private void ResetPositions_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlayHost.ResetPositions();
+        }
 
         private bool _filling;
 

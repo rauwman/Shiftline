@@ -16,6 +16,7 @@ namespace Shiftline.Plugin
         public string ClassColor;
         public int IRating;
         public string License;
+        public string Make;
     }
 
     /// <summary>
@@ -58,7 +59,8 @@ namespace Shiftline.Plugin
                     ClassName = Text(get(prefix + "CarClassShortName")),
                     ClassColor = Text(get(prefix + "CarClassColor")),
                     IRating = ToInt(get(prefix + "IRating"), 0),
-                    License = Text(get(prefix + "LicString"))
+                    License = Text(get(prefix + "LicString")),
+                    Make = CarMakes.CodeFor(Text(get(prefix + "CarScreenName")))
                 });
             }
 
@@ -105,6 +107,7 @@ namespace Shiftline.Plugin
                     ClassColor = driver.ClassColor,
                     IRating = driver.IRating,
                     License = driver.License,
+                    Make = driver.Make,
                     LapsCompleted = (int)At(lapCompleted, i, 0),
                     LapDistPct = dist,
                     LastLap = At(lastLap, i, -1),
