@@ -47,7 +47,7 @@ The plugin is built with Visual Studio 2022 or newer. Python and Node are only n
 ```
 .
 ├── README.md
-├── LICENSE
+├── LICENSE.txt
 ├── docs/                         BUILD.md, RELEASE.md, this file, images
 ├── installer/                    Inno Setup script and the info page text
 ├── profiles/                     the loader LED profile (the only profile)

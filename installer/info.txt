@@ -1,4 +1,4 @@
-Shiftline - LED control for SimHub (Beta)
+Shiftline - LED control and overlays for SimHub (Beta)
 
 On a first installation, choose the folder where SimHub is installed (the folder that contains SimHubWPF.exe). Close SimHub first; the installer can also ask SimHub to close. An update goes into the existing folder.
 
@@ -6,5 +6,6 @@ After the installation:
 1. Start SimHub and open the Shiftline plugin to check that it is listed.
 2. Import the LED profile "Shiftline Loader.ledsprofile" (from Public Documents\Shiftline, usually C:\Users\Public\Documents\Shiftline) into your LED device once.
 3. Select that profile, then choose what the LEDs do under Shiftline > LED Devices > Dash Panel.
+4. The overlays are under Shiftline > Overlays. Switch on the Standings there and use Edit mode to place them.
 
 Your settings and presets stay when you update or uninstall (SimHub\PluginsData\Shiftline).

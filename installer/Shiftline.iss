@@ -4,7 +4,7 @@
 ;   ISCC.exe /DAppVersion=0.2.1 Shiftline.iss). The installer appears in installer\Output.
 
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.2.1"
 #endif
 
 [Setup]
@@ -23,12 +23,12 @@ OutputBaseFilename=Shiftline-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-LicenseFile=..\LICENSE
+LicenseFile=..\LICENSE.txt
 InfoBeforeFile=info.txt
 UninstallDisplayName=Shiftline (SimHub plugin)
 UninstallFilesDir={commonappdata}\Shiftline
 CloseApplications=no
-VersionInfoVersion=0.2.0.0
+VersionInfoVersion=0.2.1.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -37,6 +37,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "..\plugin\Shiftline\bin\Release\Shiftline.Plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\profiles\Shiftline Loader.ledsprofile"; DestDir: "{commondocs}\Shiftline"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{commondocs}\Shiftline"; Flags: ignoreversion
+; The overlays use the fonts Inter and Saira SemiCondensed, built into the DLL. Their licence (SIL Open Font License 1.1)
+; has to travel with them.
+Source: "..\plugin\Shiftline\Assets\Fonts\OFL-*.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
 
 [Icons]
 Name: "{commonprograms}\Shiftline\Uninstall Shiftline"; Filename: "{uninstallexe}"

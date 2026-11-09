@@ -1,9 +1,9 @@
 ﻿# Shiftline
 
-Shiftline is a SimHub plugin that makes configuring your dashboard LEDs simple, from rev lights to flags and effects, with presets per game and car.
+Shiftline is a SimHub plugin that makes configuring your dashboard LEDs simple, from rev lights to flags and effects, with presets per game and car. It also brings on-screen overlays, starting with a standings table.
 It drives an LED profile of a SimHub LED device and has been tested with an Arduino and a WS2812B strip (SimHub's "Arduino RGB LEDs" device).
 
-> **Beta version (0.2).** Shiftline is young. It has been tested by one person on one device (5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). Other games, other layouts and some effects are untested, please report what you find.
+> **Shiftline is still in beta.** The LED part has been tested by one person on one device (5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
 
 ![The Dash Panel page of Shiftline](docs/images/dash-panel.png)
 
@@ -24,6 +24,15 @@ It drives an LED profile of a SimHub LED device and has been tested with an Ardu
 - **Updates:** the plugin looks for a newer release on GitHub and can install it
 
 Untested so far: ERS mode and the safety car delta (F1 games), the update installer.
+
+### Overlays (new)
+
+- **Standings:** position, class colour, places gained, car number, name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
+- Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
+- Classes on their own, grouped or mixed; animated position changes
+- **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
+- Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
+- More overlays are planned: relatives, track map, fuel calculator, pit helper, pedals, inputs graph and spotter
 
 ## Install
 
@@ -47,6 +56,7 @@ Without the installer, copy `Shiftline.Plugin.dll` from a release into the SimHu
 
 - Tested with SimHub 9.13.3 on Windows with one Arduino strip. Please open an issue with your SimHub version, game and the system log (Shiftline > Settings) when something does not work.
 - ERS mode and the safety car delta use SimHub property names found by research, not confirmed in a real F1 game.
+- Overlays need the game in windowed or borderless mode.
 
 ## Build from source
 
@@ -76,4 +86,6 @@ Shiftline is free and open source under the GNU General Public License v3. You c
 
 ## License
 
-GNU General Public License v3 (GPL-3.0), see `LICENSE`.
+GNU General Public License v3 (GPL-3.0), see `LICENSE.txt`.
+
+The overlays include the fonts Inter and Saira SemiCondensed under the SIL Open Font License 1.1, see `plugin/Shiftline/Assets/Fonts`.
