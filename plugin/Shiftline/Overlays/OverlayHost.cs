@@ -138,7 +138,7 @@ namespace Shiftline.Plugin
 
             if (_standingsView != null)
             {
-                _standingsView.ApplyOptions(StandingsOptions.Load());
+                _standingsView.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
                 if (_standingsWindow != null)
                 {
                     _standingsWindow.SetFixedSize(_standingsView.DesignSize);
@@ -156,7 +156,10 @@ namespace Shiftline.Plugin
             {
                 bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
                 StandingsSnapshot snapshot = OverlayData.Current;
-                bool inGame = snapshot.HasData && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront("IRacing"));
+                bool inGame = snapshot.HasData
+                    && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront(snapshot.Game))
+                    && (OverlaySettings.ShowInReplays || !snapshot.IsReplay)
+                    && (OverlaySettings.ShowInGarage || !snapshot.IsInGarage);
                 bool show = enabled && (_edit || inGame);
                 if (!show)
                 {
@@ -181,7 +184,16 @@ namespace Shiftline.Plugin
                 }
 
                 // In edit mode without a session the overlay shows invented data, so it can be sized and placed.
-                _standingsView.Update(snapshot.HasData ? snapshot : StandingsSample.Create(true));
+                StandingsSnapshot shown = snapshot.HasData ? snapshot : StandingsSample.Create(true);
+                if (shown.Features != _standingsFeatures)
+                {
+                    // Another game: hide the columns it cannot fill (or show them again).
+                    _standingsFeatures = shown.Features;
+                    _standingsView.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
+                    _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+                }
+
+                _standingsView.Update(shown);
                 if (!_standingsWindow.IsVisible)
                 {
                     _standingsWindow.Show();
@@ -195,6 +207,7 @@ namespace Shiftline.Plugin
         }
 
         private static int _draggedRows;
+        private static StandingsFeatures _standingsFeatures = StandingsFeatures.All;
 
         /// <summary>Pulling the bottom edge shows more or fewer rows right away; they are saved when the edge is released.</summary>
         private static void StandingsHeightDragging(double height)
@@ -206,7 +219,7 @@ namespace Shiftline.Plugin
             }
 
             _draggedRows = rows;
-            _standingsView.ApplyOptions(StandingsOptions.Load().WithRows(rows));
+            _standingsView.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures).WithRows(rows));
             RefreshStandingsNow();
         }
 
@@ -228,7 +241,7 @@ namespace Shiftline.Plugin
             }
 
             _draggedScale = scale;
-            _standingsView.ApplyOptions(StandingsOptions.Load().WithScale(scale));
+            _standingsView.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures).WithScale(scale));
             RefreshStandingsNow();
         }
 

@@ -72,6 +72,11 @@ namespace Shiftline.Plugin
                 Incidents = race.Incidents,
                 IncidentLimit = race.IncidentLimit,
                 StrengthOfField = race.StrengthOfField,
+                TrackShort = race.TrackShort,
+                TimeOfDay = race.TimeOfDay,
+                DeltaToBest = race.DeltaToBest,
+                HasDelta = race.HasDelta,
+                Features = StandingsFeatures.All,
                 IsSample = true,
                 Diagnostics = new string[0]
             };
@@ -147,7 +152,12 @@ namespace Shiftline.Plugin
                 Incidents = 2,
                 IncidentLimit = "25",
                 IsSample = true,
+                Features = StandingsFeatures.All,
                 StrengthOfField = 3120,
+                TrackShort = "Sample Raceway",
+                TimeOfDay = 14 * 3600 + 20 * 60,
+                DeltaToBest = -0.24,
+                HasDelta = race,
                 Diagnostics = new string[0]
             };
         }

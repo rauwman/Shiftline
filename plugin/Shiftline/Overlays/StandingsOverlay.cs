@@ -21,6 +21,10 @@ namespace Shiftline.Plugin
         private const double RowHeight = 24;
         private const double HeaderHeight = 26;
         private const double LabelHeight = 18;
+        private const double FooterHeight = 26;
+        private static readonly Geometry ClockShape = FrozenGeometry("M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2");
+        private static readonly Geometry SunShape = FrozenGeometry("M 8.5,6 A 2.5,2.5 0 1 1 8.49,5.99 Z M 6,0.6 L 6,1.9 M 6,10.1 L 6,11.4 M 0.6,6 L 1.9,6 M 10.1,6 L 11.4,6 M 2.2,2.2 L 3.1,3.1 M 8.9,8.9 L 9.8,9.8 M 2.2,9.8 L 3.1,8.9 M 8.9,3.1 L 9.8,2.2");
+        private static readonly Geometry MoonShape = FrozenGeometry("M 8.2,1.2 A 5,5 0 1 0 10.8,8.2 A 4,4 0 0 1 8.2,1.2 Z");
         private const int AroundPlayer = 3;           // rows kept for the player and the cars right before and after
         private const int MaxDelta = 5;
 
@@ -37,7 +41,26 @@ namespace Shiftline.Plugin
         private static readonly Brush NumberBoxBrush = Frozen(0xFF, 0x05, 0x06, 0x08);
         private static readonly Brush DarkText = Frozen(0xFF, 0x10, 0x12, 0x16);
         private static readonly Brush WetBrush = Frozen(0xFF, 0x3F, 0xA9, 0xF5);
-        private static readonly Brush PillBrush = Frozen(0x1E, 0xFF, 0xFF, 0xFF);
+        private static readonly Brush SubtleFill = Frozen(0x1E, 0xFF, 0xFF, 0xFF);
+        private static readonly Brush LightFill = Frozen(0x3A, 0xFF, 0xFF, 0xFF);
+        private static readonly Brush WhiteFill = Frozen(0xFF, 0xF9, 0xF9, 0xF9);
+        private static readonly Brush DarkGreenBrush = Frozen(0xFF, 0x1B, 0x8A, 0x3A);
+        private static readonly Brush DarkRedBrush = Frozen(0xFF, 0xC6, 0x28, 0x28);
+        private Brush[] _columnFills = new Brush[0];
+        private bool[] _columnLight = new bool[0];
+        private double _round = 1;                  // 1 = rounded boxes, 0 = square
+        private double _deltaWidth = 28;
+        private Border _headerBox;
+        private Border _footerBox;
+        private Path _simIcon;
+        private Path _clockIcon;
+        private TextBlock _simTime;
+        private TextBlock _clockTime;
+        private TextBlock _footLast;
+        private TextBlock _footDelta;
+        private TextBlock _footBest;
+        private TextBlock _footSession;
+        private Path _footDeltaArrow;
         private static readonly Geometry ChevronUp = FrozenGeometry("M 0.5,5.5 L 4,2 L 7.5,5.5");
         private static readonly Geometry ChevronDown = FrozenGeometry("M 0.5,2 L 4,5.5 L 7.5,2");
         private static readonly Dictionary<string, Brush> LicenceBrushes = new Dictionary<string, Brush>(StringComparer.OrdinalIgnoreCase);
@@ -103,7 +126,7 @@ namespace Shiftline.Plugin
 
         private static double FixedHeight(StandingsOptions options)
         {
-            return (options.Header ? HeaderHeight + 4 : 0) + (options.Labels ? LabelHeight : 0) + 12;
+            return (options.Header ? HeaderHeight + 4 : 0) + (options.Footer ? FooterHeight + 4 : 0) + (options.Labels ? LabelHeight : 0) + 12;
         }
 
         /// <summary>Rebuilds the rows and columns. Call on the UI thread after the options changed.</summary>
@@ -127,20 +150,70 @@ namespace Shiftline.Plugin
 
             Grid grid = new Grid();
             _designWidth = 0;
+            FontFamily overlayFont = OverlayFonts.Get(options.Get("Font"));
+            FontWeight overlayWeight = WeightOf(options.Get("Weight"));
+            _deltaWidth = 28;
             foreach (StandingsColumn column in columns)
             {
-                double width = options.WidthOf(column);
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
-                _designWidth += width;
+                // At least the planned width, more when the longest value would not fit in the chosen font.
+                string font = options.Get(column.Key + ".Font");
+                string weight = options.Get(column.Key + ".Weight");
+                FontFamily family = string.IsNullOrEmpty(font) || font == "Default" ? overlayFont : OverlayFonts.Get(font);
+                FontWeight bold = string.IsNullOrEmpty(weight) || weight == "Default" ? overlayWeight : WeightOf(weight);
+                if (column.Key == "Num" && (string.IsNullOrEmpty(weight) || weight == "Default") && options.GetInt("Num.Style") % 2 == 1)
+                {
+                    bold = FontWeights.Bold;
+                }
+
+                double width = Math.Max(options.WidthOf(column), Required(column.Key, options, family, bold));
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Ceiling(width)) });
+                _designWidth += Math.Ceiling(width);
             }
 
             _designWidth = Math.Max(_designWidth, 120);
+            _round = options.Get("Corners") == "Square" ? 0 : 1;
+            _columnFills = new Brush[columns.Count];
+            _columnLight = new bool[columns.Count];
+            for (int c = 0; c < columns.Count; c++)
+            {
+                string fill = options.Get(columns[c].Key + ".Bg");
+                _columnFills[c] = fill == "White" ? WhiteFill : fill == "Light" ? LightFill : fill == "Subtle" ? SubtleFill : null;
+                _columnLight[c] = fill == "White";
+            }
+
             int nextRow = 0;
             if (options.Header)
             {
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(HeaderHeight + 4) });
                 _header = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-                Border headerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5), Height = HeaderHeight, VerticalAlignment = VerticalAlignment.Top, Child = _header };
+
+                // Right side: the time of day in the simulation (sun or moon) and the time on this PC (clock).
+                _simIcon = NewIcon();
+                _simTime = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 10, 0) };
+                _clockIcon = NewIcon();
+                _clockIcon.Data = ClockShape;
+                _clockTime = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 8, 0) };
+                StackPanel right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+                if (options.GetBool("H.SimTime"))
+                {
+                    right.Children.Add(_simIcon);
+                    right.Children.Add(_simTime);
+                }
+
+                if (options.GetBool("H.Clock"))
+                {
+                    right.Children.Add(_clockIcon);
+                    right.Children.Add(_clockTime);
+                }
+
+                Grid headerGrid = new Grid();
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                Grid.SetColumn(right, 1);
+                headerGrid.Children.Add(_header);
+                headerGrid.Children.Add(right);
+                Border headerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = HeaderHeight, VerticalAlignment = VerticalAlignment.Top, Child = headerGrid };
+                _headerBox = headerBox;
                 Grid.SetColumnSpan(headerBox, span);
                 grid.Children.Add(headerBox);
                 nextRow++;
@@ -148,6 +221,7 @@ namespace Shiftline.Plugin
             else
             {
                 _header = null;
+                _headerBox = null;
             }
 
             if (options.Labels)
@@ -186,7 +260,7 @@ namespace Shiftline.Plugin
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(_rowPitch) });
                 TranslateTransform shift = new TranslateTransform();
                 _rowShifts[r] = shift;
-                Border background = new Border { CornerRadius = new CornerRadius(gap > 0 ? 4 : 3), Margin = new Thickness(0, 0, 0, gap), Background = r % 2 == 1 ? _oddRowBrush : _rowBrush, RenderTransform = shift };
+                Border background = new Border { CornerRadius = new CornerRadius((gap > 0 ? 4 : 3) * _round), Margin = new Thickness(0, 0, 0, gap), Background = r % 2 == 1 ? _oddRowBrush : _rowBrush, RenderTransform = shift };
                 Grid.SetRow(background, firstRow + r);
                 Grid.SetColumnSpan(background, span);
                 grid.Children.Add(background);
@@ -220,7 +294,7 @@ namespace Shiftline.Plugin
                     }
                     else if (key == "Tyre")
                     {
-                        content = BuildTyre(r, text);
+                        content = BuildTyre(r, text, _columnFills[c]);
                     }
                     else if (key == "Delta")
                     {
@@ -232,7 +306,7 @@ namespace Shiftline.Plugin
                     }
                     else if (key == "iR")
                     {
-                        content = BuildIRating(r, text);
+                        content = BuildIRating(r, text, _columnFills[c]);
                     }
 
                     if (gap > 0)
@@ -240,15 +314,31 @@ namespace Shiftline.Plugin
                         margin = new Thickness(margin.Left, margin.Top, margin.Right, margin.Bottom + gap);
                     }
 
+
+
                     Border box = new Border
                     {
                         Margin = margin,
                         Padding = padding,
-                        CornerRadius = new CornerRadius(key == "Class" ? 2 : 3),
+                        CornerRadius = new CornerRadius((key == "Class" ? 2 : 3) * _round),
                         Child = content,
                         Background = _interactive ? Brushes.Transparent : null,
                         RenderTransform = shift
                     };
+                    // Font and weight of this column, when chosen apart from the whole overlay (inherited by everything in the cell).
+                    string font = options.Get(key + ".Font");
+                    if (!string.IsNullOrEmpty(font) && font != "Default")
+                    {
+                        TextElement.SetFontFamily(box, OverlayFonts.Get(font));
+                    }
+
+                    string weight = options.Get(key + ".Weight");
+                    if (!string.IsNullOrEmpty(weight) && weight != "Default")
+                    {
+                        TextElement.SetFontWeight(box, WeightOf(weight));
+                        text.ClearValue(TextBlock.FontWeightProperty);
+                    }
+
                     if (_interactive)
                     {
                         box.Cursor = Cursors.Hand;
@@ -271,16 +361,66 @@ namespace Shiftline.Plugin
                 }
             }
 
-            // Fixed size: the scale comes from the "Size" choice, not from the window. A longer window only adds rows.
-            if (options.Header && _header != null && gap > 0)
+            // Footer: own last lap, live delta to own best, own best, best lap of the session.
+            _footerBox = null;
+            if (options.Footer)
             {
-                ((Border)_header.Parent).Background = Frozen(alpha, 0x16, 0x1C, 0x26);
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(FooterHeight + 4) });
+                Grid footer = new Grid { Margin = new Thickness(8, 0, 8, 0) };
+                List<FrameworkElement> items = new List<FrameworkElement>();
+                if (options.GetBool("F.Last"))
+                {
+                    items.Add(FooterItem("LAST", out _footLast));
+                }
+
+                if (options.GetBool("F.Delta"))
+                {
+                    items.Add(DeltaItem(out _footDelta, out _footDeltaArrow));
+                }
+
+                if (options.GetBool("F.Best"))
+                {
+                    items.Add(FooterItem("BEST", out _footBest));
+                }
+
+                if (options.GetBool("F.Session"))
+                {
+                    items.Add(FooterItem("SESSION", out _footSession));
+                }
+
+                for (int i = 0; i < items.Count; i++)
+                {
+                    footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    items[i].HorizontalAlignment = i == 0 ? HorizontalAlignment.Left : i == items.Count - 1 ? HorizontalAlignment.Right : HorizontalAlignment.Center;
+                    Grid.SetColumn(items[i], i);
+                    footer.Children.Add(items[i]);
+                }
+
+                _footerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = FooterHeight, VerticalAlignment = VerticalAlignment.Bottom, Child = footer };
+                Grid.SetRow(_footerBox, firstRow + rows);
+                Grid.SetColumnSpan(_footerBox, span);
+                grid.Children.Add(_footerBox);
+            }
+
+            // Fixed size: the scale comes from the "Size" choice, not from the window. A longer window only adds rows.
+            if (gap > 0)
+            {
+                Brush bar = Frozen(alpha, 0x16, 0x1C, 0x26);
+                if (_headerBox != null)
+                {
+                    _headerBox.Background = bar;
+                }
+
+                if (_footerBox != null)
+                {
+                    _footerBox.Background = bar;
+                }
             }
 
             Border panel = new Border
             {
                 Background = panelBrush,
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(8 * _round),
                 Padding = new Thickness(8, 6, 8, 6),
                 Width = _designWidth + 16,
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -289,7 +429,7 @@ namespace Shiftline.Plugin
                 ClipToBounds = true,
                 LayoutTransform = new ScaleTransform(options.Scale, options.Scale)
             };
-            TextElement.SetFontFamily(panel, new FontFamily(options.Get("Font")));
+            TextElement.SetFontFamily(panel, OverlayFonts.Get(options.Get("Font")));
             TextElement.SetFontWeight(panel, WeightOf(options.Get("Weight")));
             Child = panel;
         }
@@ -316,7 +456,7 @@ namespace Shiftline.Plugin
             };
         }
 
-        private UIElement BuildTyre(int r, TextBlock laps)
+        private UIElement BuildTyre(int r, TextBlock laps, Brush fill)
         {
             // The letter is drawn as a shape centred on its own outline, so it sits exactly in the middle of the ring whatever
             // the font's line spacing is.
@@ -329,11 +469,11 @@ namespace Shiftline.Plugin
             _tyreLetters[r] = letter;
             laps.Foreground = MutedBrush;
             laps.HorizontalAlignment = HorizontalAlignment.Right;
-            laps.Margin = new Thickness(0, 0, 3, 0);
+            laps.Margin = new Thickness(0, 0, 4, 0);
             Grid row = new Grid();
             row.Children.Add(icon);
             row.Children.Add(laps);
-            return new Border { Background = PillBrush, CornerRadius = new CornerRadius(9), Padding = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Stretch, Child = row };
+            return new Border { Background = fill, CornerRadius = new CornerRadius(9 * _round), Padding = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Stretch, Child = row };
         }
 
         private static Geometry LetterShape(string code)
@@ -369,9 +509,9 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The iRating with its estimated change, on one shared background so they read as one.</summary>
-        private UIElement BuildIRating(int r, TextBlock rating)
+        private UIElement BuildIRating(int r, TextBlock rating, Brush fill)
         {
-            Path arrow = new Path { Width = 8, Height = 8, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 2, 0) };
+            Path arrow = new Path { Width = 8, Height = 8, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0, 1, 0) };
             TextBlock change = NewText(StandingsColumn.Left);
             _irArrows[r] = arrow;
             _irChanges[r] = change;
@@ -382,7 +522,60 @@ namespace Shiftline.Plugin
             Grid panel = new Grid();
             panel.Children.Add(rating);
             panel.Children.Add(right);
-            return new Border { Background = PillBrush, CornerRadius = new CornerRadius(4), Padding = new Thickness(4, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Stretch, Child = panel };
+            return new Border { Background = fill, CornerRadius = new CornerRadius(4 * _round), Padding = new Thickness(4, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Stretch, Child = panel };
+        }
+
+        /// <summary>
+        /// The width a column needs so that its longest normal value is shown in full: for example a lap time of 1:59.999, a pit
+        /// stop of 20:00 or a four-digit iRating with a three-digit change. Names keep their chosen maximum and are cut with "...".
+        /// </summary>
+        private double Required(string column, StandingsOptions options, FontFamily family, FontWeight weight)
+        {
+            const double Cell = 10;                         // margin and padding around every cell
+            int decimals = Math.Max(options.GetInt("Last.DecRace"), options.GetInt("Last.DecPQ"));
+            int gapDecimals = Math.Max(options.GetInt(column + ".DecRace"), options.GetInt(column + ".DecPQ"));
+            switch (column)
+            {
+                case "Pos":
+                    return Measure("00", family, weight) + Cell;
+                case "Gain":
+                    return Measure("00", family, weight) + 11 + Cell;
+                case "Num":
+                    return Measure("000", family, weight) + Cell + 4;
+                case "Make":
+                    return Measure("WWW", family, weight) + Cell;
+                case "Lic":
+                    return Measure("W0.00", family, weight) + Cell + 2;
+                case "iR":
+                    return options.GetBool("iR.Gain")
+                        ? Measure("00000", family, weight) + 12 + Measure("000", family, weight) + 8 + Cell
+                        : Measure("00000", family, weight) + 8 + Cell;
+                case "Gap":
+                case "Int":
+                    return Measure(gapDecimals >= 3 ? "000.000" : gapDecimals == 2 ? "000.00" : "000.0", family, weight) + Cell;
+                case "Last":
+                    return Measure(decimals >= 3 ? "0:00.000" : decimals == 2 ? "0:00.00" : "0:00.0", family, weight) + Cell;
+                case "Tyre":
+                    return options.GetBool("Tyre.Laps") ? 16 + 6 + Measure("00", family, weight) + 6 + Cell : 16 + 4 + Cell;
+                case "Pit":
+                    return options.Get("Pit.Mode") == "Plain"
+                        ? Measure("TOW", family, weight) + Cell + 4
+                        : Measure("PIT", family, weight) + 8 + Measure("00:00", family, weight) + Cell + 4;
+                case "Stint":
+                    return Measure("000", family, weight) + Cell;
+                case "Delta":
+                    _deltaWidth = Math.Max(28, Measure("00.0", family, weight) + 6);
+                    return _deltaWidth * Math.Max(1, options.GetInt("Delta.Count")) + Cell;
+                default:
+                    return 0;
+            }
+        }
+
+        private static double Measure(string text, FontFamily family, FontWeight weight)
+        {
+            FormattedText formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface(family, FontStyles.Normal, weight, FontStretches.Normal), 13, Brushes.White, 1.0);
+            return formatted.WidthIncludingTrailingWhitespace;
         }
 
         private static FontWeight WeightOf(string weight)
@@ -392,13 +585,14 @@ namespace Shiftline.Plugin
 
         private UIElement BuildDelta(int r, TextBlock first)
         {
-            StackPanel panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            StackPanel panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
             int count = Math.Max(1, Math.Min(MaxDelta, _options.GetInt("Delta.Count")));
             for (int k = 0; k < count; k++)
             {
-                TextBlock text = k == 0 ? first : NewText(StandingsColumn.Right);
-                text.Width = 28;
-                text.TextAlignment = TextAlignment.Right;
+                TextBlock text = k == 0 ? first : NewText(StandingsColumn.Center);
+                text.Width = _deltaWidth;
+                text.HorizontalAlignment = HorizontalAlignment.Center;
+                text.TextAlignment = TextAlignment.Center;
                 panel.Children.Add(text);
                 _deltas[r, k] = text;
             }
@@ -412,10 +606,11 @@ namespace Shiftline.Plugin
             if (_header != null)
             {
                 SetText(_header, HeaderText(snapshot));
+                UpdateClocks(snapshot);
             }
 
             StandingsRow[] all = snapshot.Rows ?? new StandingsRow[0];
-            Context context = new Context(all, snapshot.IsRace, _options);
+            Context context = new Context(all, snapshot.IsRace, _options) { HasDelta = snapshot.HasDelta, DeltaToBest = snapshot.DeltaToBest };
             List<Entry> shown = BuildEntries(all, _options.Rows, _options.Get("Classes"));
             Dictionary<int, int> slots = new Dictionary<int, int>();
             double animation = AnimationSeconds(snapshot.IsReplay);
@@ -452,6 +647,123 @@ namespace Shiftline.Plugin
             }
 
             _lastSlots = slots;
+            UpdateFooter(context);
+        }
+
+        private static Path NewIcon()
+        {
+            return new Path { Width = 12, Height = 12, Stroke = MutedBrush, StrokeThickness = 1.3, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center };
+        }
+
+        private static FrameworkElement FooterItem(string label, out TextBlock value)
+        {
+            TextBlock name = new TextBlock { Text = label, Foreground = MutedBrush, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
+            value = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+            StackPanel item = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            item.Children.Add(name);
+            item.Children.Add(value);
+            return item;
+        }
+
+        /// <summary>The live delta: the same thin arrow as for places and iRating (up and green when faster), then the value.</summary>
+        private static FrameworkElement DeltaItem(out TextBlock value, out Path arrow)
+        {
+            arrow = new Path { Width = 8, Height = 8, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            value = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+            StackPanel item = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            item.Children.Add(arrow);
+            item.Children.Add(value);
+            return item;
+        }
+
+        /// <summary>Sim time of day with a sun (day) or moon (night), and the time on this PC with a clock.</summary>
+        private void UpdateClocks(StandingsSnapshot snapshot)
+        {
+            if (_simTime != null)
+            {
+                double seconds = snapshot.TimeOfDay;
+                bool known = seconds >= 0;
+                Visibility shown = known ? Visibility.Visible : Visibility.Collapsed;      // games without a sim clock hide it
+                if (_simTime.Visibility != shown)
+                {
+                    _simTime.Visibility = shown;
+                    _simIcon.Visibility = shown;
+                }
+
+                SetText(_simTime, known ? TimeSpan.FromSeconds(seconds % 86400).ToString(@"hh\:mm", CultureInfo.InvariantCulture) : "-");
+                bool day = !known || (seconds % 86400 >= 6 * 3600 && seconds % 86400 < 20 * 3600);
+                Geometry shape = day ? SunShape : MoonShape;
+                if (!ReferenceEquals(_simIcon.Data, shape))
+                {
+                    _simIcon.Data = shape;
+                }
+            }
+
+            if (_clockTime != null)
+            {
+                SetText(_clockTime, DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture));
+            }
+        }
+
+        private void UpdateFooter(Context context)
+        {
+            if (_footerBox == null)
+            {
+                return;
+            }
+
+            StandingsRow player = context.Player;
+            int decimals = _options.GetInt("Last.Dec" + context.Mode);
+            if (_footLast != null)
+            {
+                SetText(_footLast, player == null ? "-" : Lap(player.LastLap, decimals));
+            }
+
+            if (_footBest != null)
+            {
+                SetText(_footBest, player == null ? "-" : Lap(player.BestLap, decimals));
+                Brush brush = player != null && player.BestLap > 0 && Math.Abs(player.BestLap - context.SessionBest) < 0.0005 ? PurpleBrush : GreenBrush;
+                if (!ReferenceEquals(_footBest.Foreground, brush))
+                {
+                    _footBest.Foreground = brush;
+                }
+            }
+
+            if (_footSession != null)
+            {
+                SetText(_footSession, context.SessionBest < double.MaxValue ? Lap(context.SessionBest, decimals) : "-");
+                if (!ReferenceEquals(_footSession.Foreground, PurpleBrush))
+                {
+                    _footSession.Foreground = PurpleBrush;
+                }
+            }
+
+            if (_footDelta != null)
+            {
+                // iRacing's live delta of the running lap to the player's best lap; negative is faster.
+                string text = "-";
+                Brush brush = MutedBrush;
+                Geometry shape = null;
+                if (context.HasDelta)
+                {
+                    double delta = context.DeltaToBest;
+                    text = Math.Abs(delta).ToString("0.00", CultureInfo.InvariantCulture);
+                    brush = delta < -0.005 ? GreenBrush : delta > 0.005 ? LossBrush : TextBrush;
+                    shape = delta < -0.005 ? ChevronUp : delta > 0.005 ? ChevronDown : null;
+                }
+
+                SetText(_footDelta, text);
+                if (!ReferenceEquals(_footDelta.Foreground, brush))
+                {
+                    _footDelta.Foreground = brush;
+                    _footDeltaArrow.Stroke = brush;
+                }
+
+                if (!ReferenceEquals(_footDeltaArrow.Data, shape))
+                {
+                    _footDeltaArrow.Data = shape;
+                }
+            }
         }
 
         private double AnimationSeconds(bool replay)
@@ -514,6 +826,36 @@ namespace Shiftline.Plugin
             if (mode == "Own")
             {
                 AddBlock(entries, own.ToArray(), count, true);
+                return entries;
+            }
+
+            if (mode == "ByClass")
+            {
+                // Every class as its own block, in the order of their best car. Each block shows as many cars as still fit;
+                // the player's block keeps the player in view.
+                for (int k = 0; k < classes.Count && entries.Count < count; k++)
+                {
+                    if (k > 0)
+                    {
+                        if (entries.Count + 2 > count)
+                        {
+                            break;
+                        }
+
+                        entries.Add(null);
+                    }
+
+                    int left = count - entries.Count;
+                    int reserve = 0;
+                    for (int later = k + 1; later < classes.Count; later++)
+                    {
+                        reserve += 3;                               // keep room for at least two cars of every later class
+                    }
+
+                    int take = Math.Max(Math.Min(3, left), Math.Min(classes[k].Count, left - reserve));
+                    AddBlock(entries, classes[k].ToArray(), Math.Min(take, left), true);
+                }
+
                 return entries;
             }
 
@@ -581,6 +923,8 @@ namespace Shiftline.Plugin
             public StandingsOptions Options { get; }
             public double SessionBest { get; }
             public StandingsRow Player { get; }
+            public bool HasDelta { get; set; }
+            public double DeltaToBest { get; set; }
 
             public string Mode
             {
@@ -610,7 +954,7 @@ namespace Shiftline.Plugin
 
             if (column == "iR" && row == null)
             {
-                FillIRatingChange(r, null, false);
+                FillIRatingChange(r, null, false, false);
             }
 
             if (row != null)
@@ -659,7 +1003,7 @@ namespace Shiftline.Plugin
                     case "iR":
                         value = FormatIRating(row.IRating, options.Get("iR.Mode"));
                         foreground = MutedBrush;
-                        FillIRatingChange(r, row, options.GetBool("iR.Gain"));
+                        FillIRatingChange(r, row, options.GetBool("iR.Gain"), _columnLight[c]);
                         break;
                     case "Gap":
                     case "Int":
@@ -720,6 +1064,22 @@ namespace Shiftline.Plugin
             if (column == "Gain")
             {
                 SetArrow(_gainArrows[r], entry, foreground);
+            }
+
+            // The column's own background (for example behind the position), unless the cell has a coloured one already.
+            if (background == null || ReferenceEquals(background, Brushes.Transparent))
+            {
+                bool inner = column == "iR" || column == "Tyre";                // these two draw their background themselves
+                Brush fill = inner || row == null ? null : _columnFills[c];
+                background = fill ?? background;
+                if (row != null && _columnLight[c] && (fill != null || inner))
+                {
+                    // Dark text on the white background; green and red get darker so they stay readable.
+                    foreground = ReferenceEquals(foreground, GreenBrush) ? DarkGreenBrush
+                        : ReferenceEquals(foreground, LossBrush) ? DarkRedBrush
+                        : ReferenceEquals(foreground, PurpleBrush) ? foreground
+                        : DarkText;
+                }
             }
 
             if (_interactive && background == null)
@@ -971,7 +1331,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private void FillIRatingChange(int r, StandingsRow row, bool show)
+        private void FillIRatingChange(int r, StandingsRow row, bool show, bool onLight)
         {
             TextBlock change = _irChanges[r];
             Path arrow = _irArrows[r];
@@ -990,7 +1350,7 @@ namespace Shiftline.Plugin
             }
 
             bool has = show && row != null && row.HasIRatingChange && row.IRatingChange != 0;
-            Brush brush = has && row.IRatingChange > 0 ? GreenBrush : LossBrush;
+            Brush brush = has && row.IRatingChange > 0 ? (onLight ? DarkGreenBrush : GreenBrush) : (onLight ? DarkRedBrush : LossBrush);
             SetText(change, has ? Math.Abs(row.IRatingChange).ToString(CultureInfo.InvariantCulture) : string.Empty);
             Geometry shape = has ? (row.IRatingChange > 0 ? ChevronUp : ChevronDown) : null;
             if (!ReferenceEquals(arrow.Data, shape))
@@ -1056,20 +1416,32 @@ namespace Shiftline.Plugin
             return Math.Floor(value * factor) / factor;
         }
 
-        private static string HeaderText(StandingsSnapshot snapshot)
+        private string HeaderText(StandingsSnapshot snapshot)
         {
             List<string> parts = new List<string>();
             string type = snapshot.SessionType ?? string.Empty;
-            parts.Add(type.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0 ? "R"
-                : type.IndexOf("Qual", StringComparison.OrdinalIgnoreCase) >= 0 ? "Q"
-                : type.Length > 0 ? "P" : "-");
-            if (!string.IsNullOrEmpty(snapshot.CarName))
+            if (_options.GetBool("H.Session"))
+            {
+                parts.Add(type.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0 ? "R"
+                    : type.IndexOf("Qual", StringComparison.OrdinalIgnoreCase) >= 0 ? "Q"
+                    : type.Length > 0 ? "P" : "-");
+            }
+
+            if (_options.GetBool("H.Track") && !string.IsNullOrEmpty(snapshot.TrackShort))
+            {
+                parts.Add(snapshot.TrackShort);
+            }
+
+            if (_options.GetBool("H.Car") && !string.IsNullOrEmpty(snapshot.CarName))
             {
                 parts.Add(snapshot.CarName);
             }
 
             StandingsRow[] rows = snapshot.Rows ?? new StandingsRow[0];
-            if (snapshot.LapsTotal > 0)
+            if (!_options.GetBool("H.Laps"))
+            {
+            }
+            else if (snapshot.LapsTotal > 0)
             {
                 int leaderLap = rows.Length > 0 ? Math.Max(0, rows[0].LapsCompleted) + 1 : 0;
                 parts.Add("Lap " + Math.Min(leaderLap, snapshot.LapsTotal) + "/" + snapshot.LapsTotal);
@@ -1081,18 +1453,21 @@ namespace Shiftline.Plugin
 
             double temp;
             string tempText = (snapshot.TrackTemp ?? string.Empty).Split(' ')[0];
-            if (double.TryParse(tempText, NumberStyles.Float, CultureInfo.InvariantCulture, out temp))
+            if (_options.GetBool("H.Temp") && double.TryParse(tempText, NumberStyles.Float, CultureInfo.InvariantCulture, out temp))
             {
                 parts.Add("Track " + temp.ToString("0", CultureInfo.InvariantCulture) + "\u00B0C");
             }
 
-            if (snapshot.StrengthOfField > 0)
+            if (_options.GetBool("H.Sof") && snapshot.StrengthOfField > 0)
             {
                 parts.Add("SOF " + snapshot.StrengthOfField.ToString(CultureInfo.InvariantCulture));
             }
 
             string limit = snapshot.IncidentLimit ?? string.Empty;
-            parts.Add("Inc " + snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty));
+            if (_options.GetBool("H.Inc") && (snapshot.Features & StandingsFeatures.Incidents) != 0)
+            {
+                parts.Add("Inc " + snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty));
+            }
             if (snapshot.IsSample)
             {
                 parts.Add("Preview");
@@ -1165,7 +1540,12 @@ namespace Shiftline.Plugin
                 return brush;
             }
 
-            string hex = value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? value.Substring(2) : value;
+            string hex = value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? value.Substring(2) : value.TrimStart('#');
+            if (hex.Length == 8)
+            {
+                hex = hex.Substring(2);                     // #AARRGGBB from SimHub: the colour without its alpha
+            }
+
             int rgb;
             brush = hex.Length == 6 && int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out rgb)
                 ? Frozen(0xFF, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)
@@ -1184,7 +1564,7 @@ namespace Shiftline.Plugin
 
             Color c = solid.Color;
             double luminance = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
-            return luminance > 140 ? DarkText : Brushes.White;
+            return luminance > 120 ? DarkText : Brushes.White;     // green, yellow and orange get dark text; blue and red white
         }
 
         private static Geometry FrozenGeometry(string data)

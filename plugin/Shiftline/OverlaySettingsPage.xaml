@@ -7,49 +7,67 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="RowTitle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="RowLine" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource GlassBorder}" />
+                <Setter Property="BorderThickness" Value="0,1,0,0" />
+                <Setter Property="Margin" Value="0,14,0,14" />
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
     <StackPanel>
-        <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
-                <local:IconTitle IconKey="Layers" Text="Overlays: layout and settings" />
-                <TextBlock Style="{StaticResource CardHint}" Text="General settings for all overlays. Overlays work for iRacing only for now." />
-            </StackPanel>
-        </Border>
         <Border Style="{StaticResource GlassCard}">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Pencil" Text="Edit mode" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Shows every switched-on overlay with a frame, also without a session. Drag an overlay to move it and pull its corner to resize it; the position is saved per monitor. Outside edit mode the overlays let every click through to the game. You can also switch edit mode with a key or wheel button: in SimHub's Controls and events, map the action ToggleOverlayEditMode of Shiftline." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows all switched-on overlays with a frame so you can drag and resize them. Also via the action ToggleOverlayEditMode in SimHub's Controls and events." />
                 </StackPanel>
-                <ToggleButton x:Name="EditToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="EditToggle_Click" />
-            </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Layers" Text="Only while the game is in front" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="The overlays hide as soon as you switch to the desktop, SimHub or any other program, and come back with the game. Switch this off to keep them visible, for example on a second monitor. Edit mode always shows them." />
+                <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                    <ToggleButton x:Name="EditToggle" Style="{StaticResource SegmentToggle}" HorizontalAlignment="Right" Click="EditToggle_Click" />
+                    <Button Margin="0,10,0,0" Style="{StaticResource GlassButton}" HorizontalAlignment="Right" Content="Reset positions" Click="ResetPositions_Click" />
                 </StackPanel>
-                <ToggleButton x:Name="FrontToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="FrontToggle_Click" />
-            </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Layout" Text="Reset positions" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Puts every overlay back to its default place on the main screen." />
-                </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset positions" Click="ResetPositions_Click" />
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="When overlays show" />
+                <Grid Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="Only while the game is in front" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Hide them when you switch to the desktop or another program." />
+                    </StackPanel>
+                    <ToggleButton x:Name="FrontToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="FrontToggle_Click" />
+                </Grid>
+                <Border Style="{StaticResource RowLine}" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="In replays" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Show them while a replay plays." />
+                    </StackPanel>
+                    <ToggleButton x:Name="ReplayToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="ReplayToggle_Click" />
+                </Grid>
+                <Border Style="{StaticResource RowLine}" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="In the garage and menus" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Show them in the car setup and the game's menus. The pits during a session count as driving." />
+                    </StackPanel>
+                    <ToggleButton x:Name="GarageToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="GarageToggle_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
                 <local:IconTitle IconKey="Layout" Text="Monitors" />
-                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. An overlay appears on the screen you drag it to. iRacing must run in windowed or borderless mode for overlays to show above it." />
+                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. An overlay appears on the screen you drag it to. The game must run in windowed or borderless mode for overlays to show above it." />
                 <TextBlock x:Name="MonitorText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
             </StackPanel>
         </Border>
@@ -62,13 +80,6 @@
                 </StackPanel>
                 <ComboBox x:Name="RateCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RateCombo_SelectionChanged" />
             </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
-                <local:IconTitle IconKey="Zap" Text="Planned here" />
-                <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" LineHeight="22"
-                           Text="Choose the monitors on which overlays may appear&#10;Transparency&#10;Hide overlays in replay and in the garage" />
-            </StackPanel>
         </Border>
     </StackPanel>
 </UserControl>

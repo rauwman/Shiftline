@@ -107,6 +107,7 @@
     <Compile Include="Overlays\IRacingReader.cs" />
     <Compile Include="Overlays\IRatingEstimate.cs" />
     <Compile Include="Overlays\NativeMethods.cs" />
+    <Compile Include="Overlays\OverlayFonts.cs" />
     <Compile Include="Overlays\OverlayHost.cs" />
     <Compile Include="Overlays\OverlayWindow.cs" />
     <Compile Include="Overlays\StandingsOptions.cs" />
@@ -116,6 +117,7 @@
     <Compile Include="Overlays\OverlaySettings.cs" />
     <Compile Include="Overlays\RateClock.cs" />
     <Compile Include="Overlays\SessionTracker.cs" />
+    <Compile Include="Overlays\SimHubReader.cs" />
     <Compile Include="Overlays\StandingsModel.cs" />
     <Compile Include="OverlaySettingsPage.xaml.cs">
       <DependentUpon>OverlaySettingsPage.xaml</DependentUpon>
@@ -149,6 +151,14 @@
     <Compile Include="UpdateService.cs" />
     <Resource Include="Assets\background.jpg" />
     <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\Fonts\Inter-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Inter-SemiBold.ttf" />
+    <Resource Include="Assets\Fonts\Inter-Bold.ttf" />
+    <Resource Include="Assets\Fonts\SairaSemiCondensed-Regular.ttf" />
+    <Resource Include="Assets\Fonts\SairaSemiCondensed-SemiBold.ttf" />
+    <Resource Include="Assets\Fonts\SairaSemiCondensed-Bold.ttf" />
+    <None Include="Assets\Fonts\OFL-Inter.txt" />
+    <None Include="Assets\Fonts\OFL-SairaSemiCondensed.txt" />
     <!-- the LED script, embedded so the plugin can hand it to the loader profile -->
     <EmbeddedResource Include="..\..\tools\Shiftline.plugin.js">
       <LogicalName>Shiftline.plugin.js</LogicalName>

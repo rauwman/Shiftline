@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using GameReaderCommon;
 using SimHub.Plugins;
 
 namespace Shiftline.Plugin
@@ -26,6 +27,7 @@ namespace Shiftline.Plugin
         private static List<DriverEntry> _drivers = new List<DriverEntry>();
         private static long _sequence;
         private static readonly SessionTracker Tracker = new SessionTracker();
+        private static readonly SimHubReader Generic = new SimHubReader();
 
         /// <summary>The latest standings. Never null; the object never changes after it was returned.</summary>
         public static StandingsSnapshot Current
@@ -34,13 +36,27 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>Called from DataUpdate on every update; cheap when it is not due.</summary>
-        public static void Update(PluginManager pluginManager)
+        public static void Update(PluginManager pluginManager, GameData data)
         {
             try
             {
                 string game = pluginManager.GetPropertyValue("DataCorePlugin.CurrentGame") as string;
                 bool running = IRacingReader.ToInt(pluginManager.GetPropertyValue("DataCorePlugin.GameRunning"), 0) != 0;
-                if (!running || !string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase))
+                bool iracing = string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase);
+                GameFocus.Learn(pluginManager, game);
+                if (running && !iracing)
+                {
+                    // Every other game: SimHub's own opponent list.
+                    StandingsClock.SetRate(OverlaySettings.RateFor(StandingsKey));
+                    if (StandingsClock.Due())
+                    {
+                        Volatile.Write(ref _current, Generic.Build(data, ++_sequence, Tracker));
+                    }
+
+                    return;
+                }
+
+                if (!running)
                 {
                     if (Current.HasData)
                     {

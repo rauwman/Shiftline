@@ -65,7 +65,7 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            OverlayData.Update(pluginManager);      // before the early return below: the standings change on every update
+            OverlayData.Update(pluginManager, data);      // before the early return below: the standings change on every update
 
             // A new game: switch to the preset of that game (its favourite, otherwise the favourite of "any game").
             string game = pluginManager.GetPropertyValue("DataCorePlugin.CurrentGame") as string;

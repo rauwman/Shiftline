@@ -37,6 +37,8 @@ namespace Shiftline.Plugin
         private static readonly Dictionary<string, Dictionary<string, string>> Options = new Dictionary<string, Dictionary<string, string>>();
         private static int _globalRate = DefaultRate;
         private static bool _onlyWhenGameInFront = true;
+        private static bool _showInReplays;
+        private static bool _showInGarage;
 
         /// <summary>Overlays show only while the game window is in front (edit mode shows them anyway). Default on.</summary>
         public static bool OnlyWhenGameInFront
@@ -47,6 +49,38 @@ namespace Shiftline.Plugin
                 lock (Gate)
                 {
                     _onlyWhenGameInFront = value;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
+
+        /// <summary>Overlays also show while a replay plays (edit mode shows them anyway). Default off.</summary>
+        public static bool ShowInReplays
+        {
+            get { lock (Gate) { return _showInReplays; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _showInReplays = value;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
+
+        /// <summary>Overlays also show in the garage and the game's menus (edit mode shows them anyway). Default off.</summary>
+        public static bool ShowInGarage
+        {
+            get { lock (Gate) { return _showInGarage; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _showInGarage = value;
                 }
 
                 Save();
@@ -145,6 +179,18 @@ namespace Shiftline.Plugin
                 }
 
                 own[name] = value;
+            }
+
+            Save();
+            RaiseChanged();
+        }
+
+        /// <summary>Removes all design options of one overlay, so it uses its defaults again.</summary>
+        public static void ClearOptions(string overlay)
+        {
+            lock (Gate)
+            {
+                Options.Remove(overlay);
             }
 
             Save();
@@ -265,6 +311,18 @@ namespace Shiftline.Plugin
                     _onlyWhenGameInFront = (bool)front;
                 }
 
+                JToken replays = json["ShowInReplays"];
+                if (replays != null && replays.Type == JTokenType.Boolean)
+                {
+                    _showInReplays = (bool)replays;
+                }
+
+                JToken garage = json["ShowInGarage"];
+                if (garage != null && garage.Type == JTokenType.Boolean)
+                {
+                    _showInGarage = (bool)garage;
+                }
+
                 JArray enabled = json["Enabled"] as JArray;
                 if (enabled != null)
                 {
@@ -334,10 +392,14 @@ namespace Shiftline.Plugin
                 JObject options = new JObject();
                 int global;
                 bool front;
+                bool replays;
+                bool garage;
                 lock (Gate)
                 {
                     global = _globalRate;
                     front = _onlyWhenGameInFront;
+                    replays = _showInReplays;
+                    garage = _showInGarage;
                     foreach (KeyValuePair<string, int> pair in Overrides)
                     {
                         own[pair.Key] = pair.Value;
@@ -371,7 +433,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }
                 }.ToString());
             }
             catch (Exception ex)

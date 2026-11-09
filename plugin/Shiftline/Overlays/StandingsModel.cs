@@ -2,6 +2,20 @@ using System;
 
 namespace Shiftline.Plugin
 {
+    /// <summary>What a game delivers beyond the basics; the overlay hides what is missing.</summary>
+    [Flags]
+    public enum StandingsFeatures
+    {
+        None = 0,
+        IRating = 1,
+        Licence = 2,
+        Incidents = 4,
+        TimeOfDay = 8,
+        Tyres = 16,
+        Delta = 32,
+        All = IRating | Licence | Incidents | TimeOfDay | Tyres | Delta
+    }
+
     /// <summary>One car in the standings. Treated as immutable once it is part of a published snapshot.</summary>
     public sealed class StandingsRow
     {
@@ -67,6 +81,10 @@ namespace Shiftline.Plugin
             TrackTemp = string.Empty,
             IncidentLimit = string.Empty,
             TimeRemaining = -1,
+            TimeOfDay = -1,
+            TrackShort = string.Empty,
+            Game = string.Empty,
+            Features = StandingsFeatures.All,
             Diagnostics = new string[0]
         };
 
@@ -83,6 +101,13 @@ namespace Shiftline.Plugin
         public bool IsSample { get; internal set; }           // invented data for the preview
         public int StrengthOfField { get; internal set; }     // 0 = unknown
         public bool IsReplay { get; internal set; }
+        public bool IsInGarage { get; internal set; }         // the player is in the garage or the game's menus, not driving
+        public string TrackShort { get; internal set; }       // short track name, for example "Interlagos"
+        public double TimeOfDay { get; internal set; }        // time of day in the simulation, seconds after midnight, -1 = unknown
+        public double DeltaToBest { get; internal set; }      // live delta of the running lap to the player's best lap
+        public bool HasDelta { get; internal set; }
+        public StandingsFeatures Features { get; internal set; }
+        public string Game { get; internal set; }             // SimHub's name of the game, for example "IRacing"
 
         public bool IsRace
         {

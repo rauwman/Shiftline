@@ -74,6 +74,16 @@
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="ListOrdered" Text="Reset the design" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether the overlay is shown, its position and its update rate stay." />
+                </StackPanel>
+                <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset" Click="ResetDesign_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="ThemeStudio" Text="Look" />
                 <TextBlock Style="{StaticResource CardHint}" Text="Background, spacing and font of the whole overlay." />
@@ -99,9 +109,21 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Layout" Text="Header line" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="A line above the rows with the session, your car, laps or time left, the track temperature and your incidents." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="A line above the rows. Choose what it shows; when it gets too long, the end is cut. The two times on the right are the time of day in the sim (sun or moon) and the time on this PC (clock)." />
+                    <StackPanel x:Name="HeaderPanel" Margin="0,12,0,0" />
                 </StackPanel>
                 <ToggleButton x:Name="HeaderToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="HeaderToggle_Click" />
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Layout" Text="Footer line" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="A line below the rows with your last lap, the live delta of the running lap to your best (green when faster), your best lap and the best lap of the session." />
+                    <StackPanel x:Name="FooterPanel" Margin="0,12,0,0" />
+                </StackPanel>
+                <ToggleButton x:Name="FooterToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="FooterToggle_Click" />
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">

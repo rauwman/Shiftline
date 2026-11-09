@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace Shiftline.Plugin
 {
-    /// <summary>General settings of the overlays. For now it lists the monitors.</summary>
+    /// <summary>General settings of the overlays: edit mode, when they show, positions, monitors and the update rate.</summary>
     public partial class OverlaySettingsPage : System.Windows.Controls.UserControl
     {
         public OverlaySettingsPage()
@@ -17,6 +17,8 @@ namespace Shiftline.Plugin
                 FillRates();
                 EditToggle.IsChecked = OverlayHost.EditMode;
                 FrontToggle.IsChecked = OverlaySettings.OnlyWhenGameInFront;
+                ReplayToggle.IsChecked = OverlaySettings.ShowInReplays;
+                GarageToggle.IsChecked = OverlaySettings.ShowInGarage;
                 OverlayHost.EditModeChanged += OnEditModeChanged;
             };
             Unloaded += (sender, args) => OverlayHost.EditModeChanged -= OnEditModeChanged;
@@ -42,6 +44,16 @@ namespace Shiftline.Plugin
         private void FrontToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             OverlaySettings.OnlyWhenGameInFront = FrontToggle.IsChecked == true;
+        }
+
+        private void ReplayToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlaySettings.ShowInReplays = ReplayToggle.IsChecked == true;
+        }
+
+        private void GarageToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            OverlaySettings.ShowInGarage = GarageToggle.IsChecked == true;
         }
 
         private void ResetPositions_Click(object sender, System.Windows.RoutedEventArgs e)

@@ -98,8 +98,9 @@ namespace Shiftline.Plugin
                 _wasOnPitRoad[i] = row.OnPitRoad;
                 TrackTow(i, row);
 
-                row.StartPosition = _startPosition[i];
-                row.StartClassPosition = _startClassPosition[i];
+                // A game that reports the grid itself (through SimHub) keeps its own value.
+                row.StartPosition = row.StartPosition > 0 ? row.StartPosition : _startPosition[i];
+                row.StartClassPosition = row.StartClassPosition > 0 ? row.StartClassPosition : _startClassPosition[i];
                 row.PitLap = _pitCount[i] > 0 ? _pitLap[i] : 0;
                 row.PitCount = _pitCount[i];
                 row.StintLaps = Math.Max(0, laps - _stintStartLap[i]);

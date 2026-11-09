@@ -58,6 +58,16 @@ namespace Shiftline.Plugin
                     Style = (System.Windows.Style)FindResource("GlassToggleButton"),
                     IsChecked = StandingsOptions.IsColumnOn(column.Key)
                 };
+
+                // A column the running game cannot fill stays as chosen, but is greyed out and hidden in the overlay.
+                StandingsSnapshot live = OverlayData.Current;
+                if (live.HasData && (StandingsOptions.FeatureOf(column.Key) & ~live.Features) != 0)
+                {
+                    toggle.IsEnabled = false;
+                    toggle.Opacity = 0.45;
+                    toggle.ToolTip = "Not available in " + live.Game;
+                    ToolTipService.SetShowOnDisabled(toggle, true);
+                }
                 toggle.Click += (sender, args) =>
                 {
                     System.Windows.Controls.Primitives.ToggleButton clicked = (System.Windows.Controls.Primitives.ToggleButton)sender;
@@ -77,6 +87,9 @@ namespace Shiftline.Plugin
             RowsCombo.SelectedIndex = Math.Max(0, Array.IndexOf(StandingsOptions.RowChoices, options.Rows));
             HeaderToggle.IsChecked = options.Header;
             AddChoices(LookPanel, "Look");
+            AddChoices(HeaderPanel, "Header");
+            AddChoices(FooterPanel, "Footer");
+            FooterToggle.IsChecked = options.Footer;
             AddChoices(ClassesPanel, "General");
             AddChoices(AnimationPanel, "Animation");
             ScaleCombo.Items.Clear();
@@ -222,6 +235,16 @@ namespace Shiftline.Plugin
             RefreshPreview();
         }
 
+        private void ResetDesign_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            StandingsOptions.Reset();
+            BuildDesignControls();
+            if (_optionsColumn != null)
+            {
+                ShowColumnOptions(_optionsColumn);
+            }
+        }
+
         private void ScaleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_building || ScaleCombo.SelectedIndex < 0)
@@ -230,6 +253,12 @@ namespace Shiftline.Plugin
             }
 
             StandingsOptions.SetScale(StandingsOptions.ScaleChoices[ScaleCombo.SelectedIndex]);
+            RefreshPreview();
+        }
+
+        private void FooterToggle_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            StandingsOptions.SetFooter(FooterToggle.IsChecked == true);
             RefreshPreview();
         }
 
@@ -299,13 +328,13 @@ namespace Shiftline.Plugin
 
             StringBuilder summary = new StringBuilder();
             summary.AppendLine("Game".PadRight(22) + (string.IsNullOrEmpty(game) ? "-" : game));
-            if (!string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(game))
             {
-                summary.Append("Overlays read iRacing only. Start iRacing and join a session.");
+                summary.Append("No game is running. Start a game and join a session.");
             }
             else if (!snapshot.HasData)
             {
-                summary.AppendLine("Standings".PadRight(22) + "no data yet (iRacing session not loaded, or the driver list is empty)");
+                summary.AppendLine("Standings".PadRight(22) + "no data yet (no session loaded, or no cars in the list)");
                 AppendDiagnostics(summary, snapshot);
             }
             else
