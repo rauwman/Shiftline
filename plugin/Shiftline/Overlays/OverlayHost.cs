@@ -184,7 +184,9 @@ namespace Shiftline.Plugin
                 }
 
                 // In edit mode without a session the overlay shows invented data, so it can be sized and placed.
-                StandingsSnapshot shown = snapshot.HasData ? snapshot : StandingsSample.Create(true);
+                StandingsSnapshot shown = snapshot.HasData
+                    ? snapshot
+                    : StandingsSample.Create(true).As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
                 if (shown.Features != _standingsFeatures)
                 {
                     // Another game: hide the columns it cannot fill (or show them again).
@@ -257,7 +259,7 @@ namespace Shiftline.Plugin
         private static void RefreshStandingsNow()
         {
             StandingsSnapshot snapshot = OverlayData.Current;
-            _standingsView.Update(snapshot.HasData ? snapshot : StandingsSample.Create(true));
+            _standingsView.Update(snapshot.HasData ? snapshot : StandingsSample.Create(true).As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame));
             _standingsWindow.SetFixedSize(_standingsView.DesignSize);
         }
 

@@ -29,6 +29,45 @@ namespace Shiftline.Plugin
         private static readonly SessionTracker Tracker = new SessionTracker();
         private static readonly SimHubReader Generic = new SimHubReader();
 
+        private static string _selectedGame = string.Empty;
+        private static string _selectedGameName = string.Empty;
+
+        /// <summary>The game selected in SimHub (its code, for example "IRacing" or "F12025"), also while it does not run.</summary>
+        public static string SelectedGame
+        {
+            get { return Volatile.Read(ref _selectedGame); }
+        }
+
+        /// <summary>The name SimHub shows for the selected game, for example "F1 25". Falls back to the code.</summary>
+        public static string SelectedGameName
+        {
+            get { return Volatile.Read(ref _selectedGameName); }
+        }
+
+        /// <summary>
+        /// The columns the preview and the edit-mode sample show: everything for iRacing (and when no game is selected), what
+        /// the selected game delivered the last time it ran, or the usual set of SimHub's data for a game that never ran.
+        /// </summary>
+        public static StandingsFeatures PreviewFeatures()
+        {
+            string game = SelectedGame;
+            if (string.IsNullOrEmpty(game) || string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase))
+            {
+                return StandingsFeatures.All;
+            }
+
+            int? known = OverlaySettings.KnownFeatures(game);
+            return known.HasValue ? (StandingsFeatures)known.Value : StandingsFeatures.Tyres | StandingsFeatures.Delta;
+        }
+
+        /// <summary>True when the preview's columns come from an earlier run of the selected game (not assumed).</summary>
+        public static bool PreviewFeaturesKnown()
+        {
+            string game = SelectedGame;
+            return string.IsNullOrEmpty(game) || string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase)
+                || OverlaySettings.KnownFeatures(game).HasValue;
+        }
+
         /// <summary>The latest standings. Never null; the object never changes after it was returned.</summary>
         public static StandingsSnapshot Current
         {
@@ -44,13 +83,34 @@ namespace Shiftline.Plugin
                 bool running = IRacingReader.ToInt(pluginManager.GetPropertyValue("DataCorePlugin.GameRunning"), 0) != 0;
                 bool iracing = string.Equals(game, "IRacing", StringComparison.OrdinalIgnoreCase);
                 GameFocus.Learn(pluginManager, game);
+                if (!string.Equals(game ?? string.Empty, _selectedGame, StringComparison.Ordinal))
+                {
+                    string name = null;
+                    try
+                    {
+                        name = pluginManager.GameManager?.GameDisplayName;
+                    }
+                    catch (Exception)
+                    {
+                        // older SimHub: keep the code
+                    }
+
+                    Volatile.Write(ref _selectedGameName, string.IsNullOrEmpty(name) ? game ?? string.Empty : name);
+                    Volatile.Write(ref _selectedGame, game ?? string.Empty);
+                }
+
                 if (running && !iracing)
                 {
                     // Every other game: SimHub's own opponent list.
                     StandingsClock.SetRate(OverlaySettings.RateFor(StandingsKey));
                     if (StandingsClock.Due())
                     {
-                        Volatile.Write(ref _current, Generic.Build(data, ++_sequence, Tracker));
+                        StandingsSnapshot built = Generic.Build(data, ++_sequence, Tracker);
+                        Volatile.Write(ref _current, built);
+                        if (built.HasData)
+                        {
+                            OverlaySettings.RememberFeatures(game, (int)built.Features);
+                        }
                     }
 
                     return;

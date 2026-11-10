@@ -21,7 +21,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <Image Source="/Shiftline.Plugin;component/Assets/logo.png" Width="135" HorizontalAlignment="Center" Margin="0,6,0,6" RenderOptions.BitmapScalingMode="HighQuality" />
-                        <TextBlock Style="{StaticResource CardHint}" Text="LED control for SimHub" HorizontalAlignment="Center" Margin="0,0,0,20" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="LEDs, overlays and more for SimHub" HorizontalAlignment="Center" Margin="0,0,0,20" />
                         <RadioButton x:Name="NavHome" Style="{StaticResource NavTile}" GroupName="nav" Tag="Home" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">

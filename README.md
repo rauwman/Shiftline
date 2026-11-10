@@ -1,9 +1,11 @@
 ﻿# Shiftline
 
-Shiftline is a SimHub plugin that makes configuring your dashboard LEDs simple, from rev lights to flags and effects, with presets per game and car. It also brings on-screen overlays, starting with a standings table.
-It drives an LED profile of a SimHub LED device and has been tested with an Arduino and a WS2812B strip (SimHub's "Arduino RGB LEDs" device).
+Shiftline aims to be one free plugin for everything around SimHub: LED devices, on-screen overlays, and later dashboards and control devices.
 
-> **Shiftline is still in beta.** The LED part has been tested by one person on one device (5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
+- **LEDs:** rev lights, brake and pedal bars, fuel, flags and effects for any SimHub LED device, with presets per game and car.
+- **Overlays:** a standings table for now, more are on the way.
+
+> **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
 
 ![The Dash Panel page of Shiftline](docs/images/dash-panel.png)
 

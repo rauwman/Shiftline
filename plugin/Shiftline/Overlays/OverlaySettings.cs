@@ -39,6 +39,7 @@ namespace Shiftline.Plugin
         private static bool _onlyWhenGameInFront = true;
         private static bool _showInReplays;
         private static bool _showInGarage;
+        private static readonly Dictionary<string, int> GameFeatures = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Overlays show only while the game window is in front (edit mode shows them anyway). Default on.</summary>
         public static bool OnlyWhenGameInFront
@@ -85,6 +86,41 @@ namespace Shiftline.Plugin
 
                 Save();
                 RaiseChanged();
+            }
+        }
+
+        /// <summary>
+        /// Remembers which data a game delivered (as StandingsFeatures), so the preview can show that game's columns while
+        /// it is not running. Saved only when it changed. Any thread.
+        /// </summary>
+        public static void RememberFeatures(string game, int features)
+        {
+            if (string.IsNullOrEmpty(game))
+            {
+                return;
+            }
+
+            lock (Gate)
+            {
+                int known;
+                if (GameFeatures.TryGetValue(game, out known) && known == features)
+                {
+                    return;
+                }
+
+                GameFeatures[game] = features;
+            }
+
+            Save();
+        }
+
+        /// <summary>What the game delivered the last time it ran, or null if it never ran with Shiftline.</summary>
+        public static int? KnownFeatures(string game)
+        {
+            lock (Gate)
+            {
+                int known;
+                return game != null && GameFeatures.TryGetValue(game, out known) ? known : (int?)null;
             }
         }
 
@@ -356,6 +392,18 @@ namespace Shiftline.Plugin
                     }
                 }
 
+                JObject games = json["GameFeatures"] as JObject;
+                if (games != null)
+                {
+                    foreach (JProperty property in games.Properties())
+                    {
+                        if (property.Value.Type == JTokenType.Integer)
+                        {
+                            GameFeatures[property.Name] = (int)property.Value;
+                        }
+                    }
+                }
+
                 JObject placements = json["Placements"] as JObject;
                 if (placements != null)
                 {
@@ -390,6 +438,7 @@ namespace Shiftline.Plugin
                 JArray enabled = new JArray();
                 JObject placements = new JObject();
                 JObject options = new JObject();
+                JObject games = new JObject();
                 int global;
                 bool front;
                 bool replays;
@@ -398,6 +447,11 @@ namespace Shiftline.Plugin
                 {
                     global = _globalRate;
                     front = _onlyWhenGameInFront;
+                    foreach (KeyValuePair<string, int> pair in GameFeatures)
+                    {
+                        games[pair.Key] = pair.Value;
+                    }
+
                     replays = _showInReplays;
                     garage = _showInGarage;
                     foreach (KeyValuePair<string, int> pair in Overrides)
@@ -433,7 +487,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
                 }.ToString());
             }
             catch (Exception ex)

@@ -33,6 +33,10 @@ namespace Shiftline.Plugin
                 _classIds.Clear();
             }
 
+            // The F1 games (Codemasters/EA reader) put the team name into the car class, which would split a single-class
+            // field into one class per team. Treat them as one class.
+            bool oneClass = (data.GameName ?? string.Empty).StartsWith("F1", StringComparison.OrdinalIgnoreCase);
+
             StandingsFeatures features = StandingsFeatures.None;
             List<StandingsRow> rows = new List<StandingsRow>(status.Opponents.Count);
             string playerCar = string.Empty;
@@ -69,12 +73,12 @@ namespace Shiftline.Plugin
                 {
                     CarIdx = IdOf(_carIds, o.Id ?? o.Name ?? string.Empty, 63),
                     Position = o.Position,
-                    ClassPosition = o.PositionInClass,
+                    ClassPosition = oneClass ? o.Position : o.PositionInClass,
                     Number = o.CarNumber ?? string.Empty,
                     Name = o.Name ?? string.Empty,
-                    ClassId = IdOf(_classIds, o.CarClassID ?? o.CarClass ?? string.Empty, 1000),
-                    ClassName = o.CarClass ?? string.Empty,
-                    ClassColor = o.CarClassColor ?? string.Empty,
+                    ClassId = oneClass ? 0 : IdOf(_classIds, o.CarClassID ?? o.CarClass ?? string.Empty, 1000),
+                    ClassName = oneClass ? string.Empty : o.CarClass ?? string.Empty,
+                    ClassColor = oneClass ? string.Empty : o.CarClassColor ?? string.Empty,
                     IRating = (int)rating,
                     License = o.LicenceString ?? string.Empty,
                     Make = CarMakes.CodeFor(o.CarName),

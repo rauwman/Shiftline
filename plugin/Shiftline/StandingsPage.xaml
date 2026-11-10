@@ -40,6 +40,7 @@
                         <ToggleButton x:Name="PreviewAnimation" Style="{StaticResource GlassToggleButton}" Content="Animation" Click="PreviewMode_Click" />
                     </StackPanel>
                 </Grid>
+                <TextBlock x:Name="PreviewGameText" Style="{StaticResource CardHint}" Margin="0,10,0,0" Visibility="Collapsed" />
                 <Border x:Name="PreviewHost" Margin="0,12,0,0" Padding="12" CornerRadius="10" Background="#FF2A3240" HorizontalAlignment="Left" />
                 <TextBlock x:Name="ColumnOptionsTitle" Margin="0,16,0,0" Style="{StaticResource CardTitle}" Text="Column options" />
                 <TextBlock x:Name="ColumnOptionsHint" Style="{StaticResource CardHint}" Text="Click a column in the preview to change how it looks." />

@@ -61,11 +61,12 @@ namespace Shiftline.Plugin
 
                 // A column the running game cannot fill stays as chosen, but is greyed out and hidden in the overlay.
                 StandingsSnapshot live = OverlayData.Current;
-                if (live.HasData && (StandingsOptions.FeatureOf(column.Key) & ~live.Features) != 0)
+                StandingsFeatures available = live.HasData ? live.Features : OverlayData.PreviewFeatures();
+                if ((StandingsOptions.FeatureOf(column.Key) & ~available) != 0)
                 {
                     toggle.IsEnabled = false;
                     toggle.Opacity = 0.45;
-                    toggle.ToolTip = "Not available in " + live.Game;
+                    toggle.ToolTip = "Not available in " + OverlayData.SelectedGameName;
                     ToolTipService.SetShowOnDisabled(toggle, true);
                 }
                 toggle.Click += (sender, args) =>
@@ -113,15 +114,40 @@ namespace Shiftline.Plugin
                 _preview.ColumnClicked += ShowColumnOptions;
                 PreviewHost.Child = _preview;
             }
-            else
-            {
-                _preview.ApplyOptions(StandingsOptions.Load());
-            }
+
+            StandingsFeatures features = OverlayData.PreviewFeatures();
+            _preview.ApplyOptions(StandingsOptions.Load().ForFeatures(features));
+            ShowPreviewGame(features);
 
             System.Windows.Size size = _preview.DesignSize;
             _preview.Width = size.Width;
             _preview.Height = size.Height;
-            _preview.Update(_previewAnimation ? StandingsSample.Shuffled(_animationStep) : StandingsSample.Create(_previewRace));
+            _preview.Update(PreviewSample(_previewAnimation ? StandingsSample.Shuffled(_animationStep) : StandingsSample.Create(_previewRace)));
+        }
+
+        /// <summary>The sample, made to look like the game selected in SimHub.</summary>
+        private static StandingsSnapshot PreviewSample(StandingsSnapshot sample)
+        {
+            return sample.As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
+        }
+
+        private void ShowPreviewGame(StandingsFeatures features)
+        {
+            string game = OverlayData.SelectedGameName;
+            if (string.IsNullOrEmpty(game) || features == StandingsFeatures.All)
+            {
+                PreviewGameText.Text = string.IsNullOrEmpty(game) ? string.Empty : "Preview for " + game + ".";
+            }
+            else if (OverlayData.PreviewFeaturesKnown())
+            {
+                PreviewGameText.Text = "Preview for " + game + ". Columns the game does not provide are hidden.";
+            }
+            else
+            {
+                PreviewGameText.Text = "Preview for " + game + ". Columns the game probably does not provide are hidden; this is exact after the game ran once.";
+            }
+
+            PreviewGameText.Visibility = PreviewGameText.Text.Length == 0 ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
         }
 
         private bool _previewAnimation;
@@ -139,7 +165,7 @@ namespace Shiftline.Plugin
                     _animationStep++;
                     if (_preview != null)
                     {
-                        _preview.Update(StandingsSample.Shuffled(_animationStep));
+                        _preview.Update(PreviewSample(StandingsSample.Shuffled(_animationStep)));
                     }
                 };
             }

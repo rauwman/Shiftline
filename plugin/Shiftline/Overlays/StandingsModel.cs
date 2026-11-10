@@ -107,6 +107,15 @@ namespace Shiftline.Plugin
         public double DeltaToBest { get; internal set; }      // live delta of the running lap to the player's best lap
         public bool HasDelta { get; internal set; }
         public StandingsFeatures Features { get; internal set; }
+        /// <summary>A copy that claims other features and another game: lets a sample look like a given game.</summary>
+        internal StandingsSnapshot As(StandingsFeatures features, string game)
+        {
+            StandingsSnapshot copy = (StandingsSnapshot)MemberwiseClone();
+            copy.Features = features;
+            copy.Game = game ?? string.Empty;
+            return copy;
+        }
+
         public string Game { get; internal set; }             // SimHub's name of the game, for example "IRacing"
 
         public bool IsRace
