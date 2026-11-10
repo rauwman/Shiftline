@@ -20,6 +20,9 @@ namespace Shiftline.Plugin
         /// <summary>The name under which the standings overlay keeps its own settings.</summary>
         public const string StandingsKey = "Standings";
 
+        /// <summary>The name under which the Battle Bar keeps its own settings.</summary>
+        public const string BattleBarKey = "BattleBar";
+
         private static readonly RateClock StandingsClock = new RateClock(10);
         private static readonly RateClock DriverClock = new RateClock(0.5);
 

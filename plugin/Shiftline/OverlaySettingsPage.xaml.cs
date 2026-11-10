@@ -15,6 +15,7 @@ namespace Shiftline.Plugin
             {
                 ShowMonitors();
                 FillRates();
+                FillMargins();
                 EditToggle.IsChecked = OverlayHost.EditMode;
                 FrontToggle.IsChecked = OverlaySettings.OnlyWhenGameInFront;
                 ReplayToggle.IsChecked = OverlaySettings.ShowInReplays;
@@ -74,6 +75,28 @@ namespace Shiftline.Plugin
 
             RateCombo.SelectedIndex = Math.Max(0, Array.IndexOf(OverlaySettings.Rates, OverlaySettings.GlobalRate));
             _filling = false;
+        }
+
+        private void FillMargins()
+        {
+            _filling = true;
+            MarginSlider.Value = OverlaySettings.AlignMargin;
+            MarginText.Text = OverlaySettings.AlignMargin + " px";
+            _filling = false;
+        }
+
+        private void MarginSlider_ValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
+        {
+            int margin = (int)Math.Round(MarginSlider.Value / 5) * 5;
+            if (MarginText != null)
+            {
+                MarginText.Text = margin + " px";
+            }
+
+            if (!_filling && IsLoaded)
+            {
+                OverlaySettings.AlignMargin = margin;
+            }
         }
 
         private void RateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

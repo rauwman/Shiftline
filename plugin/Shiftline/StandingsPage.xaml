@@ -11,19 +11,20 @@
     </UserControl.Resources>
     <StackPanel>
         <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
-                <local:IconTitle IconKey="Layers" Text="Standings" />
-                <TextBlock Style="{StaticResource CardHint}" Text="The standings overlay is being built, step by step. This first step only reads the whole field from iRacing and shows it here, so the data can be checked before any overlay window exists. Start an iRacing session and look at the two cards below." />
-            </StackPanel>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Layers" Text="Show overlay" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Shows the standings above the game. Place and size it in edit mode on the General page." />
+                    <local:IconTitle IconKey="ListOrdered" Text="Standings" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="A table with the whole field above the game: positions, names, gaps, lap times and more, with the columns and the look you choose below. Place and size it in edit mode on the General page." />
                 </StackPanel>
                 <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,14,0,0">
+                    <TextBlock Text="Update rate" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
+                    <ComboBox x:Name="RateCombo" Width="190" Height="34" SelectionChanged="RateCombo_SelectionChanged" />
+                    <Button Style="{StaticResource GlassButton}" Margin="24,0,0,0" Content="Reset the design" Click="ResetDesign_Click"
+                            ToolTip="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether the overlay is shown, its position and its update rate stay." />
+                </StackPanel>
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">
@@ -49,9 +50,16 @@
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
-                <local:IconTitle IconKey="Layout" Text="Columns" />
-                <TextBlock Style="{StaticResource CardHint}" Text="Choose what each row shows. Gap and interval come from iRacing's race timing; in practice and qualifying they compare best laps." />
-                <WrapPanel x:Name="ColumnPanel" Margin="0,12,0,0" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <local:IconTitle IconKey="Layout" Text="Columns" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Choose what each row shows. Gap and interval come from iRacing's race timing; in practice and qualifying they compare best laps." />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset order" Click="ResetOrder_Click" />
+                </Grid>
+                <TextBlock Style="{StaticResource CardHint}" Margin="0,10,0,0" FontStyle="Italic" Text="Click a column to switch it on or off. Drag it to another place to change the order." />
+                <WrapPanel x:Name="ColumnPanel" Margin="0,10,0,0" />
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
@@ -72,16 +80,6 @@
                     <TextBlock Style="{StaticResource CardHint}" Text="How large text and rows are drawn. In edit mode you can also pull the right edge of the overlay. Pulling the bottom edge only adds or removes rows." />
                 </StackPanel>
                 <ComboBox x:Name="ScaleCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="ScaleCombo_SelectionChanged" />
-            </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="ListOrdered" Text="Reset the design" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether the overlay is shown, its position and its update rate stay." />
-                </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset" Click="ResetDesign_Click" />
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">
@@ -125,16 +123,6 @@
                     <StackPanel x:Name="FooterPanel" Margin="0,12,0,0" />
                 </StackPanel>
                 <ToggleButton x:Name="FooterToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="FooterToggle_Click" />
-            </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Zap" Text="Update rate" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Affects how often the standings update. Positions change slowly, so a low rate is enough. Choose the global rate to follow the general setting." />
-                </StackPanel>
-                <ComboBox x:Name="RateCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RateCombo_SelectionChanged" />
             </Grid>
         </Border>
         <Border Style="{StaticResource GlassCard}">

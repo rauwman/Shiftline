@@ -168,6 +168,9 @@ namespace Shiftline.Plugin
                 case "OverlaySettings":
                     page = new OverlaySettingsPage(Plugin);
                     break;
+                case "BattleBar":
+                    page = new BattleBarPage(Plugin);
+                    break;
                 case "Presets":
                     page = new PresetsPage(Plugin);
                     break;
@@ -264,6 +267,10 @@ namespace Shiftline.Plugin
                     NavOverlaysGroup.IsChecked = true;
                     NavOverlayOverlaySettings.IsChecked = true;
                     break;
+                case "BattleBar":
+                    NavOverlaysGroup.IsChecked = true;
+                    NavOverlayBattleBar.IsChecked = true;
+                    break;
                 case "Presets":
                     NavPresets.IsChecked = true;
                     break;
@@ -349,6 +356,7 @@ namespace Shiftline.Plugin
             new SearchEntry("Colour themes (create, edit)", "Colours", null, "theme studio colour color palette gradient create edit duplicate delete"),
             new SearchEntry("Updates", "Settings", null, "update profile automatic"),
             new SearchEntry("Overlays", "Settings", null, "overlay map telemetry iracing"),
+            new SearchEntry("Battle Bar (horizontal standings, ticker)", "BattleBar", null, "battle bar horizontal ticker cards standings tv"),
             new SearchEntry("Presets (create, favourite, game, import, export)", "Presets", null, "preset profile save load car game favourite import export rename delete"),
             new SearchEntry("Backups and restore (also reset to standard)", "Settings", null, "backup restore copy reset default standard"),
             new SearchEntry("System log", "Settings", null, "log errors messages"),

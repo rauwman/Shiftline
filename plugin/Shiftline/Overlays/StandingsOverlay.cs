@@ -44,6 +44,10 @@ namespace Shiftline.Plugin
         private static readonly Brush SubtleFill = Frozen(0x1E, 0xFF, 0xFF, 0xFF);
         private static readonly Brush LightFill = Frozen(0x3A, 0xFF, 0xFF, 0xFF);
         private static readonly Brush WhiteFill = Frozen(0xFF, 0xF9, 0xF9, 0xF9);
+        // Best lap and average lap get their own text colours so they read apart from the lap time. Both are light enough to stay
+        // readable on the grey backgrounds; on the white background they turn dark like every other value.
+        private static readonly Brush BestLapBrush = Frozen(0xFF, 0xC4, 0xCB, 0xD6);
+        private static readonly Brush AverageBrush = Frozen(0xFF, 0x9F, 0xD0, 0xFF);
         private static readonly Brush DarkGreenBrush = Frozen(0xFF, 0x1B, 0x8A, 0x3A);
         private static readonly Brush DarkRedBrush = Frozen(0xFF, 0xC6, 0x28, 0x28);
         private Brush[] _columnFills = new Brush[0];
@@ -476,7 +480,7 @@ namespace Shiftline.Plugin
             return new Border { Background = fill, CornerRadius = new CornerRadius(9 * _round), Padding = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Stretch, Child = row };
         }
 
-        private static Geometry LetterShape(string code)
+        internal static Geometry LetterShape(string code)
         {
             Geometry shape;
             if (LetterShapes.TryGetValue(code, out shape))
@@ -554,6 +558,8 @@ namespace Shiftline.Plugin
                 case "Int":
                     return Measure(gapDecimals >= 3 ? "000.000" : gapDecimals == 2 ? "000.00" : "000.0", family, weight) + Cell;
                 case "Last":
+                case "Best":
+                case "Avg":
                     return Measure(decimals >= 3 ? "0:00.000" : decimals == 2 ? "0:00.00" : "0:00.0", family, weight) + Cell;
                 case "Tyre":
                     return options.GetBool("Tyre.Laps") ? 16 + 6 + Measure("00", family, weight) + 6 + Cell : 16 + 4 + Cell;
@@ -578,7 +584,7 @@ namespace Shiftline.Plugin
             return formatted.WidthIncludingTrailingWhitespace;
         }
 
-        private static FontWeight WeightOf(string weight)
+        internal static FontWeight WeightOf(string weight)
         {
             return weight == "Bold" ? FontWeights.Bold : weight == "SemiBold" ? FontWeights.SemiBold : FontWeights.Normal;
         }
@@ -904,11 +910,19 @@ namespace Shiftline.Plugin
                 Race = race;
                 Options = options;
                 SessionBest = double.MaxValue;
+                BestAverage = double.MaxValue;
+                AverageLaps = options.GetInt("Avg.Laps") == 3 ? 3 : 5;
                 foreach (StandingsRow row in rows)
                 {
                     if (row.BestLap > 0 && row.BestLap < SessionBest)
                     {
                         SessionBest = row.BestLap;
+                    }
+
+                    double average = AverageOf(row, AverageLaps);
+                    if (average > 0 && average < BestAverage)
+                    {
+                        BestAverage = average;
                     }
 
                     if (row.IsPlayer)
@@ -922,7 +936,31 @@ namespace Shiftline.Plugin
             public bool Race { get; }
             public StandingsOptions Options { get; }
             public double SessionBest { get; }
+            public double BestAverage { get; }        // the fastest average in the field, double.MaxValue when none
+            public int AverageLaps { get; }
             public StandingsRow Player { get; }
+
+            /// <summary>The average of the last laps, or 0 while a car has not completed that many laps yet.</summary>
+            public static double AverageOf(StandingsRow row, int laps)
+            {
+                if (row.RecentLaps == null || row.RecentLaps.Length < laps)
+                {
+                    return 0;
+                }
+
+                double sum = 0;
+                for (int k = 0; k < laps; k++)
+                {
+                    if (row.RecentLaps[k] <= 0)
+                    {
+                        return 0;
+                    }
+
+                    sum += row.RecentLaps[k];
+                }
+
+                return sum / laps;
+            }
             public bool HasDelta { get; set; }
             public double DeltaToBest { get; set; }
 
@@ -1029,6 +1067,26 @@ namespace Shiftline.Plugin
                             foreground = PurpleBrush;
                         }
                         else if (row.LastLap > 0 && Math.Abs(row.LastLap - row.BestLap) < 0.0005)
+                        {
+                            foreground = GreenBrush;
+                        }
+
+                        break;
+                    case "Best":
+                        value = Lap(row.BestLap, options.GetInt("Last.Dec" + context.Mode));
+                        foreground = BestLapBrush;
+                        if (row.BestLap > 0 && Math.Abs(row.BestLap - context.SessionBest) < 0.0005)
+                        {
+                            foreground = PurpleBrush;
+                        }
+
+                        break;
+                    case "Avg":
+                        // green only for the fastest average in the field; no colour for the others
+                        double average = Context.AverageOf(row, context.AverageLaps);
+                        value = average > 0 ? Lap(average, options.GetInt("Last.Dec" + context.Mode)) : "-";
+                        foreground = AverageBrush;
+                        if (average > 0 && Math.Abs(average - context.BestAverage) < 0.0005)
                         {
                             foreground = GreenBrush;
                         }
@@ -1161,7 +1219,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>F1-style colours: soft red, medium yellow, hard white, intermediate green, wet blue.</summary>
-        private static void TyreLook(string type, out string code, out Brush colour)
+        internal static void TyreLook(string type, out string code, out Brush colour)
         {
             string t = type.ToLowerInvariant();
             if (t.Contains("soft"))
@@ -1227,7 +1285,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private static string FormatName(string name, string format)
+        internal static string FormatName(string name, string format)
         {
             string[] parts = (name ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
@@ -1283,7 +1341,7 @@ namespace Shiftline.Plugin
             foreground = classBrush == null ? MutedBrush : ReadableOn(classBrush);
         }
 
-        private static string FormatIRating(int rating, string mode)
+        internal static string FormatIRating(int rating, string mode)
         {
             if (rating <= 0)
             {
@@ -1410,7 +1468,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>Cuts instead of rounding, as timing screens do (1.746 shows as 1.74 and 1.7).</summary>
-        private static double Truncate(double value, int decimals)
+        internal static double Truncate(double value, int decimals)
         {
             double factor = Math.Pow(10, Math.Max(1, Math.Min(3, decimals)));
             return Math.Floor(value * factor) / factor;
@@ -1505,7 +1563,7 @@ namespace Shiftline.Plugin
             return list;
         }
 
-        private static string Lap(double seconds, int decimals)
+        internal static string Lap(double seconds, int decimals)
         {
             if (seconds <= 0)
             {
@@ -1527,7 +1585,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The licence colour as iRacing reports it ("0x0153db"); null when it cannot be read.</summary>
-        private static Brush LicenceBrush(string value)
+        internal static Brush LicenceBrush(string value)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -1554,7 +1612,7 @@ namespace Shiftline.Plugin
             return brush;
         }
 
-        private static Brush ReadableOn(Brush background)
+        internal static Brush ReadableOn(Brush background)
         {
             SolidColorBrush solid = background as SolidColorBrush;
             if (solid == null)
@@ -1567,14 +1625,14 @@ namespace Shiftline.Plugin
             return luminance > 120 ? DarkText : Brushes.White;     // green, yellow and orange get dark text; blue and red white
         }
 
-        private static Geometry FrozenGeometry(string data)
+        internal static Geometry FrozenGeometry(string data)
         {
             Geometry geometry = Geometry.Parse(data);
             geometry.Freeze();
             return geometry;
         }
 
-        private static Brush Frozen(byte a, byte r, byte g, byte b)
+        internal static Brush Frozen(byte a, byte r, byte g, byte b)
         {
             SolidColorBrush brush = new SolidColorBrush(Color.FromArgb(a, r, g, b));
             brush.Freeze();

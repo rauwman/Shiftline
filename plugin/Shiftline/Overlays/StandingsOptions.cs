@@ -72,6 +72,8 @@ namespace Shiftline.Plugin
             new StandingsColumn("Gap", "Gap", "Gap", 48, StandingsColumn.Center, true),
             new StandingsColumn("Int", "Interval", "Int", 48, StandingsColumn.Center, true),
             new StandingsColumn("Last", "Lap time", "Last", 70, StandingsColumn.Right, true),
+            new StandingsColumn("Best", "Best lap", "Best", 70, StandingsColumn.Right, false),
+            new StandingsColumn("Avg", "Average lap", "Avg", 70, StandingsColumn.Right, false),
             new StandingsColumn("Tyre", "Tyres", "Tyre", 44, StandingsColumn.Left, true),
             new StandingsColumn("Pit", "Pit", "Pit", 60, StandingsColumn.Center, true),
             new StandingsColumn("Stint", "Stint laps", "Stint", 36, StandingsColumn.Right, false),
@@ -87,7 +89,7 @@ namespace Shiftline.Plugin
         private static readonly Dictionary<string, string> BackgroundDefaults = new Dictionary<string, string>
         {
             { "Pos", "White" }, { "Gain", "None" }, { "Num", "None" }, { "Name", "None" }, { "Make", "None" }, { "iR", "White" },
-            { "Gap", "None" }, { "Int", "None" }, { "Last", "None" }, { "Tyre", "Subtle" }, { "Stint", "None" }
+            { "Gap", "None" }, { "Int", "None" }, { "Last", "None" }, { "Best", "Subtle" }, { "Avg", "Subtle" }, { "Tyre", "Subtle" }, { "Stint", "None" }
         };
 
         public static readonly StandingsChoice[] AllChoices = BaseChoices().Concat(ColumnLookChoices()).ToArray();
@@ -144,6 +146,7 @@ namespace Shiftline.Plugin
             new StandingsChoice("Int", "Int.ShowPQ", "Show in practice and qualifying", "1", OnOff),
             new StandingsChoice("Last", "Last.DecRace", "Decimals in races", "3", Decimals),
             new StandingsChoice("Last", "Last.DecPQ", "Decimals in practice and qualifying", "3", Decimals),
+            new StandingsChoice("Avg", "Avg.Laps", "Average over", "5", "3", "the last 3 laps", "5", "the last 5 laps"),
             new StandingsChoice("Tyre", "Tyre.Laps", "Laps on the tyres", "1", OnOff),
             new StandingsChoice("Pit", "Pit.Mode", "Look", "Info",
                 "Info", "With time in the pit lane or the lap of the last stop (PIT 0:23)", "Plain", "Word only (PIT)"),
@@ -234,6 +237,45 @@ namespace Shiftline.Plugin
             return new StandingsOptions { Columns = Columns, Rows = Rows, Header = Header, Footer = Footer, Labels = Labels, Scale = Math.Max(0.5, Math.Min(3, scale)), Features = Features, _values = _values };
         }
 
+        /// <summary>All columns in the order the user arranged them (new columns go to the place they have in AllColumns).</summary>
+        public static List<StandingsColumn> OrderedColumns()
+        {
+            string saved = OverlaySettings.GetOption(Key, "Order", string.Empty);
+            List<StandingsColumn> ordered = new List<StandingsColumn>();
+            foreach (string key in saved.Split(','))
+            {
+                StandingsColumn column = AllColumns.FirstOrDefault(c => c.Key == key);
+                if (column != null && !ordered.Contains(column))
+                {
+                    ordered.Add(column);
+                }
+            }
+
+            for (int i = 0; i < AllColumns.Length; i++)
+            {
+                if (!ordered.Contains(AllColumns[i]))
+                {
+                    // insert after the column that comes before it by default, or at the start
+                    int after = i == 0 ? -1 : ordered.IndexOf(AllColumns[i - 1]);
+                    ordered.Insert(after + 1, AllColumns[i]);
+                }
+            }
+
+            return ordered;
+        }
+
+        /// <summary>Saves the order of the columns (keys of all columns, first to last).</summary>
+        public static void SetOrder(IEnumerable<string> keys)
+        {
+            OverlaySettings.SetOption(Key, "Order", string.Join(",", keys));
+        }
+
+        /// <summary>Puts the columns back into their default order; which columns are on stays.</summary>
+        public static void ResetOrder()
+        {
+            SetOrder(AllColumns.Select(c => c.Key));
+        }
+
         public static StandingsOptions Load()
         {
             string defaults = string.Join(",", AllColumns.Where(c => c.OnByDefault).Select(c => c.Key));
@@ -253,7 +295,7 @@ namespace Shiftline.Plugin
 
             return new StandingsOptions
             {
-                Columns = AllColumns.Where(c => on.Contains(c.Key)).ToList(),
+                Columns = OrderedColumns().Where(c => on.Contains(c.Key)).ToList(),
                 Rows = Math.Max(3, Math.Min(40, rows)),
                 Header = OverlaySettings.GetOption(Key, "Header", "1") == "1",
                 Footer = OverlaySettings.GetOption(Key, "Footer", "1") == "1",
@@ -328,7 +370,7 @@ namespace Shiftline.Plugin
                 keys.Remove(column);
             }
 
-            // Keep the order of AllColumns, so the overlay does not depend on the click order.
+            // The order lives in its own option, so the overlay does not depend on the click order.
             OverlaySettings.SetOption(Key, "Columns", string.Join(",", AllColumns.Where(c => keys.Contains(c.Key)).Select(c => c.Key)));
         }
 

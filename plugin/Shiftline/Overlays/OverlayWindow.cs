@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,6 +36,15 @@ namespace Shiftline.Plugin
         private bool _fixedWidth;
         private Point _dragStartMouse;
         private Size _dragStartSize;
+
+        // edit mode: the selected overlay, moving with snapping, and the align bar
+        private static readonly List<OverlayWindow> Open = new List<OverlayWindow>();
+        private static OverlayWindow _selected;
+        private const double SnapDistance = 8;
+        private bool _moving;
+        private Point _moveStartMouse;
+        private Point _moveStartPosition;
+        private OverlayAlignBar _alignBar;
 
         public OverlayWindow(string key, string title, UIElement content, Size defaultSize)
         {
@@ -169,6 +179,8 @@ namespace Shiftline.Plugin
             root.Children.Add(_sideGrip);
             Content = root;
 
+            // Edit mode: a click selects the overlay (frame, align bar, arrow keys); dragging moves it and snaps it to the screen
+            // edges and centre and to the edges of the other overlays. Alt held while dragging moves it freely.
             MouseLeftButtonDown += (sender, args) =>
             {
                 if (!_edit)
@@ -176,16 +188,93 @@ namespace Shiftline.Plugin
                     return;
                 }
 
-                try
+                Select(this);
+                _moving = true;
+                _moveStartMouse = MouseOnScreen();
+                _moveStartPosition = new Point(Left, Top);
+                CaptureMouse();
+                args.Handled = true;
+            };
+            MouseMove += (sender, args) =>
+            {
+                if (!_moving)
                 {
-                    DragMove();
-                }
-                catch (InvalidOperationException)
-                {
-                    return;                 // the button was already released
+                    return;
                 }
 
+                Point mouse = MouseOnScreen();
+                double left = _moveStartPosition.X + mouse.X - _moveStartMouse.X;
+                double top = _moveStartPosition.Y + mouse.Y - _moveStartMouse.Y;
+                bool free = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+                double? guideX = null;
+                double? guideY = null;
+                if (!free)
+                {
+                    Snap(ref left, ref top, out guideX, out guideY);
+                }
+
+                Left = left;
+                Top = top;
+                OverlayGuides.Show(this, guideX, guideY);
+            };
+            MouseLeftButtonUp += (sender, args) =>
+            {
+                if (!_moving)
+                {
+                    return;
+                }
+
+                _moving = false;
+                ReleaseMouseCapture();
+                OverlayGuides.Hide();
                 SavePlacement();
+            };
+            KeyDown += (sender, args) =>
+            {
+                if (!_edit || !ReferenceEquals(_selected, this))
+                {
+                    return;
+                }
+
+                double step = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 10 : 1;
+                switch (args.Key)
+                {
+                    case System.Windows.Input.Key.Left:
+                        Left -= step;
+                        break;
+                    case System.Windows.Input.Key.Right:
+                        Left += step;
+                        break;
+                    case System.Windows.Input.Key.Up:
+                        Top -= step;
+                        break;
+                    case System.Windows.Input.Key.Down:
+                        Top += step;
+                        break;
+                    default:
+                        return;
+                }
+
+                args.Handled = true;
+                SavePlacement();
+            };
+            LocationChanged += (sender, args) => FollowBar();
+            SizeChanged += (sender, args) => FollowBar();
+            IsVisibleChanged += (sender, args) => UpdateBar();
+            Open.Add(this);
+            Closed += (sender, args) =>
+            {
+                Open.Remove(this);
+                if (ReferenceEquals(_selected, this))
+                {
+                    _selected = null;
+                }
+
+                if (_alignBar != null)
+                {
+                    _alignBar.Close();
+                    _alignBar = null;
+                }
             };
 
             SourceInitialized += (sender, args) =>
@@ -262,6 +351,12 @@ namespace Shiftline.Plugin
         public void SetEditMode(bool edit)
         {
             _edit = edit;
+            UpdateBar();
+            if (!edit && ReferenceEquals(_selected, this))
+            {
+                Select(null);
+            }
+
             Visibility shown = edit ? Visibility.Visible : Visibility.Collapsed;
             _frame.Visibility = shown;
             _label.Visibility = shown;
@@ -277,9 +372,218 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            int style = NativeMethods.GetExStyle(_hwnd) | NativeMethods.WsExToolWindow | NativeMethods.WsExNoActivate;
-            style = _edit ? style & ~NativeMethods.WsExTransparent : style | NativeMethods.WsExTransparent;
+            // In edit mode the window may take the keyboard (for the arrow keys); in run mode it never takes the focus from the game.
+            int style = NativeMethods.GetExStyle(_hwnd) | NativeMethods.WsExToolWindow;
+            style = _edit
+                ? style & ~NativeMethods.WsExTransparent & ~NativeMethods.WsExNoActivate
+                : style | NativeMethods.WsExTransparent | NativeMethods.WsExNoActivate;
             NativeMethods.SetExStyle(_hwnd, style);
+        }
+
+        // ---------------------------------------------------------------- selection, align bar, snapping
+
+        /// <summary>Selects one overlay (or none): thicker frame, the align bar above it, and the keyboard for the arrow keys.</summary>
+        private static void Select(OverlayWindow window)
+        {
+            if (ReferenceEquals(_selected, window))
+            {
+                return;
+            }
+
+            OverlayWindow before = _selected;
+            _selected = window;
+            if (before != null)
+            {
+                before._frame.BorderThickness = new Thickness(2);
+            }
+
+            if (window != null)
+            {
+                window._frame.BorderThickness = new Thickness(3);
+                window.Activate();
+                window.Focus();
+            }
+        }
+
+        /// <summary>In edit mode every visible overlay has its align bar right away, above it (or below when there is no room).</summary>
+        private void UpdateBar()
+        {
+            bool shown = _edit && IsVisible;
+            if (shown && _alignBar == null)
+            {
+                _alignBar = new OverlayAlignBar(AlignTo);
+            }
+
+            if (_alignBar == null)
+            {
+                return;
+            }
+
+            if (shown)
+            {
+                FollowBar();
+                if (!_alignBar.IsVisible)
+                {
+                    _alignBar.Show();
+                }
+            }
+            else if (_alignBar.IsVisible)
+            {
+                _alignBar.Hide();
+            }
+        }
+
+        private void FollowBar()
+        {
+            if (_alignBar == null || _hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            Rect area = ScreenRect(Forms.Screen.FromHandle(_hwnd));
+            double top = Top - OverlayAlignBar.BarHeight - 4;
+            if (top < area.Top)
+            {
+                top = Top + Height + 4;
+            }
+
+            double left = Math.Max(area.Left, Math.Min(Left, area.Right - OverlayAlignBar.BarWidth));
+            _alignBar.Left = left;
+            _alignBar.Top = top;
+        }
+
+        /// <summary>Puts the overlay against an edge (with the distance chosen on the General page) or in the middle of its screen.</summary>
+        private void AlignTo(string where)
+        {
+            if (_hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            Rect area = ScreenRect(Forms.Screen.FromHandle(_hwnd));
+            double margin = OverlaySettings.AlignMargin;
+            switch (where)
+            {
+                case "Left":
+                    Left = area.Left + margin;
+                    break;
+                case "CentreX":
+                    Left = area.Left + (area.Width - Width) / 2;
+                    break;
+                case "Right":
+                    Left = area.Right - Width - margin;
+                    break;
+                case "Top":
+                    Top = area.Top + margin;
+                    break;
+                case "CentreY":
+                    Top = area.Top + (area.Height - Height) / 2;
+                    break;
+                case "Bottom":
+                    Top = area.Bottom - Height - margin;
+                    break;
+            }
+
+            Left = Math.Round(Left);
+            Top = Math.Round(Top);
+            SavePlacement();
+        }
+
+        /// <summary>
+        /// Pulls the new position to the nearest line within a few pixels, separately across and down: the screen edges (with
+        /// the align distance), the screen centre, and the edges of the other visible overlays. Returns the lines it used.
+        /// </summary>
+        private void Snap(ref double left, ref double top, out double? guideX, out double? guideY)
+        {
+            guideX = null;
+            guideY = null;
+            if (_hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            Rect area = ScreenRect(Forms.Screen.FromHandle(_hwnd));
+            double margin = OverlaySettings.AlignMargin;
+            double width = Width;
+            double height = Height;
+
+            // lines across: (line, position the window gets when it sits on it)
+            List<KeyValuePair<double, double>> xs = new List<KeyValuePair<double, double>>();
+            List<KeyValuePair<double, double>> ys = new List<KeyValuePair<double, double>>();
+            foreach (double edge in new[] { area.Left, area.Left + margin })
+            {
+                xs.Add(new KeyValuePair<double, double>(edge, edge));
+            }
+
+            foreach (double edge in new[] { area.Right, area.Right - margin })
+            {
+                xs.Add(new KeyValuePair<double, double>(edge, edge - width));
+            }
+
+            xs.Add(new KeyValuePair<double, double>(area.Left + area.Width / 2, area.Left + area.Width / 2 - width / 2));
+            foreach (double edge in new[] { area.Top, area.Top + margin })
+            {
+                ys.Add(new KeyValuePair<double, double>(edge, edge));
+            }
+
+            foreach (double edge in new[] { area.Bottom, area.Bottom - margin })
+            {
+                ys.Add(new KeyValuePair<double, double>(edge, edge - height));
+            }
+
+            ys.Add(new KeyValuePair<double, double>(area.Top + area.Height / 2, area.Top + area.Height / 2 - height / 2));
+            foreach (OverlayWindow other in Open)
+            {
+                if (ReferenceEquals(other, this) || !other.IsVisible)
+                {
+                    continue;
+                }
+
+                // my left or right edge on its left or right edge, my top or bottom on its top or bottom
+                foreach (double edge in new[] { other.Left, other.Left + other.Width })
+                {
+                    xs.Add(new KeyValuePair<double, double>(edge, edge));
+                    xs.Add(new KeyValuePair<double, double>(edge, edge - width));
+                }
+
+                foreach (double edge in new[] { other.Top, other.Top + other.Height })
+                {
+                    ys.Add(new KeyValuePair<double, double>(edge, edge));
+                    ys.Add(new KeyValuePair<double, double>(edge, edge - height));
+                }
+            }
+
+            double bestX = SnapDistance + 1;
+            double l = left;
+            foreach (KeyValuePair<double, double> line in xs)
+            {
+                double distance = Math.Abs(line.Value - l);
+                if (distance <= SnapDistance && distance < bestX)
+                {
+                    bestX = distance;
+                    left = line.Value;
+                    guideX = line.Key;
+                }
+            }
+
+            double bestY = SnapDistance + 1;
+            double t = top;
+            foreach (KeyValuePair<double, double> line in ys)
+            {
+                double distance = Math.Abs(line.Value - t);
+                if (distance <= SnapDistance && distance < bestY)
+                {
+                    bestY = distance;
+                    top = line.Value;
+                    guideY = line.Key;
+                }
+            }
+        }
+
+        /// <summary>The screen area of this window in device-independent units (for the guide lines).</summary>
+        internal Rect CurrentScreen()
+        {
+            return _hwnd == IntPtr.Zero ? Rect.Empty : ScreenRect(Forms.Screen.FromHandle(_hwnd));
         }
 
         /// <summary>The mouse position on screen in device-independent units.</summary>

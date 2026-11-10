@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -14,6 +15,11 @@ namespace Shiftline.Plugin
         public StandingsPage()
         {
             InitializeComponent();
+            _reorder = new ToggleReorder(this, ColumnPanel, keys =>
+            {
+                StandingsOptions.SetOrder(keys);
+                RefreshPreview();
+            });
         }
 
         public StandingsPage(Shiftline plugin) : this()
@@ -48,7 +54,7 @@ namespace Shiftline.Plugin
         {
             _building = true;
             ColumnPanel.Children.Clear();
-            foreach (StandingsColumn column in StandingsOptions.AllColumns)
+            foreach (StandingsColumn column in StandingsOptions.OrderedColumns())
             {
                 System.Windows.Controls.Primitives.ToggleButton toggle = new System.Windows.Controls.Primitives.ToggleButton
                 {
@@ -69,9 +75,15 @@ namespace Shiftline.Plugin
                     toggle.ToolTip = "Not available in " + OverlayData.SelectedGameName;
                     ToolTipService.SetShowOnDisabled(toggle, true);
                 }
+                _reorder.Attach(toggle);
                 toggle.Click += (sender, args) =>
                 {
                     System.Windows.Controls.Primitives.ToggleButton clicked = (System.Windows.Controls.Primitives.ToggleButton)sender;
+                    if (_reorder.SwallowClick(clicked))
+                    {
+                        return;
+                    }
+
                     StandingsOptions.SetColumn((string)clicked.Tag, clicked.IsChecked == true);
                     RefreshPreview();
                 };
@@ -104,6 +116,14 @@ namespace Shiftline.Plugin
             PreviewPractice.IsChecked = !_previewRace;
             _building = false;
             RefreshPreview();
+        }
+
+        private ToggleReorder _reorder;
+
+        private void ResetOrder_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            StandingsOptions.ResetOrder();
+            BuildDesignControls();
         }
 
         private void RefreshPreview()

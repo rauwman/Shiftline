@@ -91,6 +91,17 @@
                                     <TextBlock Text="Standings" VerticalAlignment="Center" />
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavOverlayBattleBar" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="BattleBar" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="{StaticResource IconBattleBar}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                    <TextBlock Text="Battle Bar" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
                             <RadioButton x:Name="NavOverlayRelatives" Style="{StaticResource NavTile}" Margin="26,0,0,6" GroupName="nav" Tag="Relatives" Checked="Nav_Checked" IsEnabled="False" Opacity="0.4" Cursor="Arrow">
                                 <StackPanel Orientation="Horizontal">
                                     <Viewbox Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center">

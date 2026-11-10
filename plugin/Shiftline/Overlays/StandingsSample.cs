@@ -39,6 +39,12 @@ namespace Shiftline.Plugin
         /// </summary>
         public static StandingsSnapshot Shuffled(int step)
         {
+            return Shuffled(step, false);
+        }
+
+        /// <param name="aroundPlayer">Swap only cars right around the player (and the player itself): for the Battle Bar.</param>
+        public static StandingsSnapshot Shuffled(int step, bool aroundPlayer)
+        {
             StandingsSnapshot race = Create(true);
             StandingsRow[] rows = new StandingsRow[race.Rows.Length];
             for (int i = 0; i < rows.Length; i++)
@@ -46,17 +52,48 @@ namespace Shiftline.Plugin
                 rows[i] = race.Rows[i].Copy();
             }
 
-            int pair = 1 + step * 3 % (rows.Length - 2);
-            if (step % 2 == 1)
+            int first = 1 + step * 3 % (rows.Length - 2);
+            int second = first + 1;
+            if (aroundPlayer)
             {
-                StandingsRow moved = rows[pair];
-                rows[pair] = rows[pair + 1];
-                rows[pair + 1] = moved;
+                // Neighbours in the player's class: the pairs (p-2, p-1), (p-1, p), (p, p+1), (p+1, p+2) in turn, so the cards
+                // around the player move and the player gains and loses a place.
+                int player = Array.FindIndex(rows, r => r.IsPlayer);
+                List<int> mates = new List<int>();
+                for (int i = 0; i < rows.Length; i++)
+                {
+                    if (player >= 0 && rows[i].ClassId == rows[player].ClassId)
+                    {
+                        mates.Add(i);
+                    }
+                }
+
+                int[] offsets = { -2, -1, 0, 1 };
+                int at = mates.IndexOf(player) + offsets[(step / 2) % offsets.Length];
+                at = Math.Max(0, Math.Min(mates.Count - 2, at));
+                if (mates.Count >= 2)
+                {
+                    first = mates[at];
+                    second = mates[at + 1];
+                }
             }
 
+            if (step % 2 == 1)
+            {
+                StandingsRow moved = rows[first];
+                rows[first] = rows[second];
+                rows[second] = moved;
+            }
+
+            // positions follow the new order, overall and inside each class
+            Dictionary<int, int> inClass = new Dictionary<int, int>();
             for (int i = 0; i < rows.Length; i++)
             {
                 rows[i].Position = i + 1;
+                int count;
+                inClass.TryGetValue(rows[i].ClassId, out count);
+                inClass[rows[i].ClassId] = count + 1;
+                rows[i].ClassPosition = count + 1;
             }
 
             return new StandingsSnapshot

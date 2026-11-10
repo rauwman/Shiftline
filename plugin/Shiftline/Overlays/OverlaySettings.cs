@@ -39,6 +39,10 @@ namespace Shiftline.Plugin
         private static bool _onlyWhenGameInFront = true;
         private static bool _showInReplays;
         private static bool _showInGarage;
+        private static int _alignMargin = 5;
+
+        /// <summary>The largest distance for the align buttons of edit mode, in pixels (chosen in steps of 5).</summary>
+        public const int MaxAlignMargin = 50;
         private static readonly Dictionary<string, int> GameFeatures = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Overlays show only while the game window is in front (edit mode shows them anyway). Default on.</summary>
@@ -121,6 +125,21 @@ namespace Shiftline.Plugin
             {
                 int known;
                 return game != null && GameFeatures.TryGetValue(game, out known) ? known : (int?)null;
+            }
+        }
+
+        /// <summary>Distance to the screen edge when an overlay is aligned in edit mode (left, right, top, bottom). Default 5.</summary>
+        public static int AlignMargin
+        {
+            get { lock (Gate) { return _alignMargin; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _alignMargin = Math.Max(0, Math.Min(MaxAlignMargin, value));
+                }
+
+                Save();
             }
         }
 
@@ -353,6 +372,12 @@ namespace Shiftline.Plugin
                     _showInReplays = (bool)replays;
                 }
 
+                JToken margin = json["AlignMargin"];
+                if (margin != null && margin.Type == JTokenType.Integer)
+                {
+                    _alignMargin = Math.Max(0, Math.Min(MaxAlignMargin, (int)margin));
+                }
+
                 JToken garage = json["ShowInGarage"];
                 if (garage != null && garage.Type == JTokenType.Boolean)
                 {
@@ -443,6 +468,7 @@ namespace Shiftline.Plugin
                 bool front;
                 bool replays;
                 bool garage;
+                int alignMargin;
                 lock (Gate)
                 {
                     global = _globalRate;
@@ -454,6 +480,7 @@ namespace Shiftline.Plugin
 
                     replays = _showInReplays;
                     garage = _showInGarage;
+                    alignMargin = _alignMargin;
                     foreach (KeyValuePair<string, int> pair in Overrides)
                     {
                         own[pair.Key] = pair.Value;
@@ -487,7 +514,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
                 }.ToString());
             }
             catch (Exception ex)

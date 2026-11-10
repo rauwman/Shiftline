@@ -25,7 +25,12 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Pencil" Text="Edit mode" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Shows all switched-on overlays with a frame so you can drag and resize them. Also via the action ToggleOverlayEditMode in SimHub's Controls and events." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows all switched-on overlays with a frame so you can drag and resize them. Click an overlay to select it: the bar above it aligns it on its screen, and the arrow keys move it (with Shift 10 px). While you drag it, it snaps to the screen edges, the centre and the other overlays; hold Alt to move it freely. Also via the action ToggleOverlayEditMode in SimHub's Controls and events." />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="Distance to the screen edge when aligning" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
+                        <Slider x:Name="MarginSlider" Width="200" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="MarginSlider_ValueChanged" />
+                        <TextBlock x:Name="MarginText" Width="50" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Top">
                     <ToggleButton x:Name="EditToggle" Style="{StaticResource SegmentToggle}" HorizontalAlignment="Right" Click="EditToggle_Click" />

@@ -102,12 +102,19 @@
     <Compile Include="LedPage.xaml.cs">
       <DependentUpon>LedPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BattleBarPage.xaml.cs">
+      <DependentUpon>BattleBarPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Overlays\BattleBarOptions.cs" />
+    <Compile Include="Overlays\BattleBarOverlay.cs" />
     <Compile Include="Overlays\CarMakes.cs" />
     <Compile Include="Overlays\GameFocus.cs" />
     <Compile Include="Overlays\IRacingReader.cs" />
     <Compile Include="Overlays\IRatingEstimate.cs" />
     <Compile Include="Overlays\NativeMethods.cs" />
     <Compile Include="Overlays\OverlayFonts.cs" />
+    <Compile Include="Overlays\OverlayAlignBar.cs" />
+    <Compile Include="Overlays\OverlayGuides.cs" />
     <Compile Include="Overlays\OverlayHost.cs" />
     <Compile Include="Overlays\OverlayWindow.cs" />
     <Compile Include="Overlays\StandingsOptions.cs" />
@@ -135,6 +142,7 @@
     <Compile Include="StandingsPage.xaml.cs">
       <DependentUpon>StandingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ToggleReorder.cs" />
     <Compile Include="SettingsControl.xaml.cs">
       <DependentUpon>SettingsControl.xaml</DependentUpon>
     </Compile>
@@ -190,6 +198,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="OverlaySettingsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="BattleBarPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

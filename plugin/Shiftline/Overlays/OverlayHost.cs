@@ -15,6 +15,10 @@ namespace Shiftline.Plugin
         private static OverlayWindow _standingsWindow;
         private static StandingsOverlay _standingsView;
         private static DispatcherTimer _standingsTimer;
+        private static OverlayWindow _battleWindow;
+        private static BattleBarOverlay _battleView;
+        private static DispatcherTimer _battleTimer;
+        private static StandingsFeatures _battleFeatures = StandingsFeatures.All;
         private static bool _edit;
 
         /// <summary>Raised on the UI thread after edit mode was switched.</summary>
@@ -39,6 +43,8 @@ namespace Shiftline.Plugin
                 OverlaySettings.Changed += () => OnUi(Sync);
                 _standingsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _standingsTimer.Tick += (sender, args) => TickStandings();
+                _battleTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
+                _battleTimer.Tick += (sender, args) => TickBattleBar();
                 Sync();
             }));
         }
@@ -64,6 +70,17 @@ namespace Shiftline.Plugin
                     {
                         _standingsWindow.Close();
                         _standingsWindow = null;
+                    }
+
+                    if (_battleTimer != null)
+                    {
+                        _battleTimer.Stop();
+                    }
+
+                    if (_battleWindow != null)
+                    {
+                        _battleWindow.Close();
+                        _battleWindow = null;
                     }
                 }));
             }
@@ -94,6 +111,11 @@ namespace Shiftline.Plugin
                     _standingsWindow.SetEditMode(edit);
                 }
 
+                if (_battleWindow != null)
+                {
+                    _battleWindow.SetEditMode(edit);
+                }
+
                 Sync();
                 Action handler = EditModeChanged;
                 if (handler != null)
@@ -113,6 +135,11 @@ namespace Shiftline.Plugin
                 {
                     _standingsWindow.RestorePlacement();
                 }
+
+                if (_battleWindow != null && _battleWindow.IsVisible)
+                {
+                    _battleWindow.RestorePlacement();
+                }
             });
         }
 
@@ -123,6 +150,8 @@ namespace Shiftline.Plugin
             {
                 return;
             }
+
+            SyncBattleBar();
 
             bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
             if (!enabled)
@@ -269,6 +298,137 @@ namespace Shiftline.Plugin
             _draggedRows = 0;
             StandingsOptions.SetRows(rows);           // raises Changed: the window snaps to the exact size of these rows
             _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+        }
+
+        // ---------------------------------------------------------------- Battle Bar
+
+        private static void SyncBattleBar()
+        {
+            if (!OverlaySettings.IsEnabled(OverlayData.BattleBarKey))
+            {
+                _battleTimer.Stop();
+                if (_battleWindow != null)
+                {
+                    _battleWindow.Hide();
+                }
+
+                return;
+            }
+
+            if (_battleView != null)
+            {
+                _battleView.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures));
+                if (_battleWindow != null)
+                {
+                    _battleWindow.SetFixedSize(_battleView.DesignSize);
+                }
+            }
+
+            _battleTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.BattleBarKey));
+            _battleTimer.Start();
+            TickBattleBar();
+        }
+
+        private static StandingsSnapshot BattleSnapshot()
+        {
+            StandingsSnapshot snapshot = OverlayData.Current;
+            return snapshot.HasData ? snapshot : StandingsSample.Create(true).As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
+        }
+
+        private static void TickBattleBar()
+        {
+            try
+            {
+                bool enabled = OverlaySettings.IsEnabled(OverlayData.BattleBarKey);
+                StandingsSnapshot snapshot = OverlayData.Current;
+                bool inGame = snapshot.HasData
+                    && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront(snapshot.Game))
+                    && (OverlaySettings.ShowInReplays || !snapshot.IsReplay)
+                    && (OverlaySettings.ShowInGarage || !snapshot.IsInGarage)
+                    && BattleBarOverlay.ShowsIn(BattleBarOptions.Load(), snapshot);
+                if (!enabled || !(_edit || inGame))
+                {
+                    if (_battleWindow != null && _battleWindow.IsVisible)
+                    {
+                        _battleWindow.Hide();
+                    }
+
+                    return;
+                }
+
+                if (_battleWindow == null)
+                {
+                    _battleView = new BattleBarOverlay();
+                    _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", _battleView, _battleView.DesignSize);
+                    _battleWindow.SetEditMode(_edit);
+                    _battleWindow.SetFixedSize(_battleView.DesignSize);
+                    _battleWindow.WidthDragging += factor => BattleScaleDragging(factor);
+                    _battleWindow.WidthDragged += BattleScaleDragged;
+                    _battleWindow.HeightDragging += height =>
+                    {
+                        if (_battleHeightAtStart <= 0)
+                        {
+                            _battleHeightAtStart = _battleWindow.Height;
+                        }
+
+                        BattleScaleDragging(height / Math.Max(1, _battleHeightAtStart));
+                    };
+                    _battleWindow.HeightDragged += height => BattleScaleDragged();
+                }
+
+                StandingsSnapshot shown = BattleSnapshot();
+                if (shown.Features != _battleFeatures)
+                {
+                    _battleFeatures = shown.Features;
+                    _battleView.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures));
+                    _battleWindow.SetFixedSize(_battleView.DesignSize);
+                }
+
+                _battleView.Update(shown);
+                if (!_battleWindow.IsVisible)
+                {
+                    _battleWindow.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                _battleTimer.Stop();
+                PluginLog.Info("Battle Bar stopped: " + ex);
+            }
+        }
+
+        private static double _battleScaleAtStart;
+        private static double _battleHeightAtStart;
+        private static double _battleScale;
+
+        /// <summary>Pulling the right or the bottom edge makes the bar larger or smaller; saved when the edge is released.</summary>
+        private static void BattleScaleDragging(double factor)
+        {
+            if (_battleScaleAtStart <= 0)
+            {
+                _battleScaleAtStart = BattleBarOptions.Load().Scale;
+            }
+
+            double scale = Math.Max(0.5, Math.Min(3, _battleScaleAtStart * factor));
+            if (Math.Abs(scale - _battleScale) < 0.01)
+            {
+                return;
+            }
+
+            _battleScale = scale;
+            _battleView.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures).WithScale(scale));
+            _battleView.Update(BattleSnapshot());
+            _battleWindow.SetFixedSize(_battleView.DesignSize);
+        }
+
+        private static void BattleScaleDragged()
+        {
+            double scale = _battleScale > 0 ? _battleScale : BattleBarOptions.Load().Scale;
+            _battleScaleAtStart = 0;
+            _battleHeightAtStart = 0;
+            _battleScale = 0;
+            BattleBarOptions.SetScale(scale);         // raises Changed: the window snaps to the saved (rounded) size
+            _battleWindow.SetFixedSize(_battleView.DesignSize);
         }
 
         private static void OnUi(Action action)
