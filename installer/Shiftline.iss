@@ -4,7 +4,7 @@
 ;   ISCC.exe /DAppVersion=0.2.1 Shiftline.iss). The installer appears in installer\Output.
 
 #ifndef AppVersion
-  #define AppVersion "0.2.3"
+  #define AppVersion "0.2.4"
 #endif
 
 [Setup]
@@ -28,7 +28,7 @@ InfoBeforeFile=info.txt
 UninstallDisplayName=Shiftline (SimHub plugin)
 UninstallFilesDir={commonappdata}\Shiftline
 CloseApplications=no
-VersionInfoVersion=0.2.3.0
+VersionInfoVersion=0.2.4.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,6 +40,8 @@ Source: "..\README.md"; DestDir: "{commondocs}\Shiftline"; Flags: ignoreversion
 ; The overlays use the fonts Inter and Saira SemiCondensed, built into the DLL. Their licence (SIL Open Font License 1.1)
 ; has to travel with them.
 Source: "..\plugin\Shiftline\Assets\Fonts\OFL-*.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
+; The country flags of the standings come from the flag-icons project (MIT licence), built into the DLL. Its licence travels with them.
+Source: "..\plugin\Shiftline\Assets\Flags\LICENSE-flag-icons.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
 
 [Icons]
 Name: "{commonprograms}\Shiftline\Uninstall Shiftline"; Filename: "{uninstallexe}"

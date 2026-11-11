@@ -15,6 +15,7 @@ namespace Shiftline.Plugin
         {
             new StandingsColumn("Pos", "Position", "P", 0, StandingsColumn.Center, true),
             new StandingsColumn("Class", "Class colour", "", 0, StandingsColumn.Left, true),
+            new StandingsColumn("Flag", "Country flag", "", 0, StandingsColumn.Left, true),
             new StandingsColumn("Name", "Name", "", 0, StandingsColumn.Left, true),
             new StandingsColumn("Make", "Make", "", 0, StandingsColumn.Center, true),
             new StandingsColumn("Gap", "Gap", "", 0, StandingsColumn.Center, true),

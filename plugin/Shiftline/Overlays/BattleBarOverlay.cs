@@ -282,7 +282,7 @@ namespace Shiftline.Plugin
         /// </summary>
         private const double BaseScale = 1.05;
         private static readonly string[] LeftItems = { "Pos", "Class" };
-        private static readonly string[] TopItems = { "Name", "Make", "Gap" };
+        private static readonly string[] TopItems = { "Flag", "Name", "Make", "Gap" };
 
         private List<string> ItemsOf(string[] part)
         {
@@ -319,6 +319,11 @@ namespace Shiftline.Plugin
         private double CardWidth()
         {
             double line = On("Name") ? _nameWidth : 0;
+            if (On("Flag"))
+            {
+                line += FlagWidth + FlagGap;
+            }
+
             if (On("Make"))
             {
                 line += (line > 0 ? Space : 0) + MakeWidth;
@@ -338,6 +343,9 @@ namespace Shiftline.Plugin
         }
 
         private const double MakeWidth = 30;
+        private const double FlagWidth = 16;
+        private const double FlagHeight = 12;
+        private const double FlagGap = 5;
 
         private double GapWidth
         {
@@ -399,7 +407,7 @@ namespace Shiftline.Plugin
 
             // first line: one line spans all rows and sits centred; with two lines it sits on the second line
             const int firstRow = 0;
-            if (On("Name"))
+            if (On("Name") || On("Flag"))
             {
                 Place(inner, BuildItem(slot, "Name", top), 2, firstRow, twoLines ? 1 : 3, twoLines ? VerticalAlignment.Bottom : VerticalAlignment.Center);
             }
@@ -540,6 +548,33 @@ namespace Shiftline.Plugin
                     slot.Laps.Margin = new Thickness(4, 0, 0, 0);
                     slot.Laps.Visibility = Visibility.Collapsed;
                     DockPanel name = new DockPanel { LastChildFill = true };
+                    if (On("Flag"))
+                    {
+                        // the country flag in front of the name
+                        double radius = 2 * _round;
+                        slot.Flag = new Image
+                        {
+                            Width = FlagWidth,
+                            Height = FlagHeight,
+                            Stretch = Stretch.Fill,
+                            Margin = new Thickness(0, 0, FlagGap, 0),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Visibility = Visibility.Hidden,
+                            Clip = new RectangleGeometry(new Rect(0, 0, FlagWidth, FlagHeight), radius, radius)
+                        };
+                        RenderOptions.SetBitmapScalingMode(slot.Flag, BitmapScalingMode.HighQuality);
+                        DockPanel.SetDock(slot.Flag, Dock.Left);
+                        name.Children.Add(slot.Flag);
+                    }
+
+                    if (!On("Name"))
+                    {
+                        // only the flag: the name stays out of sight but keeps the slot code simple
+                        slot.Name = null;
+                        slot.Laps = null;
+                        return name;
+                    }
+
                     DockPanel.SetDock(slot.Laps, Dock.Right);
                     name.Children.Add(slot.Laps);
                     name.Children.Add(slot.Name);
@@ -917,6 +952,17 @@ namespace Shiftline.Plugin
             {
                 Set(slot.Name, NameOf(row));
                 UpdateLapMark(slot, row, field);
+            }
+
+            if (slot.Flag != null)
+            {
+                ImageSource flag = FlagImages.For(row.Flair);
+                if (!ReferenceEquals(slot.Flag.Source, flag))
+                {
+                    slot.Flag.Source = flag;
+                }
+
+                slot.Flag.Visibility = flag == null ? Visibility.Hidden : Visibility.Visible;
             }
 
             if (slot.Make != null)
@@ -1636,6 +1682,7 @@ namespace Shiftline.Plugin
             public Border PosBox;
             public TextBlock Pos;
             public Rectangle ClassBar;
+            public Image Flag;
             public TextBlock Name;
             public TextBlock Laps;
             public TextBlock Make;
