@@ -14,6 +14,7 @@ namespace Shiftline.Plugin
             "Yara Haddad", "Tim Kessler", "Ada Quinn"
         };
 
+        private static readonly string[] Flairs = { "Germany", "Italy", "United Kingdom", "Norway", "Japan", "France", "Spain", "Netherlands", "Belgium", "Sweden", "Brazil", "Poland" };
         private static readonly string[] Makes = { "POR", "BMW", "FER", "MER", "AUD", "MCL", "LAM", "FOR", "AST", "CHE" };
 
         private static readonly string[] Licences = { "A", "B", "C", "A", "B", "D", "A", "C", "B", "A" };
@@ -236,6 +237,7 @@ namespace Shiftline.Plugin
                     Number = (3 + i * 7 % 97).ToString(),
                     Name = Names[i],
                     Make = Makes[i % Makes.Length],
+                    Flair = Flairs[i % Flairs.Length],
                     ClassColor = second ? "0x33ceff" : "0xffda59",
                     ClassName = second ? "GT4" : "GT3",
                     License = Licences[i % Licences.Length] + " " + (1.2 + random.NextDouble() * 3.4).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),

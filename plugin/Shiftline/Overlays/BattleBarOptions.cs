@@ -63,12 +63,11 @@ namespace Shiftline.Plugin
             new StandingsChoice("Name", "Lic.Number", "Safety rating: show the number next to the class letter", "1", OnOff),
             new StandingsChoice("Name", "Name.Width", "Maximum name width (longer names end with ...)", "100",
                 "80", "80 px", "100", "100 px", "120", "120 px", "140", "140 px", "160", "160 px"),
-            new StandingsChoice("Look", "Opacity", "Background opacity", "90",
-                "100", "100 %", "90", "90 %", "80", "80 %", "70", "70 %", "60", "60 %", "50", "50 %", "40", "40 %", "30", "30 %"),
-            new StandingsChoice("Look", "Font", "Font", "Segoe UI",
-                "Segoe UI", "Segoe UI", "Saira SemiCondensed", "Saira Semi Condensed", "Inter", "Inter", "Arial", "Arial", "Verdana", "Verdana", "Tahoma", "Tahoma", "Consolas", "Consolas"),
-            new StandingsChoice("Look", "Weight", "Font weight", "SemiBold", "Normal", "Normal", "SemiBold", "Semi-bold", "Bold", "Bold"),
-            new StandingsChoice("Look", "Corners", "Boxes", "Rounded", "Rounded", "Rounded", "Square", "Square"),
+            LookSettings.ForOverlay("Opacity", "Background opacity of the cards", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("HfOpacity", "Background opacity of the header and footer", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("Font", "Font", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("Weight", "Font weight", "SemiBold"),        // the Battle Bar keeps its own weight until it is set to follow General
+            LookSettings.ForOverlay("Corners", "Boxes", LookSettings.FollowGeneral),
             new StandingsChoice("Look", "PosBg", "Position box", "White", "White", "White, dark text", "Subtle", "Subtle grey", "None", "None"),
             new StandingsChoice("Header", "H.S1", "First", "Session", StandingsOptions.HeaderSlot),
             new StandingsChoice("Header", "H.S2", "Second", "Laps", StandingsOptions.HeaderSlot),
@@ -110,8 +109,8 @@ namespace Shiftline.Plugin
             Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (StandingsChoice choice in AllChoices)
             {
-                string value = OverlaySettings.GetOption(Key, choice.Key, choice.Fallback);
-                values[choice.Key] = choice.Values.Contains(value) ? value : choice.Fallback;
+                // a look setting that follows General gets the value from there
+                values[choice.Key] = LookSettings.Resolve(choice.Key, Raw(choice));
             }
 
             int percent;
@@ -148,6 +147,13 @@ namespace Shiftline.Plugin
         public BattleBarOptions WithScale(double scale)
         {
             return new BattleBarOptions { Items = Items, Header = Header, Footer = Footer, Scale = Math.Max(0.5, Math.Min(3, scale)), Features = Features, _values = _values };
+        }
+
+        /// <summary>What is chosen, as it is stored: for a look setting that follows General this is "Global".</summary>
+        public static string Raw(StandingsChoice choice)
+        {
+            string value = OverlaySettings.GetOption(Key, choice.Key, choice.Fallback);
+            return choice.Values.Contains(value) ? value : choice.Fallback;
         }
 
         public string Get(string choice)

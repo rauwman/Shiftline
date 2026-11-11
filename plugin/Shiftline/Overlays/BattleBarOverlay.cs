@@ -43,6 +43,7 @@ namespace Shiftline.Plugin
         private readonly bool _interactive;
         private BattleBarOptions _options;
         private Brush _cardBrush;
+        private Brush _headerBrush;      // the header pill and the footer, with an opacity of their own
         private Brush _playerBrush;
         private double _round = 1;
         private double _nameWidth = 100;
@@ -129,6 +130,8 @@ namespace Shiftline.Plugin
             _weight = StandingsOverlay.WeightOf(options.Get("Weight"));
             byte alpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("Opacity"))) / 100.0);
             _cardBrush = StandingsOverlay.Frozen(alpha, 0x0E, 0x12, 0x19);
+            byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
+            _headerBrush = StandingsOverlay.Frozen(hfAlpha, 0x0E, 0x12, 0x19);
             _playerBrush = StandingsOverlay.Frozen((byte)Math.Max((int)alpha, 0xC0), 0x16, 0x2A, 0x3E);
             _nameWidth = options.Get("Name.Format") == "Code" ? 40 : Math.Max(60, options.GetInt("Name.Width"));
             _cardWidth = CardWidth();
@@ -160,7 +163,7 @@ namespace Shiftline.Plugin
 
                 _headerBox = new Border
                 {
-                    Background = _cardBrush,
+                    Background = _headerBrush,
                     CornerRadius = new CornerRadius(4 * _round),
                     Height = LineHeight,
                     Padding = new Thickness(4, 0, 4, 0),
@@ -711,7 +714,7 @@ namespace Shiftline.Plugin
             _footer = panel;
             return new Border
             {
-                Background = _cardBrush,
+                Background = _headerBrush,
                 CornerRadius = new CornerRadius(4 * _round),
                 Height = LineHeight,
                 Padding = new Thickness(10, 0, 0, 0),

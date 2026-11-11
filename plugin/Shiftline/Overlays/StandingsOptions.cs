@@ -68,6 +68,7 @@ namespace Shiftline.Plugin
             new StandingsColumn("Pos", "Position", "P", 28, StandingsColumn.Center, true),
             new StandingsColumn("Gain", "Places gained", "+/-", 34, StandingsColumn.Left, true),
             new StandingsColumn("Num", "Car number", "#", 38, StandingsColumn.Center, true),
+            new StandingsColumn("Flag", "Country flag", "", 30, StandingsColumn.Center, false),
             new StandingsColumn("Name", "Name", "Driver", 130, StandingsColumn.Left, true),
             new StandingsColumn("Make", "Make", "Make", 44, StandingsColumn.Center, true),
             new StandingsColumn("Lic", "Safety rating", "SR", 40, StandingsColumn.Center, true),
@@ -89,6 +90,7 @@ namespace Shiftline.Plugin
             new StandingsColumn("Class", "Class colour", "", 8, StandingsColumn.Left, true),
             new StandingsColumn("Pos", "Position", "P", 28, StandingsColumn.Center, true),
             new StandingsColumn("Num", "Car number", "#", 38, StandingsColumn.Center, true),
+            new StandingsColumn("Flag", "Country flag", "", 30, StandingsColumn.Center, false),
             new StandingsColumn("Name", "Name", "Driver", 130, StandingsColumn.Left, true),
             new StandingsColumn("Make", "Make", "Make", 44, StandingsColumn.Center, false),
             new StandingsColumn("Lic", "Safety rating", "SR", 40, StandingsColumn.Center, true),
@@ -157,6 +159,13 @@ namespace Shiftline.Plugin
             { "Gap", "None" }, { "Int", "None" }, { "Last", "None" }, { "Best", "Subtle" }, { "Avg", "Subtle" }, { "Tyre", "Subtle" }, { "Stint", "None" }
         };
 
+        /// <summary>Columns that are drawn in a weight of their own unless the user chooses one (the others follow the overlay).</summary>
+        private static readonly Dictionary<string, string> WeightDefaults = new Dictionary<string, string>
+        {
+            { "iR", "SemiBold" },
+            { "Lic", "SemiBold" }
+        };
+
         public static readonly StandingsChoice[] AllChoices = BaseChoices().Concat(ColumnLookChoices()).ToArray();
 
         /// <summary>Font, weight and background per column; "Default" follows the choices for the whole overlay.</summary>
@@ -164,7 +173,7 @@ namespace Shiftline.Plugin
         {
             foreach (StandingsColumn column in AllColumns)
             {
-                if (column.Key == "Class")
+                if (column.Key == "Class" || column.Key == "Flag")
                 {
                     continue;
                 }
@@ -179,7 +188,13 @@ namespace Shiftline.Plugin
                 yield return new StandingsChoice(column.Key, column.Key + ".Font", "Font", "Default",
                     "Default", "Same as the overlay", "Segoe UI", "Segoe UI", "Saira SemiCondensed", "Saira Semi Condensed", "Inter", "Inter",
                     "Arial", "Arial", "Verdana", "Verdana", "Tahoma", "Tahoma", "Consolas", "Consolas");
-                yield return new StandingsChoice(column.Key, column.Key + ".Weight", "Font weight", "Default",
+                string weightFallback;
+                if (!WeightDefaults.TryGetValue(column.Key, out weightFallback))
+                {
+                    weightFallback = "Default";
+                }
+
+                yield return new StandingsChoice(column.Key, column.Key + ".Weight", "Font weight", weightFallback,
                     "Default", "Same as the overlay", "Normal", "Normal", "SemiBold", "Semi-bold", "Bold", "Bold");
             }
         }
@@ -218,17 +233,14 @@ namespace Shiftline.Plugin
                 "Info", "With time in the pit lane or the lap of the last stop (PIT 0:23)", "Plain", "Word only (PIT)"),
             new StandingsChoice("Delta", "Delta.Count", "Number of laps", "3",
                 "1", "1 lap", "2", "2 laps", "3", "3 laps", "4", "4 laps", "5", "5 laps"),
-            new StandingsChoice("Look", "Opacity", "Background opacity", "90",
-                "100", "100 %", "90", "90 %", "80", "80 %", "70", "70 %", "60", "60 %", "50", "50 %", "40", "40 %", "30", "30 %", "20", "20 %", "0", "0 % (no background)"),
+            LookSettings.ForOverlay("Opacity", "Background opacity of the rows", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("HfOpacity", "Background opacity of the header and footer", LookSettings.FollowGeneral),
             new StandingsChoice("Look", "RowGap", "Space between rows", "0",
                 "0", "None (one panel)", "1", "1 px", "2", "2 px", "3", "3 px", "4", "4 px"),
-            new StandingsChoice("Look", "Font", "Font", "Segoe UI",
-                "Segoe UI", "Segoe UI", "Saira SemiCondensed", "Saira Semi Condensed", "Inter", "Inter", "Arial", "Arial", "Verdana", "Verdana", "Tahoma", "Tahoma", "Consolas", "Consolas"),
-            new StandingsChoice("Look", "Corners", "Background boxes", "Rounded",
-                "Rounded", "Rounded", "Square", "Square"),
+            LookSettings.ForOverlay("Font", "Font", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("Corners", "Background boxes", LookSettings.FollowGeneral),
             new StandingsChoice("Look", "Titles", "Titles over the lap times (LAST, BEST, AVG)", "1", OnOff),
-            new StandingsChoice("Look", "Weight", "Font weight", "Normal",
-                "Normal", "Normal", "SemiBold", "Semi-bold", "Bold", "Bold"),
+            LookSettings.ForOverlay("Weight", "Font weight", LookSettings.FollowGeneral),
             new StandingsChoice("Header", "H.Left", "Left side", "Clock", HeaderSlot),
             new StandingsChoice("Header", "H.C1", "Centre, first", "Temp", HeaderSlot),
             new StandingsChoice("Header", "H.C2", "Centre, second", "Sof", HeaderSlot),
@@ -299,6 +311,8 @@ namespace Shiftline.Plugin
                     return StandingsFeatures.Licence;
                 case "Tyre":
                     return StandingsFeatures.Tyres;
+                case "Flag":
+                    return StandingsFeatures.Flags;
                 default:
                     return StandingsFeatures.None;
             }
@@ -373,9 +387,8 @@ namespace Shiftline.Plugin
             Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (StandingsChoice choice in AllChoices)
             {
-                string fallback = FallbackOf(choice, overlay);
-                string value = OverlaySettings.GetOption(overlay, choice.Key, fallback);
-                values[choice.Key] = choice.Values.Contains(value) ? value : fallback;
+                // a look setting that follows General gets the value from there
+                values[choice.Key] = LookSettings.Resolve(choice.Key, Raw(choice, overlay));
             }
 
             if (overlay == OverlayData.RelativesKey)
@@ -398,6 +411,14 @@ namespace Shiftline.Plugin
                 Scale = ScaleOf(OverlaySettings.GetOption(overlay, "Scale", "100")),
                 _values = values
             };
+        }
+
+        /// <summary>What is chosen for the overlay, as it is stored: for a look setting that follows General this is "Global".</summary>
+        public static string Raw(StandingsChoice choice, string overlay)
+        {
+            string fallback = FallbackOf(choice, overlay);
+            string value = OverlaySettings.GetOption(overlay, choice.Key, fallback);
+            return choice.Values.Contains(value) ? value : fallback;
         }
 
         public string Get(string choice)

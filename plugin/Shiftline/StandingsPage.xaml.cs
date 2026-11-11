@@ -209,6 +209,7 @@ namespace Shiftline.Plugin
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();
+            _preview.InRace = _previewRace;
             _preview.ApplyOptions(StandingsOptions.Load(_overlay).ForFeatures(features));
             ShowPreviewGame(features);
 
@@ -329,7 +330,7 @@ namespace Shiftline.Plugin
                     combo.Items.Add(new ComboBoxItem { Content = shortText, ToolTip = itemHint });
                 }
 
-                combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, options.Get(choice.Key)));
+                combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, StandingsOptions.Raw(choice, _overlay)));
                 combo.SelectionChanged += (sender, args) =>
                 {
                     ComboBox changed = (ComboBox)sender;
@@ -504,10 +505,35 @@ namespace Shiftline.Plugin
                 summary.AppendLine("Own car index".PadRight(22) + snapshot.PlayerCarIdx);
                 summary.AppendLine("Snapshot".PadRight(22) + "#" + snapshot.Sequence + ", " + age.ToString("0.0", CultureInfo.InvariantCulture) + " s old");
                 AppendDiagnostics(summary, snapshot);
+                AppendDriverProbe(summary);
             }
 
             SummaryText.Text = summary.ToString().TrimEnd();
             TableText.Text = Table(snapshot);
+        }
+
+        /// <summary>Shows which fields of the first driver SimHub delivers (to find out where the country flag comes from).</summary>
+        private void AppendDriverProbe(StringBuilder text)
+        {
+            if (Plugin.PluginManager == null)
+            {
+                return;
+            }
+
+            text.AppendLine("Driver fields (first driver in the list):");
+            foreach (string field in new[] { "UserName", "IRating", "FlairID", "FlairName", "ClubID", "ClubName", "DivisionID", "DivisionName", "TeamName", "CarIsAI" })
+            {
+                object value = null;
+                try
+                {
+                    value = Plugin.PluginManager.GetPropertyValue("DataCorePlugin.GameRawData.SessionData.DriverInfo.Drivers01." + field);
+                }
+                catch (Exception)
+                {
+                }
+
+                text.AppendLine(("  " + field).PadRight(22) + (value == null ? "(missing)" : Convert.ToString(value, CultureInfo.InvariantCulture)));
+            }
         }
 
         private static void AppendDiagnostics(StringBuilder text, StandingsSnapshot snapshot)
@@ -526,7 +552,7 @@ namespace Shiftline.Plugin
             }
 
             StringBuilder text = new StringBuilder();
-            text.AppendLine("Pos Cls  #     Name                   Mk  Class     Lap  Dist%  Last      Best      Pit  iR");
+            text.AppendLine("Pos Cls  #     Name                   Mk  Class     Lap  Dist%  Last      Best      Pit  iR     Flair                Code");
             foreach (StandingsRow row in snapshot.Rows)
             {
                 text.Append((row.Position > 0 ? row.Position.ToString(CultureInfo.InvariantCulture) : "-").PadRight(4));
@@ -540,7 +566,9 @@ namespace Shiftline.Plugin
                 text.Append(Lap(row.LastLap).PadRight(10));
                 text.Append(Lap(row.BestLap).PadRight(10));
                 text.Append((row.TrackSurface < 0 ? "out" : row.OnPitRoad ? "yes" : string.Empty).PadRight(5));
-                text.Append(row.IRating);
+                text.Append(row.IRating.ToString(CultureInfo.InvariantCulture).PadRight(7));
+                text.Append(Cut(row.Flair, 19).PadRight(21));
+                text.Append(string.IsNullOrEmpty(row.Flair) ? string.Empty : FlagImages.CodeOf(row.Flair) ?? "?");
                 text.AppendLine(row.IsPlayer ? "  <- you" : string.Empty);
             }
 

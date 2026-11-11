@@ -29,7 +29,6 @@ namespace Shiftline.Plugin
         private static readonly Brush TextBrush = Frozen(0xFF, 0xE8, 0xEC, 0xF1);
         private static readonly Brush MutedBrush = Frozen(0xFF, 0x8E, 0x98, 0xA6);
         private static readonly Brush PanelBrush = Frozen(0xE6, 0x0E, 0x12, 0x19);
-        private static readonly Brush HeaderBrush = Frozen(0xFF, 0x16, 0x1C, 0x26);
         private static readonly Brush OddRowBrush = Frozen(0x14, 0xFF, 0xFF, 0xFF);
         private static readonly Brush PlayerRowBrush = Frozen(0x55, 0x3F, 0xA9, 0xF5);
         private static readonly Brush PurpleBrush = Frozen(0xFF, 0xC0, 0x7C, 0xFF);
@@ -87,12 +86,14 @@ namespace Shiftline.Plugin
         private Path[] _irArrows = new Path[0];
         private Border[] _irPills = new Border[0];
         private Border[] _licNumberBoxes = new Border[0];
+        private Image[] _flagImages = new Image[0];
         private Border[] _licLetterBoxes = new Border[0];
         private TextBlock[] _licNumbers = new TextBlock[0];
         private TextBlock[] _licLetters = new TextBlock[0];
         private double _changeWidth = 16;
         private Brush _rowBrush;
         private Brush _oddRowBrush;
+        private Brush _headerBrush;        // header and footer, with an opacity of their own
         private double _rowPitch = RowHeight;
         private Dictionary<int, int> _lastSlots = new Dictionary<int, int>();
         private double _designWidth;
@@ -161,6 +162,8 @@ namespace Shiftline.Plugin
 
             // Without a gap the rows sit on one panel and every second row is lighter. With a gap every row is its own dark bar
             // and the space between them stays see-through.
+            byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
+            _headerBrush = Frozen(hfAlpha, 0x16, 0x1C, 0x26);
             Brush panelBrush = gap > 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19);
             _rowBrush = gap > 0 ? Frozen(alpha, 0x0E, 0x12, 0x19) : null;
             _oddRowBrush = gap > 0 ? Frozen(alpha, 0x1A, 0x20, 0x2A) : OddRowBrush;
@@ -271,7 +274,7 @@ namespace Shiftline.Plugin
                     _designWidth = needed;
                 }
 
-                Border headerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = HeaderHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Child = headerGrid };
+                Border headerBox = new Border { Background = _headerBrush, CornerRadius = new CornerRadius(5 * _round), Height = HeaderHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Child = headerGrid };
                 _headerBox = headerBox;
                 Grid.SetColumnSpan(headerBox, span);
                 grid.Children.Add(headerBox);
@@ -318,6 +321,7 @@ namespace Shiftline.Plugin
             _irArrows = new Path[rows];
             _irPills = new Border[rows];
             _licNumberBoxes = new Border[rows];
+            _flagImages = new Image[rows];
             _licLetterBoxes = new Border[rows];
             _licNumbers = new TextBlock[rows];
             _licLetters = new TextBlock[rows];
@@ -382,6 +386,11 @@ namespace Shiftline.Plugin
                     else if (key == "iR")
                     {
                         content = BuildIRating(r, text, _columnFills[c]);
+                    }
+                    else if (key == "Flag")
+                    {
+                        content = BuildFlag(r);
+                        padding = new Thickness(0);
                     }
                     else if (key == "Lic" && options.Get("Lic.Mode") == "Split")
                     {
@@ -501,7 +510,7 @@ namespace Shiftline.Plugin
                     footer.Children.Add(items[i]);
                 }
 
-                _footerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = FooterHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Child = footer };
+                _footerBox = new Border { Background = _headerBrush, CornerRadius = new CornerRadius(5 * _round), Height = FooterHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Child = footer };
                 Grid.SetRow(_footerBox, firstRow + rows);
                 Grid.SetColumnSpan(_footerBox, span);
                 grid.Children.Add(_footerBox);
@@ -614,6 +623,17 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The iRating with its estimated change, on one shared background so they read as one.</summary>
+        /// <summary>
+        /// False while the session is not a race: the change of the iRating is only estimated for a race, so the column then shows
+        /// the rating alone and is narrower. The host builds the layout again when the session type changes.
+        /// </summary>
+        public bool InRace { get; set; } = true;
+
+        private bool ShowGain
+        {
+            get { return _options.GetBool("iR.Gain") && InRace; }
+        }
+
         private UIElement BuildIRating(int r, TextBlock rating, Brush fill)
         {
             // A small table of three columns, each centred: the rating, the arrow, the change. The columns have the width of a
@@ -624,20 +644,58 @@ namespace Shiftline.Plugin
             _irChanges[r] = change;
             rating.HorizontalAlignment = HorizontalAlignment.Center;
             rating.TextAlignment = TextAlignment.Center;
-            rating.FontWeight = FontWeights.SemiBold;               // like the rating in the licence pill
             change.HorizontalAlignment = HorizontalAlignment.Center;
             Grid table = new Grid { HorizontalAlignment = HorizontalAlignment.Center };
             table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = _ratingWidth });
-            table.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-            table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = _options.GetBool("iR.Gain") ? _changeWidth : 0 });
+            table.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ShowGain ? 12 : 0) });
+            table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = ShowGain ? _changeWidth : 0 });
             Grid.SetColumn(arrow, 1);
             Grid.SetColumn(change, 2);
             table.Children.Add(rating);
             table.Children.Add(arrow);
             table.Children.Add(change);
-            Border pill = new Border { Background = fill, CornerRadius = new CornerRadius(4 * _round), Padding = new Thickness(3, 0, 3, 0), HorizontalAlignment = HorizontalAlignment.Stretch, Child = table };
+            Border pill = new Border { Background = fill, CornerRadius = new CornerRadius(4 * _round), Padding = new Thickness(3, 0, 3, 0), HorizontalAlignment = ShowGain ? HorizontalAlignment.Stretch : HorizontalAlignment.Center, Child = table };
             _irPills[r] = pill;
             return pill;
+        }
+
+        private const double FlagWidth = 18;
+        private const double FlagHeight = 13.5;
+
+        /// <summary>The country flag of the driver: a small 4:3 picture with softly rounded corners, empty when the driver has none.</summary>
+        private UIElement BuildFlag(int r)
+        {
+            double radius = 2 * _round;
+            Image image = new Image
+            {
+                Width = FlagWidth,
+                Height = FlagHeight,
+                Stretch = Stretch.Fill,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Hidden,
+                Clip = new RectangleGeometry(new Rect(0, 0, FlagWidth, FlagHeight), radius, radius)
+            };
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
+            _flagImages[r] = image;
+            return image;
+        }
+
+        private void FillFlag(int r, StandingsRow row)
+        {
+            Image image = _flagImages[r];
+            if (image == null)
+            {
+                return;
+            }
+
+            ImageSource source = row == null ? null : FlagImages.For(row.Flair);
+            if (!ReferenceEquals(image.Source, source))
+            {
+                image.Source = source;
+            }
+
+            image.Visibility = source == null ? Visibility.Hidden : Visibility.Visible;
         }
 
         /// <summary>The licence as two parts side by side: the safety rating on a darker shade, the class letter on the class colour.</summary>
@@ -646,9 +704,8 @@ namespace Shiftline.Plugin
             // One pill in two parts: the rating centred on a dark shade of the licence colour, the class letter on the full colour
             // at the right end. No gap and no edge between them.
             TextBlock number = NewText(StandingsColumn.Center);
-            number.FontWeight = FontWeights.SemiBold;
             TextBlock letter = NewText(StandingsColumn.Center);
-            letter.FontWeight = FontWeights.Bold;
+            letter.FontWeight = Heavier(LicenceWeight(_options));
             letter.FontSize = 12;
             CentreInk(number, InkDigits);
             CentreInk(letter, InkLetters);
@@ -746,6 +803,19 @@ namespace Shiftline.Plugin
                 IsHitTestVisible = false
             });
             return grid;
+        }
+
+        /// <summary>The weight of the safety rating column: its own choice, else the weight of the overlay.</summary>
+        private static FontWeight LicenceWeight(StandingsOptions options)
+        {
+            string weight = options.Get("Lic.Weight");
+            return WeightOf(string.IsNullOrEmpty(weight) || weight == "Default" ? options.Get("Weight") : weight);
+        }
+
+        /// <summary>One step heavier, for the class letter next to the number.</summary>
+        private static FontWeight Heavier(FontWeight weight)
+        {
+            return weight == FontWeights.Normal ? FontWeights.SemiBold : FontWeights.Bold;
         }
 
         internal const string InkDigits = "0123456789";
@@ -889,18 +959,20 @@ namespace Shiftline.Plugin
                     return Measure("00", family, weight) + 11 + Cell;
                 case "Num":
                     return Measure("000", family, weight) + Cell + 4;
+                case "Flag":
+                    return FlagWidth + Cell;
                 case "Make":
                     return Measure("WWW", family, weight) + Cell;
                 case "Lic":
                     return options.Get("Lic.Mode") == "Split"
-                        ? (options.GetBool("Lic.Number") ? Measure("0.0", family, FontWeights.SemiBold) + 6 : 0) + Measure("W", family, FontWeights.Bold) + 10 + 4
+                        ? (options.GetBool("Lic.Number") ? Measure("0.0", family, weight) + 6 : 0) + Measure("W", family, Heavier(weight)) + 10 + 4
                         : Measure("W0.00", family, weight) + Cell + 2;
                 case "iR":
                     // normal values: below 10k and a change of at most two digits (the pill grows for the rare larger one)
                     string longest = options.Get("iR.Mode") == "K1" ? "0.0k" : options.Get("iR.Mode") == "K0" ? "0k" : "0000";
                     _ratingWidth = Math.Ceiling(Measure(longest, family, weight)) + 2;
                     _changeWidth = Math.Ceiling(Measure("00", family, weight)) + 2;
-                    return options.GetBool("iR.Gain")
+                    return options.GetBool("iR.Gain") && InRace
                         ? _ratingWidth + 12 + _changeWidth + 6 + Cell
                         : _ratingWidth + 6 + Cell;
                 case "Lap":
@@ -991,12 +1063,17 @@ namespace Shiftline.Plugin
             Dictionary<int, int> slots = new Dictionary<int, int>();
             double animation = AnimationSeconds(snapshot.IsReplay);
             string style = _options.Get("Anim.Style");       // Slide, Pop or Fade
+            int stripe = 0;       // counts only cars, so a class tab or the titles do not break the light/dark change; the first car is the lighter one
             for (int r = 0; r < _options.Rows; r++)
             {
                 Entry entry = r < shown.Count ? shown[r] : null;
                 StandingsRow row = entry == null ? null : entry.Row;
                 ShowTab(r, entry == null ? null : entry.Tab, snapshot.Features);
-                Brush rowBrush = row == null ? null : row.IsPlayer ? PlayerRowBrush : (r % 2 == 1 ? _oddRowBrush : _rowBrush);
+                Brush rowBrush = row == null ? null : row.IsPlayer ? PlayerRowBrush : (stripe % 2 == 0 ? _oddRowBrush : _rowBrush);
+                if (row != null)
+                {
+                    stripe++;
+                }
                 if (!ReferenceEquals(_rowBackgrounds[r].Background, rowBrush))
                 {
                     _rowBackgrounds[r].Background = rowBrush;
@@ -1502,6 +1579,11 @@ namespace Shiftline.Plugin
                 FillLicence(r, null);
             }
 
+            if (column == "Flag")
+            {
+                FillFlag(r, row);
+            }
+
             if (row != null)
             {
                 switch (column)
@@ -1554,7 +1636,7 @@ namespace Shiftline.Plugin
                     case "iR":
                         value = FormatIRating(row.IRating, options.Get("iR.Mode"));
                         foreground = MutedBrush;
-                        FillIRatingChange(r, row, options.GetBool("iR.Gain"), _columnLight[c]);
+                        FillIRatingChange(r, row, ShowGain, _columnLight[c]);
                         break;
                     case "Lap":
                         value = row.LapDistPct >= 0 ? (row.LapsCompleted + 1).ToString(CultureInfo.InvariantCulture) : string.Empty;
@@ -2055,7 +2137,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The licence colour as iRacing reports it ("0x0153db"); null when it cannot be read.</summary>
-        private static readonly Brush NoClassBrush = FrozenColour(0x7A, 0x86, 0x9A);
+        private static readonly Brush NoClassBrush = FrozenColour(0x3F, 0xA9, 0xF5);
 
         private static Brush FrozenColour(byte r, byte g, byte b)
         {
@@ -2066,7 +2148,7 @@ namespace Shiftline.Plugin
 
         /// <summary>
         /// The colour of a class. Without a class colour, or when the game sends plain white or black (offline races, a single
-        /// class), a neutral grey-blue is shown instead, so it does not look like a real class.
+        /// class), the accent blue of Shiftline is shown instead.
         /// </summary>
         internal static Brush ClassBrush(string value)
         {

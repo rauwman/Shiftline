@@ -19,6 +19,7 @@ namespace Shiftline.Plugin
         public string Make;
         public string LicenseColor;
         public string CarName;
+        public string Flair;        // FlairName, for example the country; empty when iRacing sends none
     }
 
     /// <summary>
@@ -64,7 +65,8 @@ namespace Shiftline.Plugin
                     License = Text(get(prefix + "LicString")),
                     Make = CarMakes.CodeFor(Text(get(prefix + "CarScreenName"))),
                     LicenseColor = Text(get(prefix + "LicColor")),
-                    CarName = Text(get(prefix + "CarScreenNameShort"))
+                    CarName = Text(get(prefix + "CarScreenNameShort")),
+                    Flair = Text(get(prefix + "FlairName"))
                 });
             }
 
@@ -115,6 +117,7 @@ namespace Shiftline.Plugin
                     License = driver.License,
                     Make = driver.Make,
                     LicenseColor = driver.LicenseColor,
+                    Flair = driver.Flair,
                     LapsCompleted = (int)At(lapCompleted, i, 0),
                     LapDistPct = dist,
                     LastLap = At(lastLap, i, -1),

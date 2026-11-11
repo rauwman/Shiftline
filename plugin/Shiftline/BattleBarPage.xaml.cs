@@ -124,7 +124,7 @@ namespace Shiftline.Plugin
                     combo.Items.Add(new ComboBoxItem { Content = shortText, ToolTip = itemHint });
                 }
 
-                combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, options.Get(choice.Key)));
+                combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, BattleBarOptions.Raw(choice)));
                 combo.SelectionChanged += (sender, args) =>
                 {
                     ComboBox changed = (ComboBox)sender;

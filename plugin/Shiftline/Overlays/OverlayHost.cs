@@ -23,6 +23,7 @@ namespace Shiftline.Plugin
         private static StandingsOverlay _relativesView;
         private static DispatcherTimer _relativesTimer;
         private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
+        private static bool _relativesRace = true;         // whether the relatives are laid out for a race (the iRating change needs room only there)
         private static bool _edit;
 
         /// <summary>Raised on the UI thread after edit mode was switched.</summary>
@@ -252,6 +253,15 @@ namespace Shiftline.Plugin
                     _standingsWindow.SetFixedSize(_standingsView.DesignSize);
                 }
 
+                if (shown.IsRace != _standingsRace)
+                {
+                    // Practice or qualifying after a race (or the other way round): the iRating column changes its width.
+                    _standingsRace = shown.IsRace;
+                    _standingsView.InRace = shown.IsRace;
+                    _standingsView.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
+                    _standingsWindow.SetFixedSize(_standingsView.DesignSize);
+                }
+
                 _standingsView.Update(shown);
                 if (!_standingsWindow.IsVisible)
                 {
@@ -267,6 +277,7 @@ namespace Shiftline.Plugin
 
         private static int _draggedRows;
         private static StandingsFeatures _standingsFeatures = StandingsFeatures.All;
+        private static bool _standingsRace = true;         // whether the standings are laid out for a race (the iRating change needs room only there)
 
         /// <summary>Pulling the bottom edge shows more or fewer rows right away; they are saved when the edge is released.</summary>
         private static void StandingsHeightDragging(double height)
@@ -540,6 +551,14 @@ namespace Shiftline.Plugin
                 if (shown.Features != _relativesFeatures)
                 {
                     _relativesFeatures = shown.Features;
+                    _relativesView.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
+                    _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+                }
+
+                if (shown.IsRace != _relativesRace)
+                {
+                    _relativesRace = shown.IsRace;
+                    _relativesView.InRace = shown.IsRace;
                     _relativesView.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
                     _relativesWindow.SetFixedSize(_relativesView.DesignSize);
                 }

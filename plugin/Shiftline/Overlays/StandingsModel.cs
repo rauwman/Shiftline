@@ -13,7 +13,8 @@ namespace Shiftline.Plugin
         TimeOfDay = 8,
         Tyres = 16,
         Delta = 32,
-        All = IRating | Licence | Incidents | TimeOfDay | Tyres | Delta
+        Flags = 64,
+        All = IRating | Licence | Incidents | TimeOfDay | Tyres | Delta | Flags
     }
 
     /// <summary>One car in the standings. Treated as immutable once it is part of a published snapshot.</summary>
@@ -31,6 +32,7 @@ namespace Shiftline.Plugin
         public string License { get; internal set; }
         public string LicenseColor { get; internal set; }   // as iRacing reports it, for example 0x0153db
         public string Make { get; internal set; }           // three-letter make code, for example POR
+        public string Flair { get; internal set; }          // iRacing FlairName (a country for most drivers), empty = none
         public int LapsCompleted { get; internal set; }
         public double LapDistPct { get; internal set; }     // 0..1, -1 = not on the track
         public double LastLap { get; internal set; }        // seconds, -1 = none

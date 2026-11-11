@@ -77,14 +77,11 @@
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Zap" Text="Update rate" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="Affects how often bars and numbers will update. A lower rate saves computing time. More than 60 per second brings nothing. Each overlay can use its own rate on its own page; this value applies to all that do not." />
-                </StackPanel>
-                <ComboBox x:Name="RateCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RateCombo_SelectionChanged" />
-            </Grid>
+            <StackPanel>
+                <local:IconTitle IconKey="ThemeStudio" Text="Main settings" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The look and the update rate of all overlays. An overlay takes these values while its own page says &quot;Same as in General&quot; (the update rate: &quot;Global&quot;); there you can also choose a value for that overlay alone. A lower update rate saves computing time, and more than 60 per second brings nothing." />
+                <StackPanel x:Name="MainSettingsPanel" Margin="0,14,0,0" />
+            </StackPanel>
         </Border>
     </StackPanel>
 </UserControl>
