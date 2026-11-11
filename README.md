@@ -7,7 +7,11 @@ Shiftline aims to be one free plugin for everything around SimHub: LED devices, 
 
 > **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings, relatives and battle bar were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
 
-![The Dash Panel page of Shiftline](docs/images/dash-panel.png)
+<img src="docs/images/dash-panel.png" width="830" alt="The Dash Panel page of Shiftline">
+
+<img src="docs/images/led-effects.png" width="830" alt="The Effects tab of the Dash Panel with its groups">
+
+*The Effects tab: every effect can be switched and coloured, in groups*
 
 ## Features
 
@@ -29,13 +33,17 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 
 ### Overlays (new)
 
-![Standings in a multi-class race](docs/images/standings.png)
+<img src="docs/images/standings.png" width="830" alt="Standings in a multi-class race">
 
 *Standings in a multi-class race, with header and footer (invented data)*
 
-![Relatives](docs/images/relatives.png)
+<img src="docs/images/relatives.png" width="439" alt="Relatives">
 
 *Relatives: the cars around you, in the same look as the standings (invented data)*
+
+<img src="docs/images/battle-bar.png" width="830" alt="The Battle Bar">
+
+*Battle Bar: you in the middle, the cars around you with gaps, trend arrows and a battle frame (invented data)*
 
 - **Standings:** position, class colour, places gained, car number, name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
 - **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
@@ -46,7 +54,7 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 - Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
 - More overlays are planned: track map, fuel calculator, pit helper, pedals, inputs graph and spotter
 
-![The Standings page of Shiftline](docs/images/standings-settings.png)
+<img src="docs/images/standings-settings.png" width="830" alt="The Standings page of Shiftline">
 
 *The Standings page: a live preview and the options for columns, look, header and footer*
 
