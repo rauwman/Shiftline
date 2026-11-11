@@ -3,9 +3,9 @@
 Shiftline aims to be one free plugin for everything around SimHub: LED devices, on-screen overlays, and later dashboards and control devices.
 
 - **LEDs:** rev lights, brake and pedal bars, fuel, flags and effects for any SimHub LED device, with presets per game and car.
-- **Overlays:** a standings table for now, more are on the way.
+- **Overlays:** standings, relatives and a battle bar, more are on the way.
 
-> **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
+> **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings, relatives and battle bar were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
 
 ![The Dash Panel page of Shiftline](docs/images/dash-panel.png)
 
@@ -29,13 +29,26 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 
 ### Overlays (new)
 
+![Standings in a multi-class race](docs/images/standings.png)
+
+*Standings in a multi-class race, with header and footer (invented data)*
+
+![Relatives](docs/images/relatives.png)
+
+*Relatives: the cars around you, in the same look as the standings (invented data)*
+
 - **Standings:** position, class colour, places gained, car number, name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
+- **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
 - **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows and a battle frame
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
 - Classes on their own, grouped or mixed; animated position changes
 - **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
 - Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
-- More overlays are planned: relatives, track map, fuel calculator, pit helper, pedals, inputs graph and spotter
+- More overlays are planned: track map, fuel calculator, pit helper, pedals, inputs graph and spotter
+
+![The Standings page of Shiftline](docs/images/standings-settings.png)
+
+*The Standings page: a live preview and the options for columns, look, header and footer*
 
 ## Install
 
