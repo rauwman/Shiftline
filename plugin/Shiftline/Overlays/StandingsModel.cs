@@ -81,6 +81,7 @@ namespace Shiftline.Plugin
             TrackTemp = string.Empty,
             IncidentLimit = string.Empty,
             TimeRemaining = -1,
+            TimeTotal = -1,
             TimeOfDay = -1,
             TrackShort = string.Empty,
             Game = string.Empty,
@@ -94,6 +95,7 @@ namespace Shiftline.Plugin
         public string SessionType { get; internal set; }
         public string CarName { get; internal set; }          // the player's car, short name
         public double TimeRemaining { get; internal set; }    // seconds, -1 = unknown
+        public double TimeTotal { get; internal set; }        // length of the session in seconds, -1 = unknown or unlimited
         public int LapsTotal { get; internal set; }           // 0 = not limited by laps
         public string TrackTemp { get; internal set; }        // as iRacing reports it at session start, for example "28.06 C"
         public int Incidents { get; internal set; }           // the player's incident points
@@ -104,6 +106,10 @@ namespace Shiftline.Plugin
         public bool IsInGarage { get; internal set; }         // the player is in the garage or the game's menus, not driving
         public string TrackShort { get; internal set; }       // short track name, for example "Interlagos"
         public double TimeOfDay { get; internal set; }        // time of day in the simulation, seconds after midnight, -1 = unknown
+        public double OilTemp { get; internal set; } = double.NaN;      // the player's car, degrees Celsius, NaN = not delivered
+        public double WaterTemp { get; internal set; } = double.NaN;
+        public double AirTemp { get; internal set; } = double.NaN;
+        public double Humidity { get; internal set; } = double.NaN;     // percent, NaN = not delivered
         public double DeltaToBest { get; internal set; }      // live delta of the running lap to the player's best lap
         public bool HasDelta { get; internal set; }
         public StandingsFeatures Features { get; internal set; }

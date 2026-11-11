@@ -22,6 +22,7 @@ namespace Shiftline.Plugin
 
         /// <summary>The name under which the Battle Bar keeps its own settings.</summary>
         public const string BattleBarKey = "BattleBar";
+        public const string RelativesKey = "Relatives";
 
         private static readonly RateClock StandingsClock = new RateClock(10);
         private static readonly RateClock DriverClock = new RateClock(0.5);
@@ -51,6 +52,21 @@ namespace Shiftline.Plugin
         /// The columns the preview and the edit-mode sample show: everything for iRacing (and when no game is selected), what
         /// the selected game delivered the last time it ran, or the usual set of SimHub's data for a game that never ran.
         /// </summary>
+        /// <summary>The data is read as often as the fastest overlay that is switched on needs it (the standings count always).</summary>
+        private static int DataRate()
+        {
+            int rate = OverlaySettings.RateFor(StandingsKey);
+            foreach (string key in new[] { BattleBarKey, RelativesKey })
+            {
+                if (OverlaySettings.IsEnabled(key))
+                {
+                    rate = Math.Max(rate, OverlaySettings.RateFor(key));
+                }
+            }
+
+            return rate;
+        }
+
         public static StandingsFeatures PreviewFeatures()
         {
             string game = SelectedGame;
@@ -105,7 +121,7 @@ namespace Shiftline.Plugin
                 if (running && !iracing)
                 {
                     // Every other game: SimHub's own opponent list.
-                    StandingsClock.SetRate(OverlaySettings.RateFor(StandingsKey));
+                    StandingsClock.SetRate(DataRate());
                     if (StandingsClock.Due())
                     {
                         StandingsSnapshot built = Generic.Build(data, ++_sequence, Tracker);
@@ -131,7 +147,7 @@ namespace Shiftline.Plugin
                     return;
                 }
 
-                StandingsClock.SetRate(OverlaySettings.RateFor(StandingsKey));
+                StandingsClock.SetRate(DataRate());
                 if (!StandingsClock.Due())
                 {
                     return;

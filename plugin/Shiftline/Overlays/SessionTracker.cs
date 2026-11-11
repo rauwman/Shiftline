@@ -161,6 +161,15 @@ namespace Shiftline.Plugin
         /// Strength of field from the iRatings, with the formula the iRacing community uses (an average on iRacing's logarithmic
         /// rating scale). Not an official iRacing number. 0 when no car has an iRating.
         /// </summary>
+        /// <summary>
+        /// Offline races and AI cars deliver an iRating of about 1. No real iRating is that low, so below 100 it counts as
+        /// unknown (0) and is neither shown nor used for the strength of field or the estimate.
+        /// </summary>
+        public static int RealRating(int rating)
+        {
+            return rating >= 100 ? rating : 0;
+        }
+
         public static int StrengthOfField(IEnumerable<StandingsRow> rows)
         {
             const double Scale = 1600 / 0.69314718055994530942;     // 1600 / ln 2

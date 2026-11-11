@@ -16,13 +16,13 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="ListOrdered" Text="Standings" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="A table with the whole field above the game: positions, names, gaps, lap times and more, with the columns and the look you choose below. Place and size it in edit mode on the General page." />
+                    <TextBlock x:Name="PageHint" Style="{StaticResource CardHint}" Text="A table with the whole field above the game: positions, names, gaps, lap times and more, with the columns and the look you choose below. Place and size it in edit mode on the General page." />
                 </StackPanel>
                 <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,14,0,0">
                     <TextBlock Text="Update rate" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
                     <ComboBox x:Name="RateCombo" Width="190" Height="34" SelectionChanged="RateCombo_SelectionChanged" />
-                    <Button Style="{StaticResource GlassButton}" Margin="24,0,0,0" Content="Reset the design" Click="ResetDesign_Click"
+                    <Button x:Name="ResetButton" Style="{StaticResource GlassButton}" Margin="24,0,0,0" Content="Reset the design" Click="ResetDesign_Click"
                             ToolTip="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether the overlay is shown, its position and its update rate stay." />
                 </StackPanel>
             </Grid>
@@ -54,7 +54,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Margin="0,0,16,0">
                         <local:IconTitle IconKey="Layout" Text="Columns" />
-                        <TextBlock Style="{StaticResource CardHint}" Text="Choose what each row shows. Gap and interval come from iRacing's race timing; in practice and qualifying they compare best laps." />
+                        <TextBlock x:Name="ColumnsHint" Style="{StaticResource CardHint}" Text="Choose what each row shows. Gap and interval come from iRacing's race timing; in practice and qualifying they compare best laps." />
                     </StackPanel>
                     <Button Grid.Column="1" Style="{StaticResource GlassButton}" VerticalAlignment="Top" Content="Reset order" Click="ResetOrder_Click" />
                 </Grid>
@@ -63,24 +63,16 @@
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="ListOrdered" Text="Rows" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="How many cars the overlay shows. You can also pull the bottom edge of the overlay in edit mode. When you are further back, the last rows show you and the cars right before and after you." />
+            <StackPanel>
+                <local:IconTitle IconKey="Layout" Text="Rows and size" />
+                <TextBlock x:Name="SizeHint" Style="{StaticResource CardHint}" Text="How many cars the overlay shows and how large it is drawn. In edit mode you can also pull the bottom edge (rows) or the right edge (size). When you are further back, the last rows show you and the cars right before and after you." />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <TextBlock x:Name="RowsLabel" Text="Rows" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
+                    <ComboBox x:Name="RowsCombo" Width="140" Height="34" SelectionChanged="RowsCombo_SelectionChanged" />
+                    <TextBlock x:Name="SizeLabel" Text="Size" VerticalAlignment="Center" Margin="28,0,12,0" Foreground="{StaticResource TextPrimary}" />
+                    <ComboBox x:Name="ScaleCombo" Width="140" Height="34" SelectionChanged="ScaleCombo_SelectionChanged" />
                 </StackPanel>
-                <ComboBox x:Name="RowsCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="RowsCombo_SelectionChanged" />
-            </Grid>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Layout" Text="Size" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="How large text and rows are drawn. In edit mode you can also pull the right edge of the overlay. Pulling the bottom edge only adds or removes rows." />
-                </StackPanel>
-                <ComboBox x:Name="ScaleCombo" Grid.Column="1" Width="170" Height="36" VerticalAlignment="Top" SelectionChanged="ScaleCombo_SelectionChanged" />
-            </Grid>
+            </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
@@ -92,14 +84,14 @@
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="Layers" Text="Classes" />
-                <TextBlock Style="{StaticResource CardHint}" Text="What the overlay shows in multi-class races. In single-class races all choices look the same." />
+                <TextBlock x:Name="ClassesHint" Style="{StaticResource CardHint}" Text="What the overlay shows in multi-class races. In single-class races all choices look the same." />
                 <StackPanel x:Name="ClassesPanel" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="Sparkles" Text="Animation" />
-                <TextBlock Style="{StaticResource CardHint}" Text="When a car gains or loses a place, its row slides to the new position. Choose Animation above the preview to see it." />
+                <TextBlock x:Name="AnimationHint" Style="{StaticResource CardHint}" Text="When a car gains or loses a place, its row slides to the new position. Choose Animation above the preview to see it." />
                 <StackPanel x:Name="AnimationPanel" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
@@ -108,7 +100,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
                     <local:IconTitle IconKey="Layout" Text="Header line" />
-                    <TextBlock Style="{StaticResource CardHint}" Text="A line above the rows. Choose what it shows; when it gets too long, the end is cut. The two times on the right are the time of day in the sim (sun or moon) and the time on this PC (clock)." />
+                    <TextBlock Style="{StaticResource CardHint}" Text="A line above the rows. Choose what it shows." />
                     <StackPanel x:Name="HeaderPanel" Margin="0,12,0,0" />
                 </StackPanel>
                 <ToggleButton x:Name="HeaderToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="HeaderToggle_Click" />
@@ -132,7 +124,7 @@
                 <TextBlock x:Name="SummaryText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
             </StackPanel>
         </Border>
-        <Border Style="{StaticResource GlassCard}">
+        <Border x:Name="LiveCard" Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="ListOrdered" Text="Live standings" />
                 <TextBlock Style="{StaticResource CardHint}" Text="The field as the plugin reads it, ten times per second. The same values are published as the SimHub properties Shiftline.Standings.01.Name, Shiftline.Standings.01.Position and so on (30 rows)." />

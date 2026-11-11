@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -16,15 +17,18 @@ namespace Shiftline.Plugin
     /// Standings page. The visual tree is built once per option change; an update only changes texts and colours. The content
     /// scales with the window size and keeps its proportions.
     /// </summary>
-    internal sealed class StandingsOverlay : Border
+    internal sealed partial class StandingsOverlay : Border
     {
         private const double RowHeight = 24;
         private const double HeaderHeight = 26;
         private const double LabelHeight = 18;
         private const double FooterHeight = 26;
         private static readonly Geometry ClockShape = FrozenGeometry("M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2");
-        private static readonly Geometry SunShape = FrozenGeometry("M 8.5,6 A 2.5,2.5 0 1 1 8.49,5.99 Z M 6,0.6 L 6,1.9 M 6,10.1 L 6,11.4 M 0.6,6 L 1.9,6 M 10.1,6 L 11.4,6 M 2.2,2.2 L 3.1,3.1 M 8.9,8.9 L 9.8,9.8 M 2.2,9.8 L 3.1,8.9 M 8.9,3.1 L 9.8,2.2");
-        private static readonly Geometry MoonShape = FrozenGeometry("M 8.2,1.2 A 5,5 0 1 0 10.8,8.2 A 4,4 0 0 1 8.2,1.2 Z");
+        private static readonly Geometry ThermoShape = FrozenGeometry("M 4.6,7.2 L 4.6,2.4 A 1.4,1.4 0 0 1 7.4,2.4 L 7.4,7.2 A 2.6,2.6 0 1 1 4.6,7.2 Z M 6,5 L 6,8.4");
+        private static readonly Geometry FlagShape = FrozenGeometry("M 2.5,10.5 L 2.5,1.5 M 2.5,2 L 10,2 L 8.2,4.9 L 10,7.8 L 2.5,7.8");
+        private static readonly Geometry HourglassShape = FrozenGeometry("M 2.5,1 L 9.5,1 M 2.5,11 L 9.5,11 M 3,1 L 3,3 L 6,6 L 3,9 L 3,11 M 9,1 L 9,3 L 6,6 L 9,9 L 9,11");
+        private static readonly Geometry SunShape = FrozenGeometry("M 0.8,9.5 L 11.2,9.5 M 3,9.5 A 3,3 0 0 1 9,9.5 M 6,2 L 6,3.6 M 1.6,4.4 L 2.8,5.5 M 10.4,4.4 L 9.2,5.5");
+        private static readonly Geometry MoonShape = FrozenGeometry("M 6.5,1.2 A 4.8,4.8 0 1 0 10.8,8.2 A 3.8,3.8 0 0 1 6.5,1.2 Z M 9.2,1.6 L 9.2,3.8 M 8.1,2.7 L 10.3,2.7");
         private const int AroundPlayer = 3;           // rows kept for the player and the cars right before and after
         private const int MaxDelta = 5;
 
@@ -54,12 +58,11 @@ namespace Shiftline.Plugin
         private bool[] _columnLight = new bool[0];
         private double _round = 1;                  // 1 = rounded boxes, 0 = square
         private double _deltaWidth = 28;
+        private double _ratingWidth = 34;          // room for the longest iRating, so the arrows line up
         private Border _headerBox;
         private Border _footerBox;
-        private Path _simIcon;
-        private Path _clockIcon;
-        private TextBlock _simTime;
-        private TextBlock _clockTime;
+        private List<HeaderItem> _headerItems = new List<HeaderItem>();
+        private FontFamily _narrowFont;
         private TextBlock _footLast;
         private TextBlock _footDelta;
         private TextBlock _footBest;
@@ -70,8 +73,9 @@ namespace Shiftline.Plugin
         private static readonly Dictionary<string, Brush> LicenceBrushes = new Dictionary<string, Brush>(StringComparer.OrdinalIgnoreCase);
 
         private readonly bool _interactive;
+        private bool _relative;                     // the cars around you instead of the whole field
         private StandingsOptions _options;
-        private TextBlock _header;
+        private StackPanel _header;
         private Border[] _rowBackgrounds = new Border[0];
         private Border[,] _cellBoxes = new Border[0, 0];
         private TextBlock[,] _cells = new TextBlock[0, 0];
@@ -81,9 +85,19 @@ namespace Shiftline.Plugin
         private TextBlock[,] _deltas = new TextBlock[0, 0];
         private Path[] _gainArrows = new Path[0];
         private TranslateTransform[] _rowShifts = new TranslateTransform[0];
+        private ScaleTransform[] _rowScales = new ScaleTransform[0];
+        private List<UIElement>[] _rowParts = new List<UIElement>[0];
         private TextBlock[] _pitValues = new TextBlock[0];
+        private Border[] _tabs = new Border[0];
+        private TextBlock[] _tabTexts = new TextBlock[0];
         private TextBlock[] _irChanges = new TextBlock[0];
         private Path[] _irArrows = new Path[0];
+        private Border[] _irPills = new Border[0];
+        private Border[] _licNumberBoxes = new Border[0];
+        private Border[] _licLetterBoxes = new Border[0];
+        private TextBlock[] _licNumbers = new TextBlock[0];
+        private TextBlock[] _licLetters = new TextBlock[0];
+        private double _changeWidth = 16;
         private Brush _rowBrush;
         private Brush _oddRowBrush;
         private double _rowPitch = RowHeight;
@@ -95,11 +109,16 @@ namespace Shiftline.Plugin
         }
 
         /// <param name="interactive">For the preview on the settings page: a click on a column raises ColumnClicked.</param>
-        public StandingsOverlay(bool interactive)
+        public StandingsOverlay(bool interactive) : this(interactive, OverlayData.StandingsKey)
+        {
+        }
+
+        /// <param name="overlay">OverlayData.StandingsKey, or OverlayData.RelativesKey for the cars around you.</param>
+        public StandingsOverlay(bool interactive, string overlay)
         {
             _interactive = interactive;
             Background = Brushes.Transparent;
-            ApplyOptions(StandingsOptions.Load());
+            ApplyOptions(StandingsOptions.Load(overlay));
         }
 
         /// <summary>Raised in interactive mode with the key of the clicked column.</summary>
@@ -137,6 +156,7 @@ namespace Shiftline.Plugin
         public void ApplyOptions(StandingsOptions options)
         {
             _options = options;
+            _relative = options.IsRelative;
             List<StandingsColumn> columns = options.Columns;
             int rows = options.Rows;
             int numStyle = options.GetInt("Num.Style");
@@ -170,7 +190,10 @@ namespace Shiftline.Plugin
                 }
 
                 double width = Math.Max(options.WidthOf(column), Required(column.Key, options, family, bold));
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Ceiling(width)) });
+                // the iRating column may grow for the rare iRating of 10k or more or a three-digit change
+                grid.ColumnDefinitions.Add(column.Key == "iR"
+                    ? new ColumnDefinition { Width = GridLength.Auto, MinWidth = Math.Ceiling(width) }
+                    : new ColumnDefinition { Width = new GridLength(Math.Ceiling(width)) });
                 _designWidth += Math.Ceiling(width);
             }
 
@@ -189,34 +212,73 @@ namespace Shiftline.Plugin
             if (options.Header)
             {
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(HeaderHeight + 4) });
-                _header = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+                _headerItems = new List<HeaderItem>();
+                _header = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 
-                // Right side: the time of day in the simulation (sun or moon) and the time on this PC (clock).
-                _simIcon = NewIcon();
-                _simTime = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 10, 0) };
-                _clockIcon = NewIcon();
-                _clockIcon.Data = ClockShape;
-                _clockTime = new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 8, 0) };
+                // Fixed places: left, three in the centre, right. Each place shows what was chosen for it.
+                StackPanel left = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
                 StackPanel right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-                if (options.GetBool("H.SimTime"))
+                HeaderItem leftItem = NewHeaderItem(options.Get("H.Left"), new Thickness(10, 0, 0, 0));
+                HeaderItem rightItem = NewHeaderItem(options.Get("H.Right"), new Thickness(0, 0, 10, 0));
+                if (leftItem != null)
                 {
-                    right.Children.Add(_simIcon);
-                    right.Children.Add(_simTime);
+                    left.Children.Add(leftItem.Panel);
                 }
 
-                if (options.GetBool("H.Clock"))
+                if (rightItem != null)
                 {
-                    right.Children.Add(_clockIcon);
-                    right.Children.Add(_clockTime);
+                    right.Children.Add(rightItem.Panel);
+                }
+
+                foreach (string slot in new[] { "H.C1", "H.C2", "H.C3" })
+                {
+                    HeaderItem item = NewHeaderItem(options.Get(slot), new Thickness(8, 0, 8, 0));
+                    if (item != null)
+                    {
+                        _header.Children.Add(item.Panel);
+                    }
                 }
 
                 Grid headerGrid = new Grid();
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                Grid.SetColumn(right, 1);
+                Grid.SetColumn(_header, 1);
+                Grid.SetColumn(right, 2);
+                headerGrid.Children.Add(left);
                 headerGrid.Children.Add(_header);
                 headerGrid.Children.Add(right);
-                Border headerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = HeaderHeight, VerticalAlignment = VerticalAlignment.Top, Child = headerGrid };
+
+                // The header must fit its longest possible content; otherwise the Name column grows.
+                foreach (HeaderItem item in _headerItems)
+                {
+                    item.ValueRun.Text = item.Sample;
+                }
+
+                Size unlimited = new Size(double.PositiveInfinity, double.PositiveInfinity);
+                left.Measure(unlimited);
+                right.Measure(unlimited);
+                _header.Measure(unlimited);
+                double needed = Math.Ceiling(left.DesiredSize.Width + right.DesiredSize.Width + _header.DesiredSize.Width + 16);
+                foreach (HeaderItem item in _headerItems)
+                {
+                    item.ValueRun.Text = string.Empty;
+                }
+
+                if (needed > _designWidth)
+                {
+                    int widen = columns.FindIndex(c => c.Key == "Name");
+                    if (widen < 0)
+                    {
+                        widen = 0;
+                    }
+
+                    ColumnDefinition definition = grid.ColumnDefinitions[widen];
+                    definition.Width = new GridLength(definition.Width.Value + (needed - _designWidth));
+                    _designWidth = needed;
+                }
+
+                Border headerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = HeaderHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Child = headerGrid };
                 _headerBox = headerBox;
                 Grid.SetColumnSpan(headerBox, span);
                 grid.Children.Add(headerBox);
@@ -254,21 +316,37 @@ namespace Shiftline.Plugin
             _tyreLetters = new Path[rows];
             _gainArrows = new Path[rows];
             _rowShifts = new TranslateTransform[rows];
+            _rowScales = new ScaleTransform[rows];
+            _rowParts = new List<UIElement>[rows];
             _lastSlots = new Dictionary<int, int>();
             _deltas = new TextBlock[rows, MaxDelta];
             _pitValues = new TextBlock[rows];
             _irChanges = new TextBlock[rows];
             _irArrows = new Path[rows];
+            _irPills = new Border[rows];
+            _licNumberBoxes = new Border[rows];
+            _licLetterBoxes = new Border[rows];
+            _licNumbers = new TextBlock[rows];
+            _licLetters = new TextBlock[rows];
+            _tabs = new Border[rows];
+            _tabTexts = new TextBlock[rows];
             for (int r = 0; r < rows; r++)
             {
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(_rowPitch) });
                 TranslateTransform shift = new TranslateTransform();
                 _rowShifts[r] = shift;
-                Border background = new Border { CornerRadius = new CornerRadius((gap > 0 ? 4 : 3) * _round), Margin = new Thickness(0, 0, 0, gap), Background = r % 2 == 1 ? _oddRowBrush : _rowBrush, RenderTransform = shift };
+                ScaleTransform scale = new ScaleTransform(1, 1);
+                _rowScales[r] = scale;
+                _rowParts[r] = new List<UIElement>();
+                TransformGroup motion = new TransformGroup();
+                motion.Children.Add(scale);
+                motion.Children.Add(shift);
+                Border background = new Border { CornerRadius = new CornerRadius((gap > 0 ? 4 : 3) * _round), Margin = new Thickness(0, 0, 0, gap), Background = r % 2 == 1 ? _oddRowBrush : _rowBrush, RenderTransform = motion, RenderTransformOrigin = new Point(0.5, 0.5) };
                 Grid.SetRow(background, firstRow + r);
                 Grid.SetColumnSpan(background, span);
                 grid.Children.Add(background);
                 _rowBackgrounds[r] = background;
+                _rowParts[r].Add(background);
 
                 for (int c = 0; c < columns.Count; c++)
                 {
@@ -312,6 +390,11 @@ namespace Shiftline.Plugin
                     {
                         content = BuildIRating(r, text, _columnFills[c]);
                     }
+                    else if (key == "Lic" && options.Get("Lic.Mode") == "Split")
+                    {
+                        content = BuildLicence(r);
+                        padding = new Thickness(0);
+                    }
 
                     if (gap > 0)
                     {
@@ -327,8 +410,10 @@ namespace Shiftline.Plugin
                         CornerRadius = new CornerRadius((key == "Class" ? 2 : 3) * _round),
                         Child = content,
                         Background = _interactive ? Brushes.Transparent : null,
-                        RenderTransform = shift
+                        RenderTransform = motion,
+                        RenderTransformOrigin = new Point(0.5, 0.5)
                     };
+                    _rowParts[r].Add(box);
                     // Font and weight of this column, when chosen apart from the whole overlay (inherited by everything in the cell).
                     string font = options.Get(key + ".Font");
                     if (!string.IsNullOrEmpty(font) && font != "Default")
@@ -363,6 +448,29 @@ namespace Shiftline.Plugin
                     _cellBoxes[r, c] = box;
                     _cells[r, c] = text;
                 }
+
+                // A class tab: shown in this row instead of the cells when a new class block starts (classes split).
+                TextBlock tabText = new TextBlock { FontSize = 12, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
+                Border tab = new Border
+                {
+                    CornerRadius = new CornerRadius(4 * _round, 4 * _round, 0, 0),
+                    Padding = new Thickness(8, 0, 8, 0),
+                    Margin = new Thickness(2, 4, 0, gap),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    Visibility = Visibility.Collapsed,
+                    IsHitTestVisible = false,
+                    Child = tabText,
+                    RenderTransform = motion,
+                    RenderTransformOrigin = new Point(0.5, 0.5)
+                };
+                _rowParts[r].Add(tab);
+                Grid.SetRow(tab, firstRow + r);
+                Grid.SetColumnSpan(tab, span);
+                Panel.SetZIndex(tab, 5);
+                grid.Children.Add(tab);
+                _tabs[r] = tab;
+                _tabTexts[r] = tabText;
             }
 
             // Footer: own last lap, live delta to own best, own best, best lap of the session.
@@ -400,7 +508,7 @@ namespace Shiftline.Plugin
                     footer.Children.Add(items[i]);
                 }
 
-                _footerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = FooterHeight, VerticalAlignment = VerticalAlignment.Bottom, Child = footer };
+                _footerBox = new Border { Background = HeaderBrush, CornerRadius = new CornerRadius(5 * _round), Height = FooterHeight, Width = _designWidth, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Child = footer };
                 Grid.SetRow(_footerBox, firstRow + rows);
                 Grid.SetColumnSpan(_footerBox, span);
                 grid.Children.Add(_footerBox);
@@ -515,18 +623,260 @@ namespace Shiftline.Plugin
         /// <summary>The iRating with its estimated change, on one shared background so they read as one.</summary>
         private UIElement BuildIRating(int r, TextBlock rating, Brush fill)
         {
-            Path arrow = new Path { Width = 8, Height = 8, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0, 1, 0) };
-            TextBlock change = NewText(StandingsColumn.Left);
+            // A small table of three columns, each centred: the rating, the arrow, the change. The columns have the width of a
+            // normal value (9.9k, two digits) and grow for the rare larger one, so every row lines up.
+            Path arrow = new Path { Width = 8, Height = 8, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+            TextBlock change = NewText(StandingsColumn.Center);
             _irArrows[r] = arrow;
             _irChanges[r] = change;
-            rating.HorizontalAlignment = HorizontalAlignment.Left;
-            StackPanel right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-            right.Children.Add(arrow);
-            right.Children.Add(change);
-            Grid panel = new Grid();
-            panel.Children.Add(rating);
-            panel.Children.Add(right);
-            return new Border { Background = fill, CornerRadius = new CornerRadius(4 * _round), Padding = new Thickness(4, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Stretch, Child = panel };
+            rating.HorizontalAlignment = HorizontalAlignment.Center;
+            rating.TextAlignment = TextAlignment.Center;
+            rating.FontWeight = FontWeights.SemiBold;               // like the rating in the licence pill
+            change.HorizontalAlignment = HorizontalAlignment.Center;
+            Grid table = new Grid { HorizontalAlignment = HorizontalAlignment.Center };
+            table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = _ratingWidth });
+            table.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = _options.GetBool("iR.Gain") ? _changeWidth : 0 });
+            Grid.SetColumn(arrow, 1);
+            Grid.SetColumn(change, 2);
+            table.Children.Add(rating);
+            table.Children.Add(arrow);
+            table.Children.Add(change);
+            Border pill = new Border { Background = fill, CornerRadius = new CornerRadius(4 * _round), Padding = new Thickness(3, 0, 3, 0), HorizontalAlignment = HorizontalAlignment.Stretch, Child = table };
+            _irPills[r] = pill;
+            return pill;
+        }
+
+        /// <summary>The licence as two parts side by side: the safety rating on a darker shade, the class letter on the class colour.</summary>
+        private UIElement BuildLicence(int r)
+        {
+            // One pill in two parts: the rating centred on a dark shade of the licence colour, the class letter on the full colour
+            // at the right end. No gap and no edge between them.
+            TextBlock number = NewText(StandingsColumn.Center);
+            number.FontWeight = FontWeights.SemiBold;
+            TextBlock letter = NewText(StandingsColumn.Center);
+            letter.FontWeight = FontWeights.Bold;
+            letter.FontSize = 12;
+            CentreInk(number, InkDigits);
+            CentreInk(letter, InkLetters);
+            // without the number only the letter box is left, rounded on both sides and centred in the cell
+            bool withNumber = _options.GetBool("Lic.Number");
+            Border right = new Border
+            {
+                CornerRadius = withNumber ? new CornerRadius(0, 4 * _round, 4 * _round, 0) : new CornerRadius(4 * _round),
+                Padding = new Thickness(5, 0, 5, 0),
+                Child = letter
+            };
+            Grid.SetColumn(right, 1);
+            Grid inner = new Grid();
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            number.Visibility = withNumber ? Visibility.Visible : Visibility.Collapsed;
+            inner.Children.Add(number);
+            inner.Children.Add(right);
+            Grid glossed = WithGloss(inner, 4 * _round);
+            glossed.Children[1].Visibility = Visibility.Collapsed;      // shown by FillLicence once the row has a licence
+            Border pill = new Border { CornerRadius = new CornerRadius(4 * _round), Child = glossed, HorizontalAlignment = withNumber ? HorizontalAlignment.Stretch : HorizontalAlignment.Center };
+            _licNumberBoxes[r] = pill;
+            _licLetterBoxes[r] = right;
+            _licNumbers[r] = number;
+            _licLetters[r] = letter;
+            return pill;
+        }
+
+        private void FillLicence(int r, StandingsRow row)
+        {
+            if (_licNumbers[r] == null)
+            {
+                return;
+            }
+
+            string[] parts = (row == null ? string.Empty : row.License ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            double rating = 0;
+            bool hasRating = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out rating);
+            Brush colour = row == null ? null : LicenceBrush(row.LicenseColor);
+            SetText(_licLetters[r], parts.Length > 0 ? parts[0] : string.Empty);
+            SetText(_licNumbers[r], hasRating ? (Math.Floor(rating * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture) : string.Empty);
+            Brush shade = colour == null ? null : Shade(colour);
+            Brush soft = colour == null ? null : Soften(colour);
+            if (!ReferenceEquals(_licLetterBoxes[r].Background, soft))
+            {
+                _licLetterBoxes[r].Background = soft;
+                // the edge only around a real licence: rows without one (the class tab and title rows) stay empty
+                Grid content = _licNumberBoxes[r].Child as Grid;
+                if (content != null && content.Children.Count > 1)
+                {
+                    content.Children[1].Visibility = soft == null ? Visibility.Collapsed : Visibility.Visible;
+                }
+
+                _licNumberBoxes[r].Background = _options.GetBool("Lic.Number") ? shade : null;
+                _licLetters[r].Foreground = soft == null ? MutedBrush : ContrastText(soft);
+                _licNumbers[r].Foreground = shade == null ? MutedBrush : Brushes.White;
+            }
+        }
+
+        /// <summary>
+        /// A thin dark edge around text (a shadow without offset): keeps white letters readable on light colours such as the
+        /// yellow of a C licence. Shared by every text that uses it.
+        /// </summary>
+        internal static readonly System.Windows.Media.Effects.DropShadowEffect TextOutline = CreateOutline();
+
+        /// <summary>A thin glass edge around the whole pill, brightest at the top, like the edge of the plugin's cards.</summary>
+        private static readonly Brush LicenceEdge = FrozenGradient(
+            Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF), 0,
+            Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF), 0.45,
+            Color.FromArgb(0x1E, 0xFF, 0xFF, 0xFF), 1);
+
+        private static Brush FrozenGradient(Color top, double topAt, Color middle, double middleAt, Color bottom, double bottomAt)
+        {
+            LinearGradientBrush brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+            brush.GradientStops.Add(new GradientStop(top, topAt));
+            brush.GradientStops.Add(new GradientStop(middle, middleAt));
+            brush.GradientStops.Add(new GradientStop(bottom, bottomAt));
+            brush.Freeze();
+            return brush;
+        }
+
+        /// <summary>
+        /// The content of a licence pill with the glass edge laid over it. The edge covers both parts together, so the darker
+        /// rating and the brighter letter read as one block of the same height. Shared with the Battle Bar.
+        /// </summary>
+        internal static Grid WithGloss(UIElement content, double radius)
+        {
+            Grid grid = new Grid();
+            grid.Children.Add(content);
+            grid.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(radius),
+                BorderBrush = LicenceEdge,
+                BorderThickness = new Thickness(1),
+                IsHitTestVisible = false
+            });
+            return grid;
+        }
+
+        internal const string InkDigits = "0123456789";
+        internal const string InkLetters = "ABCDPRW";
+
+        /// <summary>
+        /// Centres the visible glyphs of a text instead of its line box. A line box keeps room below the baseline for letters
+        /// such as g or p; digits and capitals never use it, so they look a little low. This measures the real ink of sample
+        /// glyphs in the text's own font and moves the text by the difference (a render transform, the layout does not change).
+        /// Measured again when the text is loaded or its font size changes, so every font gets its own value.
+        /// </summary>
+        internal static void CentreInk(TextBlock text, string sample)
+        {
+            RoutedEventHandler measure = (s, e) => text.RenderTransform = InkShift(text, sample);
+            text.Loaded += measure;
+            text.SizeChanged += (s, e) =>
+            {
+                if (e.HeightChanged)
+                {
+                    measure(s, null);
+                }
+            };
+        }
+
+        private static readonly Dictionary<string, Transform> InkShifts = new Dictionary<string, Transform>();
+
+        private static Transform InkShift(TextBlock text, string sample)
+        {
+            string key = text.FontFamily.Source + "|" + text.FontWeight + "|" + text.FontSize.ToString(CultureInfo.InvariantCulture) + "|" + sample;
+            Transform shift;
+            if (InkShifts.TryGetValue(key, out shift))
+            {
+                return shift;
+            }
+
+            double pixelsPerDip = VisualTreeHelper.GetDpi(text).PixelsPerDip;
+            FormattedText formatted = new FormattedText(sample, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface(text.FontFamily, text.FontStyle, text.FontWeight, text.FontStretch), text.FontSize, Brushes.White, pixelsPerDip);
+            Rect ink = formatted.BuildGeometry(new Point(0, 0)).Bounds;
+            double lineHeight = text.FontFamily.LineSpacing * text.FontSize;
+            double offset = ink.IsEmpty ? 0 : lineHeight / 2 - (ink.Top + ink.Bottom) / 2;
+            TranslateTransform move = new TranslateTransform(0, offset);
+            move.Freeze();
+            InkShifts[key] = move;
+            return move;
+        }
+
+        private static readonly Brush LightLetter = Frozen(0xFF, 0xF4, 0xF6, 0xF9);
+        private static readonly Brush DarkLetter = Frozen(0xFF, 0x1A, 0x1D, 0x23);
+        private static readonly Dictionary<Brush, Brush> Softened = new Dictionary<Brush, Brush>();
+        private static readonly Dictionary<Brush, Brush> Contrasts = new Dictionary<Brush, Brush>();
+
+        /// <summary>The licence colour toned down a little (85 % colour, 15 % dark), so it sits closer to the shade beside it.</summary>
+        internal static Brush Soften(Brush colour)
+        {
+            Brush soft;
+            if (!Softened.TryGetValue(colour, out soft))
+            {
+                Color c = ((SolidColorBrush)colour).Color;
+                soft = Frozen(0xFF, (byte)(c.R * 0.85 + 0x12 * 0.15), (byte)(c.G * 0.85 + 0x18 * 0.15), (byte)(c.B * 0.85 + 0x2A * 0.15));
+                Softened[colour] = soft;
+            }
+
+            return soft;
+        }
+
+        /// <summary>
+        /// Near-white or dark grey text, whichever has the higher contrast with the background by the WCAG formula
+        /// (relative luminance, (L1 + 0.05) / (L2 + 0.05)): light on blue and green, dark on yellow and orange.
+        /// </summary>
+        internal static Brush ContrastText(Brush background)
+        {
+            Brush text;
+            if (!Contrasts.TryGetValue(background, out text))
+            {
+                double bg = Luminance(((SolidColorBrush)background).Color);
+                double withLight = (Luminance(((SolidColorBrush)LightLetter).Color) + 0.05) / (bg + 0.05);
+                double withDark = (bg + 0.05) / (Luminance(((SolidColorBrush)DarkLetter).Color) + 0.05);
+                text = withLight >= withDark ? LightLetter : DarkLetter;
+                Contrasts[background] = text;
+            }
+
+            return text;
+        }
+
+        private static double Luminance(Color c)
+        {
+            return 0.2126 * Linear(c.R) + 0.7152 * Linear(c.G) + 0.0722 * Linear(c.B);
+        }
+
+        private static double Linear(byte channel)
+        {
+            double v = channel / 255.0;
+            return v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
+        }
+
+        private static System.Windows.Media.Effects.DropShadowEffect CreateOutline()
+        {
+            System.Windows.Media.Effects.DropShadowEffect outline = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black,
+                ShadowDepth = 0,
+                BlurRadius = 2.5,
+                Opacity = 0.9
+            };
+            outline.Freeze();
+            return outline;
+        }
+
+        private static readonly Dictionary<Brush, Brush> Shades = new Dictionary<Brush, Brush>();
+
+        /// <summary>The licence colour mixed with the dark of the overlay: the background of the rating in the licence pill.</summary>
+        internal static Brush Shade(Brush colour)
+        {
+            Brush shade;
+            if (!Shades.TryGetValue(colour, out shade))
+            {
+                Color c = ((SolidColorBrush)colour).Color;
+                // 60 % licence colour, 40 % the dark of the overlay, solid: a deep version of the colour, close to the letter part
+                shade = Frozen(0xFF, (byte)(c.R * 0.6 + 0x12 * 0.4), (byte)(c.G * 0.6 + 0x18 * 0.4), (byte)(c.B * 0.6 + 0x2A * 0.4));
+                Shades[colour] = shade;
+            }
+
+            return shade;
         }
 
         /// <summary>
@@ -549,14 +899,29 @@ namespace Shiftline.Plugin
                 case "Make":
                     return Measure("WWW", family, weight) + Cell;
                 case "Lic":
-                    return Measure("W0.00", family, weight) + Cell + 2;
+                    return options.Get("Lic.Mode") == "Split"
+                        ? (options.GetBool("Lic.Number") ? Measure("0.0", family, FontWeights.SemiBold) + 6 : 0) + Measure("W", family, FontWeights.Bold) + 10 + 4
+                        : Measure("W0.00", family, weight) + Cell + 2;
                 case "iR":
+                    // normal values: below 10k and a change of at most two digits (the pill grows for the rare larger one)
+                    string longest = options.Get("iR.Mode") == "K1" ? "0.0k" : options.Get("iR.Mode") == "K0" ? "0k" : "0000";
+                    _ratingWidth = Math.Ceiling(Measure(longest, family, weight)) + 2;
+                    _changeWidth = Math.Ceiling(Measure("00", family, weight)) + 2;
                     return options.GetBool("iR.Gain")
-                        ? Measure("00000", family, weight) + 12 + Measure("000", family, weight) + 8 + Cell
-                        : Measure("00000", family, weight) + 8 + Cell;
+                        ? _ratingWidth + 12 + _changeWidth + 6 + Cell
+                        : _ratingWidth + 6 + Cell;
+                case "Lap":
+                    return Measure("000", family, weight) + Cell;
                 case "Gap":
                 case "Int":
-                    return Measure(gapDecimals >= 3 ? "000.000" : gapDecimals == 2 ? "000.00" : "000.0", family, weight) + Cell;
+                    if (options.IsRelative)
+                    {
+                        int own = options.GetInt("Rel.Dec");
+                        return Measure(own >= 3 ? "-000.000" : own == 2 ? "-000.00" : "-000.0", family, weight) + 6;
+                    }
+
+                    // a little less room than other cells: two centred numbers side by side looked far apart
+                    return Measure(gapDecimals >= 3 ? "000.000" : gapDecimals == 2 ? "000.00" : "000.0", family, weight) + 4;
                 case "Last":
                 case "Best":
                 case "Avg":
@@ -611,19 +976,33 @@ namespace Shiftline.Plugin
             List<StandingsColumn> columns = _options.Columns;
             if (_header != null)
             {
-                SetText(_header, HeaderText(snapshot));
-                UpdateClocks(snapshot);
+                UpdateHeader(snapshot);
             }
 
             StandingsRow[] all = snapshot.Rows ?? new StandingsRow[0];
             Context context = new Context(all, snapshot.IsRace, _options) { HasDelta = snapshot.HasDelta, DeltaToBest = snapshot.DeltaToBest };
-            List<Entry> shown = BuildEntries(all, _options.Rows, _options.Get("Classes"));
+            bool titles = !_relative && _options.GetBool("Titles") && _options.Columns.Any(c => c.Key == "Last" || c.Key == "Best" || c.Key == "Avg");
+            List<Entry> shown = _relative
+                ? BuildRelative(all, context)
+                : BuildEntries(all, _options.Rows - (titles ? 1 : 0), _options.Get("Classes"), _options.GetBool("Tab"));
+            if (titles && (shown.Count == 0 || shown[0] == null || shown[0].Tab == null))
+            {
+                // no class tab on top to carry the titles: the first row does
+                shown.Insert(0, new Entry { Titles = true });
+            }
+            else if (titles)
+            {
+                // the tab on top carries them: give the spare row back to a car
+                shown = BuildEntries(all, _options.Rows, _options.Get("Classes"), _options.GetBool("Tab"));
+            }
             Dictionary<int, int> slots = new Dictionary<int, int>();
             double animation = AnimationSeconds(snapshot.IsReplay);
+            string style = _options.Get("Anim.Style");       // Slide, Pop or Fade
             for (int r = 0; r < _options.Rows; r++)
             {
                 Entry entry = r < shown.Count ? shown[r] : null;
                 StandingsRow row = entry == null ? null : entry.Row;
+                ShowTab(r, entry == null ? null : entry.Tab, snapshot.Features);
                 Brush rowBrush = row == null ? null : row.IsPlayer ? PlayerRowBrush : (r % 2 == 1 ? _oddRowBrush : _rowBrush);
                 if (!ReferenceEquals(_rowBackgrounds[r].Background, rowBrush))
                 {
@@ -635,7 +1014,25 @@ namespace Shiftline.Plugin
                 {
                     slots[row.CarIdx] = r;
                     int previous;
-                    if (animation > 0 && _lastSlots.TryGetValue(row.CarIdx, out previous) && previous != r)
+                    if (animation > 0 && _lastSlots.TryGetValue(row.CarIdx, out previous) && previous != r && style != "Slide")
+                    {
+                        if (style == "Pop")
+                        {
+                            // a short grow with a little overshoot at the new place
+                            DoubleAnimation pop = new DoubleAnimation(0.82, 1, TimeSpan.FromSeconds(animation * 1.3)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.8 } };
+                            _rowScales[r].BeginAnimation(ScaleTransform.ScaleXProperty, pop);
+                            _rowScales[r].BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+                        }
+                        else
+                        {
+                            DoubleAnimation fade = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(animation * 4)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+                            foreach (UIElement part in _rowParts[r])
+                            {
+                                part.BeginAnimation(UIElement.OpacityProperty, fade);
+                            }
+                        }
+                    }
+                    else if (animation > 0 && _lastSlots.TryGetValue(row.CarIdx, out previous) && previous != r)
                     {
                         DoubleAnimation slide = new DoubleAnimation((previous - r) * RowHeight, 0, TimeSpan.FromSeconds(animation))
                         {
@@ -649,6 +1046,11 @@ namespace Shiftline.Plugin
                 for (int c = 0; c < columns.Count; c++)
                 {
                     Fill(r, c, columns[c].Key, entry, context);
+                }
+
+                if (entry != null && (entry.Tab != null || entry.Titles) && _options.GetBool("Titles"))
+                {
+                    ShowTimeTitles(r, columns);
                 }
             }
 
@@ -682,32 +1084,199 @@ namespace Shiftline.Plugin
             return item;
         }
 
-        /// <summary>Sim time of day with a sun (day) or moon (night), and the time on this PC with a clock.</summary>
-        private void UpdateClocks(StandingsSnapshot snapshot)
+        private TextBlock NewHeaderText(Thickness margin)
         {
-            if (_simTime != null)
-            {
-                double seconds = snapshot.TimeOfDay;
-                bool known = seconds >= 0;
-                Visibility shown = known ? Visibility.Visible : Visibility.Collapsed;      // games without a sim clock hide it
-                if (_simTime.Visibility != shown)
-                {
-                    _simTime.Visibility = shown;
-                    _simIcon.Visibility = shown;
-                }
+            return new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = margin };
+        }
 
-                SetText(_simTime, known ? TimeSpan.FromSeconds(seconds % 86400).ToString(@"hh\:mm", CultureInfo.InvariantCulture) : "-");
-                bool day = !known || (seconds % 86400 >= 6 * 3600 && seconds % 86400 < 20 * 3600);
-                Geometry shape = day ? SunShape : MoonShape;
-                if (!ReferenceEquals(_simIcon.Data, shape))
-                {
-                    _simIcon.Data = shape;
-                }
+        /// <summary>A time of day in the chosen format: 19:45, or 7:45 pm.</summary>
+        private string TimeText(DateTime time)
+        {
+            return _options.Get("H.Time12") == "12"
+                ? time.ToString("h:mm tt", CultureInfo.InvariantCulture).ToLowerInvariant()
+                : time.ToString("HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>A temperature in the chosen unit.</summary>
+        private string Temperature(double celsius)
+        {
+            string unit = _options.Get("H.TempUnit");
+            string c = celsius.ToString("0", CultureInfo.InvariantCulture) + "\u00B0C";
+            string f = (celsius * 9 / 5 + 32).ToString("0", CultureInfo.InvariantCulture) + "\u00B0F";
+            return unit == "F" ? f : unit == "Both" ? c + " / " + f : c;
+        }
+
+        private sealed class HeaderItem
+        {
+            public string Kind;
+            public StackPanel Panel;
+            public Path Icon;
+            public TextBlock Value;
+            public Run ValueRun;
+            public string Sample;
+        }
+
+        /// <summary>One content of a header place: an icon or a short label (in a narrow font), then the value. Null for "Off".</summary>
+        private HeaderItem NewHeaderItem(string kind, Thickness margin)
+        {
+            string label = null;
+            Geometry icon = null;
+            string sample;
+            double maxWidth = 0;
+            switch (kind)
+            {
+                case "Clock": icon = ClockShape; sample = "00:00 pm"; break;
+                case "Sim": icon = SunShape; sample = "00:00 pm"; break;
+                case "Oil": label = "OIL"; sample = Temperature(100); break;
+                case "Water": label = "WATER"; sample = Temperature(100); break;
+                case "Air": label = "AIR"; sample = Temperature(100); break;
+                case "Humidity": label = "HUM"; sample = "100 %"; break;
+                case "Temp": icon = ThermoShape; sample = Temperature(100); break;
+                case "Sof": label = "SOF"; sample = "0000"; break;
+                case "Laps": icon = FlagShape; sample = "000/000"; break;
+                case "Time": icon = HourglassShape; sample = "0:00:00"; break;
+                case "Elapsed": icon = ClockShape; sample = "0:00:00 / 0:00:00"; break;
+                case "Session": sample = "R"; break;
+                case "Track": sample = "Interlagos"; maxWidth = 110; break;
+                case "Car": sample = "Porsche 911 GT3"; maxWidth = 120; break;
+                case "Inc": label = "INC"; sample = "00/00"; break;
+                default: return null;
             }
 
-            if (_clockTime != null)
+            HeaderItem item = new HeaderItem { Kind = kind, Sample = sample };
+            item.Panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = margin };
+            if (icon != null)
             {
-                SetText(_clockTime, DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture));
+                item.Icon = NewIcon();
+                item.Icon.Data = kind == "Sim" ? null : icon;
+
+     // the sun or moon is set by the first update
+                item.Icon.Margin = new Thickness(0, 0, 4, 0);
+                item.Panel.Children.Add(item.Icon);
+            }
+
+            if (label != null)
+            {
+                if (_narrowFont == null)
+                {
+                    _narrowFont = OverlayFonts.Get("Bahnschrift");
+                }
+
+            }
+
+            // Label and value are runs of one text, so they sit on the same baseline.
+            item.Value = NewHeaderText(new Thickness(0));
+            if (label != null)
+            {
+                item.Value.Inlines.Add(new Run(label + "  ") { FontFamily = _narrowFont, FontStretch = FontStretches.Condensed, FontWeight = FontWeights.Normal, Foreground = MutedBrush });
+            }
+
+            item.ValueRun = new Run();
+            item.Value.Inlines.Add(item.ValueRun);
+            if (maxWidth > 0)
+            {
+                item.Value.MaxWidth = maxWidth;
+                item.Value.TextTrimming = TextTrimming.CharacterEllipsis;
+            }
+
+            item.Panel.Children.Add(item.Value);
+            _headerItems.Add(item);
+            return item;
+        }
+
+        /// <summary>Fills every place of the header; what the game does not deliver is hidden.</summary>
+        private void UpdateHeader(StandingsSnapshot snapshot)
+        {
+            foreach (HeaderItem item in _headerItems)
+            {
+                string text = HeaderValue(item.Kind, snapshot);
+                Visibility shown = text != null ? Visibility.Visible : Visibility.Collapsed;
+                if (item.Panel.Visibility != shown)
+                {
+                    item.Panel.Visibility = shown;
+                }
+
+                if (text == null)
+                {
+                    continue;
+                }
+
+                if (item.ValueRun.Text != text)
+                {
+                    item.ValueRun.Text = text;
+                }
+
+                if (item.Kind == "Sim")
+                {
+                    double seconds = snapshot.TimeOfDay % 86400;
+                    bool day = seconds >= 6 * 3600 && seconds < 20 * 3600;
+                    Geometry shape = day ? SunShape : MoonShape;
+                    if (!ReferenceEquals(item.Icon.Data, shape))
+                    {
+                        item.Icon.Data = shape;
+                    }
+                }
+            }
+        }
+
+        private string HeaderValue(string kind, StandingsSnapshot snapshot)
+        {
+            switch (kind)
+            {
+                case "Clock":
+                    return TimeText(DateTime.Now);
+                case "Sim":
+                    return snapshot.TimeOfDay >= 0 ? TimeText(DateTime.Today.AddSeconds(snapshot.TimeOfDay % 86400)) : null;
+                case "Oil":
+                    return double.IsNaN(snapshot.OilTemp) ? null : Temperature(snapshot.OilTemp);
+                case "Water":
+                    return double.IsNaN(snapshot.WaterTemp) ? null : Temperature(snapshot.WaterTemp);
+                case "Air":
+                    return double.IsNaN(snapshot.AirTemp) ? null : Temperature(snapshot.AirTemp);
+                case "Humidity":
+                    return double.IsNaN(snapshot.Humidity) ? null : Math.Round(snapshot.Humidity).ToString("0", CultureInfo.InvariantCulture) + " %";
+                case "Temp":
+                    double temp;
+                    return double.TryParse((snapshot.TrackTemp ?? string.Empty).Split(' ')[0], NumberStyles.Float, CultureInfo.InvariantCulture, out temp) ? Temperature(temp) : null;
+                case "Sof":
+                    return snapshot.StrengthOfField > 0 ? snapshot.StrengthOfField.ToString(CultureInfo.InvariantCulture) : null;
+                case "Laps":
+                    StandingsRow[] rows = snapshot.Rows ?? new StandingsRow[0];
+                    int leaderLap = rows.Length > 0 ? Math.Max(0, rows[0].LapsCompleted) + 1 : 0;
+                    if (snapshot.LapsTotal > 0)
+                    {
+                        return Math.Min(leaderLap, snapshot.LapsTotal) + "/" + snapshot.LapsTotal;
+                    }
+
+                    return leaderLap > 0 ? leaderLap.ToString(CultureInfo.InvariantCulture) : null;
+                case "Time":
+                    return snapshot.TimeRemaining > 0 && snapshot.TimeRemaining < 360000
+                        ? TimeSpan.FromSeconds(snapshot.TimeRemaining).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
+                        : null;
+                case "Elapsed":
+                    if (snapshot.TimeTotal <= 0 || snapshot.TimeTotal >= 360000 || snapshot.TimeRemaining < 0)
+                    {
+                        return null;
+                    }
+
+                    double done = Math.Max(0, snapshot.TimeTotal - snapshot.TimeRemaining);
+                    return TimeSpan.FromSeconds(done).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture) + " / " + TimeSpan.FromSeconds(snapshot.TimeTotal).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture);
+                case "Session":
+                    string type = snapshot.SessionType ?? string.Empty;
+                    return type.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0 ? "R"
+                        : type.IndexOf("Qual", StringComparison.OrdinalIgnoreCase) >= 0 ? "Q"
+                        : type.Length > 0 ? "P" : "-";
+                case "Track":
+                    return string.IsNullOrEmpty(snapshot.TrackShort) ? null : snapshot.TrackShort;
+                case "Car":
+                    return string.IsNullOrEmpty(snapshot.CarName) ? null : snapshot.CarName;
+                case "Inc":
+                    string limit = snapshot.IncidentLimit ?? string.Empty;
+                    return (snapshot.Features & StandingsFeatures.Incidents) != 0
+                        ? snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty)
+                        : null;
+                default:
+                    return null;
             }
         }
 
@@ -795,6 +1364,124 @@ namespace Shiftline.Plugin
             public int StartPosition;       // the same kind of position at the start, 0 = unknown
             public StandingsRow Leader;     // gap reference (null for the leader itself)
             public StandingsRow Ahead;      // interval reference (null for the leader itself)
+            public StandingsRow[] Tab;      // not a car but the tab of a class block: the cars of that class
+            public bool Titles;             // not a car but the row with the titles over the lap times
+            public string GapText;          // relatives: the gap to the player, "-" in front and "+" behind
+            public Brush GapBrush;          // relatives: colour of the gap, by the lap the car is on
+        }
+
+        private static Entry TabOf(IEnumerable<StandingsRow> rows)
+        {
+            return new Entry { Tab = rows.ToArray() };
+        }
+
+        private static readonly Dictionary<Brush, Brush> SoftBrushes = new Dictionary<Brush, Brush>();
+
+        private static Brush SoftBrush(Brush colour)
+        {
+            Brush soft;
+            if (!SoftBrushes.TryGetValue(colour, out soft))
+            {
+                Color c = ((SolidColorBrush)colour).Color;
+                soft = Frozen(0x55, c.R, c.G, c.B);
+                SoftBrushes[colour] = soft;
+            }
+
+            return soft;
+        }
+
+        /// <summary>The gain-to-you column has one text per lap: its title goes into the first and the others stay empty.</summary>
+        private void ShowDeltaTitle(int r, string title)
+        {
+            int count = Math.Max(1, Math.Min(MaxDelta, _options.GetInt("Delta.Count")));
+            for (int k = 0; k < count; k++)
+            {
+                TextBlock text = _deltas[r, k];
+                if (text != null)
+                {
+                    // the first text spans the whole column for the title, the others step aside
+                    SetText(text, k == 0 ? title : string.Empty);
+                    text.Foreground = MutedBrush;
+                    text.Width = k == 0 ? _deltaWidth * count : _deltaWidth;
+                    text.Visibility = k == 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+        }
+
+        /// <summary>In a tab row the room right of the tab names the lap time columns, so they can be told apart.</summary>
+        private void ShowTimeTitles(int r, List<StandingsColumn> columns)
+        {
+            for (int c = 0; c < columns.Count; c++)
+            {
+                string title;
+                switch (columns[c].Key)
+                {
+                    case "Last":
+                        title = "LAST";
+                        break;
+                    case "Best":
+                        title = "BEST";
+                        break;
+                    case "Avg":
+                        title = "AVG " + (_options.GetInt("Avg.Laps") == 3 ? "3" : "5");
+                        break;
+                    default:
+                        continue;
+                }
+
+                SetText(_cells[r, c], title);
+                _cells[r, c].Foreground = MutedBrush;
+            }
+        }
+
+        /// <summary>The class tab of a row: class name in the class colour, optionally the number of cars and the class SOF.</summary>
+        private void ShowTab(int r, StandingsRow[] cars, StandingsFeatures features)
+        {
+            Border tab = _tabs[r];
+            Visibility visible = cars == null || cars.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (tab.Visibility != visible)
+            {
+                tab.Visibility = visible;
+            }
+
+            if (visible != Visibility.Visible)
+            {
+                return;
+            }
+
+            StandingsRow first = cars[0];
+            string text = string.IsNullOrEmpty(first.ClassName) ? "Class" : first.ClassName;
+            if (_options.GetBool("Tab.Count"))
+            {
+                text += "  \u00B7  " + cars.Length.ToString(CultureInfo.InvariantCulture);
+            }
+
+            int sof = (features & StandingsFeatures.IRating) != 0 ? SessionTracker.StrengthOfField(cars) : 0;
+            if (_options.GetBool("Tab.Sof") && sof > 0)
+            {
+                text += "  \u00B7  " + (sof / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + "k";
+            }
+
+            SetText(_tabTexts[r], text);
+            Brush colour = ClassBrush(first.ClassColor);
+            if (_options.Get("Tab.Style") == "Subtle")
+            {
+                // see-through class colour with a solid edge on the left, light text: quieter than the solid tab
+                Brush soft = SoftBrush(colour);
+                if (!ReferenceEquals(tab.Background, soft))
+                {
+                    tab.Background = soft;
+                    tab.BorderBrush = colour;
+                    tab.BorderThickness = new Thickness(3, 0, 0, 0);
+                    _tabTexts[r].Foreground = TextBrush;
+                }
+            }
+            else if (!ReferenceEquals(tab.Background, colour))
+            {
+                tab.Background = colour;
+                tab.BorderThickness = new Thickness(0);
+                _tabTexts[r].Foreground = ReadableOn(colour);
+            }
         }
 
         /// <summary>
@@ -802,7 +1489,7 @@ namespace Shiftline.Plugin
         /// leaders of every other class, each block separated by an empty row. Inside the player's block the leaders are shown,
         /// and when the player is further back the last rows show the player and the cars right before and after.
         /// </summary>
-        private static List<Entry> BuildEntries(StandingsRow[] all, int count, string mode)
+        private static List<Entry> BuildEntries(StandingsRow[] all, int count, string mode, bool tabs)
         {
             StandingsRow player = Array.Find(all, row => row.IsPlayer);
             List<List<StandingsRow>> classes = new List<List<StandingsRow>>();
@@ -841,14 +1528,15 @@ namespace Shiftline.Plugin
                 // the player's block keeps the player in view.
                 for (int k = 0; k < classes.Count && entries.Count < count; k++)
                 {
-                    if (k > 0)
+                    if (k > 0 || tabs)
                     {
                         if (entries.Count + 2 > count)
                         {
                             break;
                         }
 
-                        entries.Add(null);
+                        // with tabs each block starts with its tab, otherwise an empty row separates the blocks
+                        entries.Add(tabs ? TabOf(classes[k]) : null);
                     }
 
                     int left = count - entries.Count;
@@ -868,7 +1556,12 @@ namespace Shiftline.Plugin
             // Grouped: two rows per other class plus an empty row before each block; the player's class gets the rest.
             const int OtherRows = 2;
             int others = classes.Count - 1;
-            int ownRows = Math.Max(3, count - others * (OtherRows + 1));
+            int ownRows = Math.Max(3, count - others * (OtherRows + 1) - (tabs ? 1 : 0));
+            if (tabs)
+            {
+                entries.Add(TabOf(own));
+            }
+
             AddBlock(entries, own.ToArray(), ownRows, true);
             foreach (List<StandingsRow> other in classes)
             {
@@ -877,7 +1570,7 @@ namespace Shiftline.Plugin
                     continue;
                 }
 
-                entries.Add(null);
+                entries.Add(tabs ? TabOf(other) : null);
                 AddBlock(entries, other.ToArray(), Math.Min(OtherRows, count - entries.Count), true);
             }
 
@@ -995,6 +1688,11 @@ namespace Shiftline.Plugin
                 FillIRatingChange(r, null, false, false);
             }
 
+            if (column == "Lic" && row == null)
+            {
+                FillLicence(r, null);
+            }
+
             if (row != null)
             {
                 switch (column)
@@ -1004,7 +1702,7 @@ namespace Shiftline.Plugin
                         foreground = MutedBrush;
                         break;
                     case "Class":
-                        background = LicenceBrush(row.ClassColor) ?? MutedBrush;
+                        background = ClassBrush(row.ClassColor);
                         break;
                     case "Gain":
                         if (entry.StartPosition > 0 && entry.Position > 0 && entry.StartPosition != entry.Position)
@@ -1036,6 +1734,12 @@ namespace Shiftline.Plugin
                         foreground = MutedBrush;
                         break;
                     case "Lic":
+                        if (options.Get("Lic.Mode") == "Split")
+                        {
+                            FillLicence(r, row);
+                            break;
+                        }
+
                         FormatLicence(row, options.Get("Lic.Mode"), out value, out background, out foreground);
                         break;
                     case "iR":
@@ -1043,8 +1747,20 @@ namespace Shiftline.Plugin
                         foreground = MutedBrush;
                         FillIRatingChange(r, row, options.GetBool("iR.Gain"), _columnLight[c]);
                         break;
+                    case "Lap":
+                        value = row.LapDistPct >= 0 ? (row.LapsCompleted + 1).ToString(CultureInfo.InvariantCulture) : string.Empty;
+                        foreground = MutedBrush;
+                        break;
                     case "Gap":
                     case "Int":
+                        if (_relative)
+                        {
+                            // the cars around you: the gap to you, coloured by the lap the car is on
+                            value = entry.GapText ?? string.Empty;
+                            foreground = entry.GapBrush ?? TextBrush;
+                            break;
+                        }
+
                         if (options.GetBool(column + ".Show" + context.Mode))
                         {
                             StandingsRow reference = column == "Gap" ? entry.Leader : entry.Ahead;
@@ -1267,6 +1983,13 @@ namespace Shiftline.Plugin
                     continue;
                 }
 
+                if (text.Visibility != Visibility.Visible || text.Width != _deltaWidth)
+                {
+                    // back from a title row
+                    text.Visibility = Visibility.Visible;
+                    text.Width = _deltaWidth;
+                }
+
                 string value = string.Empty;
                 Brush brush = MutedBrush;
                 if (row != null && player != null && !row.IsPlayer && row.RecentLaps != null && player.RecentLaps != null
@@ -1398,9 +2121,7 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            FrameworkElement group = change.Parent as FrameworkElement;                         // change > right group > grid > pill
-            FrameworkElement grid = group == null ? null : group.Parent as FrameworkElement;
-            UIElement pill = grid == null ? null : grid.Parent as UIElement;
+            UIElement pill = _irPills[r];
             Visibility pillVisible = row != null && row.IRating > 0 ? Visibility.Visible : Visibility.Hidden;
             if (pill != null && pill.Visibility != pillVisible)
             {
@@ -1474,66 +2195,6 @@ namespace Shiftline.Plugin
             return Math.Floor(value * factor) / factor;
         }
 
-        private string HeaderText(StandingsSnapshot snapshot)
-        {
-            List<string> parts = new List<string>();
-            string type = snapshot.SessionType ?? string.Empty;
-            if (_options.GetBool("H.Session"))
-            {
-                parts.Add(type.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0 ? "R"
-                    : type.IndexOf("Qual", StringComparison.OrdinalIgnoreCase) >= 0 ? "Q"
-                    : type.Length > 0 ? "P" : "-");
-            }
-
-            if (_options.GetBool("H.Track") && !string.IsNullOrEmpty(snapshot.TrackShort))
-            {
-                parts.Add(snapshot.TrackShort);
-            }
-
-            if (_options.GetBool("H.Car") && !string.IsNullOrEmpty(snapshot.CarName))
-            {
-                parts.Add(snapshot.CarName);
-            }
-
-            StandingsRow[] rows = snapshot.Rows ?? new StandingsRow[0];
-            if (!_options.GetBool("H.Laps"))
-            {
-            }
-            else if (snapshot.LapsTotal > 0)
-            {
-                int leaderLap = rows.Length > 0 ? Math.Max(0, rows[0].LapsCompleted) + 1 : 0;
-                parts.Add("Lap " + Math.Min(leaderLap, snapshot.LapsTotal) + "/" + snapshot.LapsTotal);
-            }
-            else if (snapshot.TimeRemaining > 0 && snapshot.TimeRemaining < 360000)
-            {
-                parts.Add(TimeSpan.FromSeconds(snapshot.TimeRemaining).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture));
-            }
-
-            double temp;
-            string tempText = (snapshot.TrackTemp ?? string.Empty).Split(' ')[0];
-            if (_options.GetBool("H.Temp") && double.TryParse(tempText, NumberStyles.Float, CultureInfo.InvariantCulture, out temp))
-            {
-                parts.Add("Track " + temp.ToString("0", CultureInfo.InvariantCulture) + "\u00B0C");
-            }
-
-            if (_options.GetBool("H.Sof") && snapshot.StrengthOfField > 0)
-            {
-                parts.Add("SOF " + snapshot.StrengthOfField.ToString(CultureInfo.InvariantCulture));
-            }
-
-            string limit = snapshot.IncidentLimit ?? string.Empty;
-            if (_options.GetBool("H.Inc") && (snapshot.Features & StandingsFeatures.Incidents) != 0)
-            {
-                parts.Add("Inc " + snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty));
-            }
-            if (snapshot.IsSample)
-            {
-                parts.Add("Preview");
-            }
-
-            return string.Join("   ", parts);
-        }
-
         /// <summary>The leaders; when the player is not among them, the last rows show the player and the cars around.</summary>
         private static List<int> Choose(StandingsRow[] rows, int count)
         {
@@ -1585,6 +2246,30 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The licence colour as iRacing reports it ("0x0153db"); null when it cannot be read.</summary>
+        private static readonly Brush NoClassBrush = FrozenColour(0x7A, 0x86, 0x9A);
+
+        private static Brush FrozenColour(byte r, byte g, byte b)
+        {
+            SolidColorBrush brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
+        /// <summary>
+        /// The colour of a class. Without a class colour, or when the game sends plain white or black (offline races, a single
+        /// class), a neutral grey-blue is shown instead, so it does not look like a real class.
+        /// </summary>
+        internal static Brush ClassBrush(string value)
+        {
+            SolidColorBrush brush = LicenceBrush(value) as SolidColorBrush;
+            if (brush == null || brush.Color == Color.FromRgb(0xFF, 0xFF, 0xFF) || brush.Color == Color.FromRgb(0, 0, 0))
+            {
+                return NoClassBrush;
+            }
+
+            return brush;
+        }
+
         internal static Brush LicenceBrush(string value)
         {
             if (string.IsNullOrEmpty(value))

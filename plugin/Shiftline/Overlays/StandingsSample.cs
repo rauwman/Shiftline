@@ -37,6 +37,88 @@ namespace Shiftline.Plugin
         /// <summary>
         /// The race sample with two neighbouring cars swapped, a different pair at every step: drives the animation preview.
         /// </summary>
+        /// <summary>
+        /// The sample spread around the lap (it otherwise has every car at the same spot), with one car a lap down right in
+        /// front of the player and the leader a lap up right behind: shows the lap marks when an overlay is sorted by the track.
+        /// </summary>
+        public static StandingsSnapshot OnTrack(StandingsSnapshot sample)
+        {
+            StandingsRow[] rows = new StandingsRow[sample.Rows.Length];
+            int player = -1;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                rows[i] = sample.Rows[i].Copy();
+                rows[i].LapDistPct = ((0.9 - i * 0.03) % 1 + 1) % 1;     // the leader furthest round, the others behind
+                if (rows[i].IsPlayer)
+                {
+                    player = i;
+                }
+            }
+
+            if (player > 0 && rows.Length > player + 2)
+            {
+                StandingsRow me = rows[player];
+                StandingsRow last = rows[rows.Length - 1];
+                last.LapDistPct = (me.LapDistPct + 0.015) % 1;       // just in front on the track, a lap down
+                last.LapsCompleted = me.LapsCompleted - 1;
+                StandingsRow leader = rows[0];
+                leader.LapDistPct = (me.LapDistPct + 0.985) % 1;     // just behind on the track, a lap up
+                leader.LapsCompleted = me.LapsCompleted + 1;
+            }
+
+            StandingsSnapshot copy = sample.As(sample.Features, sample.Game);
+            copy.Rows = rows;
+            return copy;
+        }
+
+        /// <summary>
+        /// The sample spread around the lap, where one pair of neighbouring cars swaps places every second step and swaps back
+        /// in between: only two rows move at a time, a different pair each time (sometimes with the player). Drives the
+        /// animation preview of the relatives.
+        /// </summary>
+        public static StandingsSnapshot Passing(int step)
+        {
+            StandingsSnapshot track = OnTrack(Create(true));
+            StandingsRow[] rows = track.Rows;
+            int player = Array.FindIndex(rows, r => r.IsPlayer);
+            if (player < 0 || step % 2 != 0)
+            {
+                return track;
+            }
+
+            // the cars on the player's lap, from far behind to far in front of him
+            StandingsRow me = rows[player];
+            List<StandingsRow> order = new List<StandingsRow>();
+            foreach (StandingsRow row in rows)
+            {
+                if (row.LapsCompleted == me.LapsCompleted)
+                {
+                    order.Add(row);
+                }
+            }
+
+            order.Sort((a, b) => Signed(a.LapDistPct - me.LapDistPct).CompareTo(Signed(b.LapDistPct - me.LapDistPct)));
+            int at = order.IndexOf(me);
+            int[][] pairs = { new[] { 1, 2 }, new[] { -2, -1 }, new[] { 0, 1 }, new[] { 2, 3 }, new[] { -1, 0 }, new[] { -3, -2 } };
+            int[] pair = pairs[(step / 2) % pairs.Length];
+            int first = at + pair[0];
+            int second = at + pair[1];
+            if (first >= 0 && second < order.Count)
+            {
+                double spot = order[first].LapDistPct;
+                order[first].LapDistPct = order[second].LapDistPct;
+                order[second].LapDistPct = spot;
+            }
+
+            return track;
+        }
+
+        /// <summary>A difference of lap positions the shorter way around: -0.5 .. 0.5.</summary>
+        private static double Signed(double difference)
+        {
+            return difference - Math.Round(difference);
+        }
+
         public static StandingsSnapshot Shuffled(int step)
         {
             return Shuffled(step, false);
@@ -104,6 +186,7 @@ namespace Shiftline.Plugin
                 SessionType = race.SessionType,
                 CarName = race.CarName,
                 TimeRemaining = race.TimeRemaining,
+                TimeTotal = race.TimeTotal,
                 LapsTotal = race.LapsTotal,
                 TrackTemp = race.TrackTemp,
                 Incidents = race.Incidents,
@@ -111,6 +194,10 @@ namespace Shiftline.Plugin
                 StrengthOfField = race.StrengthOfField,
                 TrackShort = race.TrackShort,
                 TimeOfDay = race.TimeOfDay,
+                OilTemp = race.OilTemp,
+                WaterTemp = race.WaterTemp,
+                AirTemp = race.AirTemp,
+                Humidity = race.Humidity,
                 DeltaToBest = race.DeltaToBest,
                 HasDelta = race.HasDelta,
                 Features = StandingsFeatures.All,
@@ -183,7 +270,8 @@ namespace Shiftline.Plugin
                 Track = "Sample Raceway",
                 SessionType = race ? "Race" : "Practice",
                 CarName = "Sample GT3",
-                TimeRemaining = race ? -1 : 1834,
+                TimeRemaining = 1834,
+                TimeTotal = 3600,
                 LapsTotal = race ? 20 : 0,
                 TrackTemp = "31.5 C",
                 Incidents = 2,
@@ -193,6 +281,10 @@ namespace Shiftline.Plugin
                 StrengthOfField = 3120,
                 TrackShort = "Sample Raceway",
                 TimeOfDay = 14 * 3600 + 20 * 60,
+                OilTemp = 98.4,
+                WaterTemp = 91.2,
+                AirTemp = 24.6,
+                Humidity = 52,
                 DeltaToBest = -0.24,
                 HasDelta = race,
                 Diagnostics = new string[0]

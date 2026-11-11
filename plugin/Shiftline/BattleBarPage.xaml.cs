@@ -110,11 +110,15 @@ namespace Shiftline.Plugin
                 Grid row = new Grid { Margin = new System.Windows.Thickness(0, 0, 0, 8) };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(300) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = System.Windows.GridLength.Auto });
-                TextBlock label = new TextBlock { Text = choice.Label, TextWrapping = System.Windows.TextWrapping.Wrap, Margin = new System.Windows.Thickness(0, 0, 12, 0), VerticalAlignment = System.Windows.VerticalAlignment.Center, Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary") };
+                string hint;
+                string shortLabel = StandingsOptions.SplitHint(choice.Label, out hint);
+                TextBlock label = new TextBlock { Text = shortLabel, ToolTip = hint, TextWrapping = System.Windows.TextWrapping.Wrap, Margin = new System.Windows.Thickness(0, 0, 12, 0), VerticalAlignment = System.Windows.VerticalAlignment.Center, Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary") };
                 ComboBox combo = new ComboBox { Width = 380, Height = 34, Tag = choice };
                 foreach (string text in choice.Labels)
                 {
-                    combo.Items.Add(text);
+                    string itemHint;
+                    string shortText = StandingsOptions.SplitHint(text, out itemHint);
+                    combo.Items.Add(new ComboBoxItem { Content = shortText, ToolTip = itemHint });
                 }
 
                 combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, options.Get(choice.Key)));
@@ -183,6 +187,11 @@ namespace Shiftline.Plugin
         private StandingsSnapshot Sample()
         {
             StandingsSnapshot sample = _previewAnimation ? StandingsSample.Shuffled(_animationStep, true) : StandingsSample.Create(_previewRace);
+            if (BattleBarOptions.Load().Get("Sort") == "Track")
+            {
+                sample = StandingsSample.OnTrack(sample);
+            }
+
             return sample.As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
         }
 

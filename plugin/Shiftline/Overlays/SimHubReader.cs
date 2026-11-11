@@ -48,7 +48,7 @@ namespace Shiftline.Plugin
                 }
 
                 double rating = o.IRacing_IRating ?? 0;
-                if (rating > 0)
+                if (SessionTracker.RealRating((int)rating) > 0)
                 {
                     features |= StandingsFeatures.IRating;
                 }
@@ -79,7 +79,7 @@ namespace Shiftline.Plugin
                     ClassId = oneClass ? 0 : IdOf(_classIds, o.CarClassID ?? o.CarClass ?? string.Empty, 1000),
                     ClassName = oneClass ? string.Empty : o.CarClass ?? string.Empty,
                     ClassColor = oneClass ? string.Empty : o.CarClassColor ?? string.Empty,
-                    IRating = (int)rating,
+                    IRating = SessionTracker.RealRating((int)rating),
                     License = o.LicenceString ?? string.Empty,
                     Make = CarMakes.CodeFor(o.CarName),
                     LapsCompleted = Math.Max(0, (o.CurrentLap ?? 1) - 1),
@@ -123,6 +123,9 @@ namespace Shiftline.Plugin
                 TrackTemp = status.RoadTemperature > 0 ? status.RoadTemperature.ToString("0.0", CultureInfo.InvariantCulture) + " C" : string.Empty,
                 IncidentLimit = string.Empty,
                 TimeOfDay = -1,
+                OilTemp = status.OilTemperature > 0 ? status.OilTemperature : double.NaN,
+                WaterTemp = status.WaterTemperature > 0 ? status.WaterTemperature : double.NaN,
+                AirTemp = status.AirTemperature > 0 ? status.AirTemperature : double.NaN,
                 DeltaToBest = delta ?? 0,
                 HasDelta = delta.HasValue,
                 IsReplay = status.IsGameReplay,

@@ -19,6 +19,10 @@ namespace Shiftline.Plugin
         private static BattleBarOverlay _battleView;
         private static DispatcherTimer _battleTimer;
         private static StandingsFeatures _battleFeatures = StandingsFeatures.All;
+        private static OverlayWindow _relativesWindow;
+        private static StandingsOverlay _relativesView;
+        private static DispatcherTimer _relativesTimer;
+        private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
         private static bool _edit;
 
         /// <summary>Raised on the UI thread after edit mode was switched.</summary>
@@ -45,6 +49,8 @@ namespace Shiftline.Plugin
                 _standingsTimer.Tick += (sender, args) => TickStandings();
                 _battleTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _battleTimer.Tick += (sender, args) => TickBattleBar();
+                _relativesTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
+                _relativesTimer.Tick += (sender, args) => TickRelatives();
                 Sync();
             }));
         }
@@ -82,6 +88,17 @@ namespace Shiftline.Plugin
                         _battleWindow.Close();
                         _battleWindow = null;
                     }
+
+                    if (_relativesTimer != null)
+                    {
+                        _relativesTimer.Stop();
+                    }
+
+                    if (_relativesWindow != null)
+                    {
+                        _relativesWindow.Close();
+                        _relativesWindow = null;
+                    }
                 }));
             }
             catch (Exception ex)
@@ -116,6 +133,11 @@ namespace Shiftline.Plugin
                     _battleWindow.SetEditMode(edit);
                 }
 
+                if (_relativesWindow != null)
+                {
+                    _relativesWindow.SetEditMode(edit);
+                }
+
                 Sync();
                 Action handler = EditModeChanged;
                 if (handler != null)
@@ -140,6 +162,11 @@ namespace Shiftline.Plugin
                 {
                     _battleWindow.RestorePlacement();
                 }
+
+                if (_relativesWindow != null && _relativesWindow.IsVisible)
+                {
+                    _relativesWindow.RestorePlacement();
+                }
             });
         }
 
@@ -152,6 +179,7 @@ namespace Shiftline.Plugin
             }
 
             SyncBattleBar();
+            SyncRelatives();
 
             bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
             if (!enabled)
@@ -429,6 +457,137 @@ namespace Shiftline.Plugin
             _battleScale = 0;
             BattleBarOptions.SetScale(scale);         // raises Changed: the window snaps to the saved (rounded) size
             _battleWindow.SetFixedSize(_battleView.DesignSize);
+        }
+
+        // ---------------------------------------------------------------- Relatives
+
+        private static void SyncRelatives()
+        {
+            if (!OverlaySettings.IsEnabled(OverlayData.RelativesKey))
+            {
+                _relativesTimer.Stop();
+                if (_relativesWindow != null)
+                {
+                    _relativesWindow.Hide();
+                }
+
+                return;
+            }
+
+            if (_relativesView != null)
+            {
+                _relativesView.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
+                if (_relativesWindow != null)
+                {
+                    _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+                }
+            }
+
+            _relativesTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.RelativesKey));
+            _relativesTimer.Start();
+            TickRelatives();
+        }
+
+        /// <summary>The data, or invented cars spread around the lap in edit mode without a session.</summary>
+        private static StandingsSnapshot RelativesSnapshot()
+        {
+            StandingsSnapshot snapshot = OverlayData.Current;
+            return snapshot.HasData ? snapshot : StandingsSample.OnTrack(StandingsSample.Create(true)).As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
+        }
+
+        private static void TickRelatives()
+        {
+            try
+            {
+                bool enabled = OverlaySettings.IsEnabled(OverlayData.RelativesKey);
+                StandingsSnapshot snapshot = OverlayData.Current;
+                bool inGame = snapshot.HasData
+                    && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront(snapshot.Game))
+                    && (OverlaySettings.ShowInReplays || !snapshot.IsReplay)
+                    && (OverlaySettings.ShowInGarage || !snapshot.IsInGarage);
+                if (!enabled || !(_edit || inGame))
+                {
+                    if (_relativesWindow != null && _relativesWindow.IsVisible)
+                    {
+                        _relativesWindow.Hide();
+                    }
+
+                    return;
+                }
+
+                if (_relativesWindow == null)
+                {
+                    _relativesView = new StandingsOverlay(false, OverlayData.RelativesKey);
+                    _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", _relativesView, _relativesView.DesignSize);
+                    _relativesWindow.SetEditMode(_edit);
+                    _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+                    // the number of rows follows from the cars in front and behind: both edges change the size
+                    _relativesWindow.WidthDragging += factor => RelativesScaleDragging(factor);
+                    _relativesWindow.WidthDragged += RelativesScaleDragged;
+                    _relativesWindow.HeightDragging += height =>
+                    {
+                        if (_relativesHeightAtStart <= 0)
+                        {
+                            _relativesHeightAtStart = _relativesWindow.Height;
+                        }
+
+                        RelativesScaleDragging(height / Math.Max(1, _relativesHeightAtStart));
+                    };
+                    _relativesWindow.HeightDragged += height => RelativesScaleDragged();
+                }
+
+                StandingsSnapshot shown = RelativesSnapshot();
+                if (shown.Features != _relativesFeatures)
+                {
+                    _relativesFeatures = shown.Features;
+                    _relativesView.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
+                    _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+                }
+
+                _relativesView.Update(shown);
+                if (!_relativesWindow.IsVisible)
+                {
+                    _relativesWindow.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                _relativesTimer.Stop();
+                PluginLog.Info("Relatives stopped: " + ex);
+            }
+        }
+
+        private static double _relativesScaleAtStart;
+        private static double _relativesHeightAtStart;
+        private static double _relativesScale;
+
+        private static void RelativesScaleDragging(double factor)
+        {
+            if (_relativesScaleAtStart <= 0)
+            {
+                _relativesScaleAtStart = StandingsOptions.Load(OverlayData.RelativesKey).Scale;
+            }
+
+            double scale = Math.Max(0.5, Math.Min(3, _relativesScaleAtStart * factor));
+            if (Math.Abs(scale - _relativesScale) < 0.01)
+            {
+                return;
+            }
+
+            _relativesScale = scale;
+            _relativesView.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures).WithScale(scale));
+            _relativesView.Update(RelativesSnapshot());
+            _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+        }
+
+        private static void RelativesScaleDragged()
+        {
+            double scale = _relativesScale > 0 ? _relativesScale : StandingsOptions.Load(OverlayData.RelativesKey).Scale;
+            _relativesScaleAtStart = 0;
+            _relativesHeightAtStart = 0;
+            _relativesScale = 0;
+            StandingsOptions.SetScale(scale, OverlayData.RelativesKey);       // raises Changed: the window snaps to the saved size
+            _relativesWindow.SetFixedSize(_relativesView.DesignSize);
         }
 
         private static void OnUi(Action action)

@@ -56,21 +56,6 @@
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
-                <local:IconTitle IconKey="Layout" Text="Card content" />
-                <TextBlock Style="{StaticResource CardHint}" Text="What each card shows, in the cards and in both tickers. Click an item to switch it on or off. Name, make and gap sit on the first line. The second, smaller line shows the iRating under the name and pit, tyre and places gained on the right." />
-                <WrapPanel x:Name="ItemPanel" Margin="0,10,0,0" />
-                <StackPanel x:Name="NamePanel" Margin="0,8,0,0" />
-            </StackPanel>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
-                <local:IconTitle IconKey="ListOrdered" Text="Field and gaps" />
-                <TextBlock Style="{StaticResource CardHint}" Text="Which cars the bar shows and what the gaps mean. The trend arrow is green when you were faster than that car over the last laps and red when you were slower. The battle frame lights up when a car is closer to you than the chosen time." />
-                <StackPanel x:Name="FieldPanel" Margin="0,12,0,0" />
-            </StackPanel>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0">
@@ -85,6 +70,21 @@
                 <local:IconTitle IconKey="ThemeStudio" Text="Look" />
                 <TextBlock Style="{StaticResource CardHint}" Text="Background, font and boxes of the whole bar." />
                 <StackPanel x:Name="LookPanel" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layout" Text="Card content" />
+                <TextBlock Style="{StaticResource CardHint}" Text="What each card shows, in the cards and in both tickers. Click an item to switch it on or off. Name, make and gap sit on the first line. The second, smaller line shows the iRating under the name and pit, tyre and places gained on the right." />
+                <WrapPanel x:Name="ItemPanel" Margin="0,10,0,0" />
+                <StackPanel x:Name="NamePanel" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ListOrdered" Text="Field and gaps" />
+                <TextBlock Style="{StaticResource CardHint}" Text="Which cars the bar shows and what the gaps mean. The trend arrow is green when you were faster than that car over the last laps and red when you were slower. The battle frame lights up when a car is closer to you than the chosen time." />
+                <StackPanel x:Name="FieldPanel" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
         <Border Style="{StaticResource GlassCard}">

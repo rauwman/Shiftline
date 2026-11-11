@@ -60,7 +60,7 @@ namespace Shiftline.Plugin
                     ClassId = ToInt(get(prefix + "CarClassID"), 0),
                     ClassName = Text(get(prefix + "CarClassShortName")),
                     ClassColor = Text(get(prefix + "CarClassColor")),
-                    IRating = ToInt(get(prefix + "IRating"), 0),
+                    IRating = SessionTracker.RealRating(ToInt(get(prefix + "IRating"), 0)),
                     License = Text(get(prefix + "LicString")),
                     Make = CarMakes.CodeFor(Text(get(prefix + "CarScreenName"))),
                     LicenseColor = Text(get(prefix + "LicColor")),
@@ -154,6 +154,7 @@ namespace Shiftline.Plugin
                 CarName = own == null ? string.Empty : own.CarName,
                 StrengthOfField = SessionTracker.StrengthOfField(rows),
                 TimeRemaining = ToDouble(get(Telemetry + "SessionTimeRemain"), -1),
+                TimeTotal = ToDouble(get(Telemetry + "SessionTimeTotal"), -1),
                 LapsTotal = lapsTotal > 0 && lapsTotal < 32767 ? lapsTotal : 0,
                 TrackTemp = Text(get(Session + "WeekendInfo.TrackSurfaceTemp")),
                 Incidents = ToInt(get(Telemetry + "PlayerCarMyIncidentCount"), 0),
@@ -164,6 +165,10 @@ namespace Shiftline.Plugin
                 Game = "IRacing",
                 TrackShort = Text(get(Session + "WeekendInfo.TrackDisplayShortName")),
                 TimeOfDay = ToDouble(get(Telemetry + "SessionTimeOfDay"), -1),
+                OilTemp = ToDouble(get(Telemetry + "OilTemp"), double.NaN),
+                WaterTemp = ToDouble(get(Telemetry + "WaterTemp"), double.NaN),
+                AirTemp = ToDouble(get(Telemetry + "AirTemp"), double.NaN),
+                Humidity = Percent(ToDouble(get(Telemetry + "RelativeHumidity"), double.NaN)),
                 DeltaToBest = ToDouble(get(Telemetry + "LapDeltaToBestLap"), 0),
                 HasDelta = IsTrue(get(Telemetry + "LapDeltaToBestLap_OK")),
                 Track = Text(get(Session + "WeekendInfo.TrackDisplayName")),
@@ -279,6 +284,12 @@ namespace Shiftline.Plugin
             }
 
             return fallback;
+        }
+
+        /// <summary>iRacing reports the humidity as a fraction (0..1); a value above 1 is taken as percent already.</summary>
+        private static double Percent(double value)
+        {
+            return double.IsNaN(value) ? value : value <= 1.0 ? value * 100 : value;
         }
 
         internal static double ToDouble(object value, double fallback)

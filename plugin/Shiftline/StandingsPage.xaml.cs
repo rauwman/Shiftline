@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -12,23 +13,95 @@ namespace Shiftline.Plugin
     {
         private DispatcherTimer _timer;
 
-        public StandingsPage()
+        /// <summary>The overlay this page sets up: OverlayData.StandingsKey or OverlayData.RelativesKey.</summary>
+        private readonly string _overlay;
+
+        private bool IsRelatives
         {
+            get { return _overlay == OverlayData.RelativesKey; }
+        }
+
+        public StandingsPage() : this(OverlayData.StandingsKey)
+        {
+        }
+
+        public StandingsPage(string overlay)
+        {
+            _overlay = overlay;
             InitializeComponent();
+            ApplyKind();
             _reorder = new ToggleReorder(this, ColumnPanel, keys =>
             {
-                StandingsOptions.SetOrder(keys);
+                StandingsOptions.SetOrder(keys, _overlay);
                 RefreshPreview();
             });
         }
 
-        public StandingsPage(Shiftline plugin) : this()
+        /// <summary>The same page serves the standings and the relatives; this words the parts that differ.</summary>
+        private void ApplyKind()
+        {
+            if (!IsRelatives)
+            {
+                return;
+            }
+
+            SetTitle("Standings", "Relatives");
+            PageHint.Text = "The cars right around you on the track: the ones in front, you, and the ones behind, with the gap in seconds. Place and size it in edit mode on the General page.";
+            ResetButton.ToolTip = "Puts every design choice of the relatives back to the default: columns, cars, size, look and animation. Whether the overlay is shown, its position and its update rate stay.";
+            ColumnsHint.Text = "Choose what each row shows. The gap is the time to you in seconds: minus for cars in front, plus for cars behind. White: same lap. Red: a car a lap up on you. Blue: a car you have lapped. In practice and qualifying all gaps are white.";
+            SetTitle("Rows and size", "Size");
+            SizeHint.Text = "How large the overlay is drawn. How many cars it shows follows from the cars in front and behind you, which you set below under Cars. In edit mode you can also pull the right or the bottom edge to change the size.";
+            RowsLabel.Visibility = System.Windows.Visibility.Collapsed;
+            RowsCombo.Visibility = System.Windows.Visibility.Collapsed;
+            SizeLabel.Margin = new System.Windows.Thickness(0, 0, 12, 0);
+            SetTitle("Classes", "Cars");
+            ClassesHint.Text = "How many cars in front of you and behind you are shown. A missing car leaves an empty row, so you always stay in the same row.";
+            AnimationHint.Text = "When you pass a car or a car passes you, its row slides to the new place. Choose Animation above the preview to see it.";
+            LiveCard.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
+        /// <summary>Changes the text of a card heading (found by its text; the headings have no names of their own).</summary>
+        private void SetTitle(string from, string to)
+        {
+            IconTitle title = FindTitle(this, from);
+            if (title != null)
+            {
+                title.Text = to;
+            }
+        }
+
+        private static IconTitle FindTitle(System.Windows.DependencyObject parent, string text)
+        {
+            foreach (object child in System.Windows.LogicalTreeHelper.GetChildren(parent))
+            {
+                IconTitle title = child as IconTitle;
+                if (title != null && title.Text == text)
+                {
+                    return title;
+                }
+
+                System.Windows.DependencyObject inner = child as System.Windows.DependencyObject;
+                IconTitle found = inner == null ? null : FindTitle(inner, text);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        public StandingsPage(Shiftline plugin) : this(plugin, OverlayData.StandingsKey)
+        {
+        }
+
+        public StandingsPage(Shiftline plugin, string overlay) : this(overlay)
         {
             Plugin = plugin;
             Loaded += (sender, args) =>
             {
                 FillRates();
-                ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
+                ShowToggle.IsChecked = OverlaySettings.IsEnabled(_overlay);
                 BuildDesignControls();
                 Start();
             };
@@ -54,7 +127,7 @@ namespace Shiftline.Plugin
         {
             _building = true;
             ColumnPanel.Children.Clear();
-            foreach (StandingsColumn column in StandingsOptions.OrderedColumns())
+            foreach (StandingsColumn column in StandingsOptions.OrderedColumns(_overlay))
             {
                 System.Windows.Controls.Primitives.ToggleButton toggle = new System.Windows.Controls.Primitives.ToggleButton
                 {
@@ -62,7 +135,7 @@ namespace Shiftline.Plugin
                     Tag = column.Key,
                     Margin = new System.Windows.Thickness(0, 0, 8, 8),
                     Style = (System.Windows.Style)FindResource("GlassToggleButton"),
-                    IsChecked = StandingsOptions.IsColumnOn(column.Key)
+                    IsChecked = StandingsOptions.IsColumnOn(column.Key, _overlay)
                 };
 
                 // A column the running game cannot fill stays as chosen, but is greyed out and hidden in the overlay.
@@ -84,13 +157,13 @@ namespace Shiftline.Plugin
                         return;
                     }
 
-                    StandingsOptions.SetColumn((string)clicked.Tag, clicked.IsChecked == true);
+                    StandingsOptions.SetColumn((string)clicked.Tag, clicked.IsChecked == true, _overlay);
                     RefreshPreview();
                 };
                 ColumnPanel.Children.Add(toggle);
             }
 
-            StandingsOptions options = StandingsOptions.Load();
+            StandingsOptions options = StandingsOptions.Load(_overlay);
             RowsCombo.Items.Clear();
             foreach (int rows in StandingsOptions.RowChoices)
             {
@@ -122,7 +195,7 @@ namespace Shiftline.Plugin
 
         private void ResetOrder_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            StandingsOptions.ResetOrder();
+            StandingsOptions.ResetOrder(_overlay);
             BuildDesignControls();
         }
 
@@ -130,19 +203,30 @@ namespace Shiftline.Plugin
         {
             if (_preview == null)
             {
-                _preview = new StandingsOverlay(true);
+                _preview = new StandingsOverlay(true, _overlay);
                 _preview.ColumnClicked += ShowColumnOptions;
                 PreviewHost.Child = _preview;
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();
-            _preview.ApplyOptions(StandingsOptions.Load().ForFeatures(features));
+            _preview.ApplyOptions(StandingsOptions.Load(_overlay).ForFeatures(features));
             ShowPreviewGame(features);
 
             System.Windows.Size size = _preview.DesignSize;
             _preview.Width = size.Width;
             _preview.Height = size.Height;
-            _preview.Update(PreviewSample(_previewAnimation ? StandingsSample.Shuffled(_animationStep) : StandingsSample.Create(_previewRace)));
+            _preview.Update(PreviewSample(PreviewData()));
+        }
+
+        /// <summary>The invented data of the preview: the field for the standings, cars spread around the lap for the relatives.</summary>
+        private StandingsSnapshot PreviewData()
+        {
+            if (IsRelatives)
+            {
+                return _previewAnimation ? StandingsSample.Passing(_animationStep) : StandingsSample.OnTrack(StandingsSample.Create(_previewRace));
+            }
+
+            return _previewAnimation ? StandingsSample.Shuffled(_animationStep) : StandingsSample.Create(_previewRace);
         }
 
         /// <summary>The sample, made to look like the game selected in SimHub.</summary>
@@ -185,7 +269,7 @@ namespace Shiftline.Plugin
                     _animationStep++;
                     if (_preview != null)
                     {
-                        _preview.Update(PreviewSample(StandingsSample.Shuffled(_animationStep)));
+                        _preview.Update(PreviewSample(PreviewData()));
                     }
                 };
             }
@@ -207,7 +291,7 @@ namespace Shiftline.Plugin
         {
             _optionsColumn = column;
             ColumnOptionsPanel.Children.Clear();
-            StandingsColumn info = Array.Find(StandingsOptions.AllColumns, c => c.Key == column);
+            StandingsColumn info = Array.Find(StandingsOptions.ColumnsOf(_overlay), c => c.Key == column);
             ColumnOptionsTitle.Text = "Column options: " + (info == null ? column : info.Label);
             bool any = AddChoices(ColumnOptionsPanel, column);
             ColumnOptionsHint.Text = any
@@ -219,11 +303,13 @@ namespace Shiftline.Plugin
         private bool AddChoices(StackPanel panel, string column)
         {
             panel.Children.Clear();
-            StandingsOptions options = StandingsOptions.Load();
+            StandingsOptions options = StandingsOptions.Load(_overlay);
             bool any = false;
+            Action refreshSlots = null;
+            List<ComboBox> slotCombos = new List<ComboBox>();
             foreach (StandingsChoice choice in StandingsOptions.AllChoices)
             {
-                if (choice.Column != column)
+                if (choice.Column != column || !StandingsOptions.AppliesTo(choice, _overlay))
                 {
                     continue;
                 }
@@ -232,11 +318,15 @@ namespace Shiftline.Plugin
                 Grid row = new Grid { Margin = new System.Windows.Thickness(0, 0, 0, 8) };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new System.Windows.GridLength(260) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = System.Windows.GridLength.Auto });
-                TextBlock label = new TextBlock { Text = choice.Label, VerticalAlignment = System.Windows.VerticalAlignment.Center, Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary") };
+                string hint;
+                string shortLabel = StandingsOptions.SplitHint(choice.Label, out hint);
+                TextBlock label = new TextBlock { Text = shortLabel, ToolTip = hint, VerticalAlignment = System.Windows.VerticalAlignment.Center, Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary") };
                 ComboBox combo = new ComboBox { Width = 320, Height = 34, Tag = choice };
                 foreach (string text in choice.Labels)
                 {
-                    combo.Items.Add(text);
+                    string itemHint;
+                    string shortText = StandingsOptions.SplitHint(text, out itemHint);
+                    combo.Items.Add(new ComboBoxItem { Content = shortText, ToolTip = itemHint });
                 }
 
                 combo.SelectedIndex = Math.Max(0, Array.IndexOf(choice.Values, options.Get(choice.Key)));
@@ -246,14 +336,60 @@ namespace Shiftline.Plugin
                     StandingsChoice picked = (StandingsChoice)changed.Tag;
                     if (changed.SelectedIndex >= 0)
                     {
-                        StandingsOptions.SetChoice(picked.Key, picked.Values[changed.SelectedIndex]);
+                        StandingsOptions.SetChoice(picked.Key, picked.Values[changed.SelectedIndex], _overlay);
+                        refreshSlots?.Invoke();
                         RefreshPreview();
                     }
                 };
+                if (StandingsOptions.IsHeaderSlot(choice.Key))
+                {
+                    slotCombos.Add(combo);
+                }
+
                 Grid.SetColumn(combo, 1);
                 row.Children.Add(label);
                 row.Children.Add(combo);
                 panel.Children.Add(row);
+            }
+
+            // A place of the header can only show what no other place shows; taken entries are grey and cannot be picked.
+            refreshSlots = () =>
+            {
+                HashSet<string> taken = new HashSet<string>();
+                foreach (ComboBox slot in slotCombos)
+                {
+                    StandingsChoice slotChoice = (StandingsChoice)slot.Tag;
+                    if (slot.SelectedIndex >= 0 && StandingsOptions.IsContent(slotChoice.Values[slot.SelectedIndex]))
+                    {
+                        taken.Add(slotChoice.Values[slot.SelectedIndex]);
+                    }
+                }
+
+                foreach (ComboBox slot in slotCombos)
+                {
+                    StandingsChoice slotChoice = (StandingsChoice)slot.Tag;
+                    for (int i = 0; i < slot.Items.Count; i++)
+                    {
+                        string value = slotChoice.Values[i];
+                        bool free = !StandingsOptions.IsContent(value) || i == slot.SelectedIndex || !taken.Contains(value);
+                        ComboBoxItem entry = (ComboBoxItem)slot.Items[i];
+                        entry.IsEnabled = free;
+                        entry.Opacity = free ? 1 : 0.35;
+                    }
+                }
+            };
+            refreshSlots();
+
+            if (any && column == "Header")
+            {
+                Button reset = new Button { Style = (System.Windows.Style)FindResource("GlassButton"), Content = "Reset the header", HorizontalAlignment = System.Windows.HorizontalAlignment.Left, Margin = new System.Windows.Thickness(0, 4, 0, 0) };
+                reset.Click += (sender, args) =>
+                {
+                    StandingsOptions.ResetGroup("Header", _overlay);
+                    AddChoices(HeaderPanel, "Header");
+                    RefreshPreview();
+                };
+                panel.Children.Add(reset);
             }
 
             return any;
@@ -277,13 +413,13 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            StandingsOptions.SetRows(StandingsOptions.RowChoices[RowsCombo.SelectedIndex]);
+            StandingsOptions.SetRows(StandingsOptions.RowChoices[RowsCombo.SelectedIndex], _overlay);
             RefreshPreview();
         }
 
         private void ResetDesign_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            StandingsOptions.Reset();
+            StandingsOptions.Reset(_overlay);
             BuildDesignControls();
             if (_optionsColumn != null)
             {
@@ -298,25 +434,25 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            StandingsOptions.SetScale(StandingsOptions.ScaleChoices[ScaleCombo.SelectedIndex]);
+            StandingsOptions.SetScale(StandingsOptions.ScaleChoices[ScaleCombo.SelectedIndex], _overlay);
             RefreshPreview();
         }
 
         private void FooterToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            StandingsOptions.SetFooter(FooterToggle.IsChecked == true);
+            StandingsOptions.SetFooter(FooterToggle.IsChecked == true, _overlay);
             RefreshPreview();
         }
 
         private void HeaderToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            StandingsOptions.SetHeader(HeaderToggle.IsChecked == true);
+            StandingsOptions.SetHeader(HeaderToggle.IsChecked == true, _overlay);
             RefreshPreview();
         }
 
         private void ShowToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            OverlaySettings.SetEnabled(OverlayData.StandingsKey, ShowToggle.IsChecked == true);
+            OverlaySettings.SetEnabled(_overlay, ShowToggle.IsChecked == true);
         }
 
         private bool _filling;
@@ -331,7 +467,7 @@ namespace Shiftline.Plugin
                 RateCombo.Items.Add(rate + " per second");
             }
 
-            int own = OverlaySettings.OverrideFor(OverlayData.StandingsKey);
+            int own = OverlaySettings.OverrideFor(_overlay);
             RateCombo.SelectedIndex = own == 0 ? 0 : Math.Max(0, Array.IndexOf(OverlaySettings.Rates, own) + 1);
             _filling = false;
         }
@@ -344,7 +480,7 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            OverlaySettings.SetOverride(OverlayData.StandingsKey, index == 0 ? 0 : OverlaySettings.Rates[index - 1]);
+            OverlaySettings.SetOverride(_overlay, index == 0 ? 0 : OverlaySettings.Rates[index - 1]);
         }
 
         private void Start()

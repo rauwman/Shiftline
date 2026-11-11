@@ -94,7 +94,7 @@ namespace Shiftline.Plugin
         /// <summary>The window size that fits the current design.</summary>
         public Size DesignSize
         {
-            get { return new Size(_designWidth * _options.Scale, _designHeight * _options.Scale); }
+            get { return new Size(_designWidth * _options.Scale * BaseScale, _designHeight * _options.Scale * BaseScale); }
         }
 
         private string Mode
@@ -191,7 +191,7 @@ namespace Shiftline.Plugin
 
             _designWidth = width + 16;
             _designHeight = rowHeight + 16 + (options.Header ? LineHeight + 4 : 0) + (options.Footer ? LineHeight + 4 : 0);
-            root.LayoutTransform = new ScaleTransform(options.Scale, options.Scale);
+            root.LayoutTransform = new ScaleTransform(options.Scale * BaseScale, options.Scale * BaseScale);
             Child = root;
             SetRendering(IsLoaded && mode == "Scroll");
         }
@@ -238,6 +238,12 @@ namespace Shiftline.Plugin
         // right-aligned under the gap. The second line only exists when one of its items is on.
         private const double Frame = 1.5;
         private const double Space = 6;
+
+        /// <summary>
+        /// The size the bar is drawn at for a setting of 100 %. The setting stays a plain percentage, but the layout was drawn a
+        /// little small, so 100 % is the size that looked right at 105 % before.
+        /// </summary>
+        private const double BaseScale = 1.05;
         private static readonly string[] LeftItems = { "Pos", "Class" };
         private static readonly string[] TopItems = { "Name", "Make", "Gap" };
 
@@ -381,12 +387,25 @@ namespace Shiftline.Plugin
             if (twoLines)
             {
                 // second line: the iRating under the name; on the right, in this order, pit, tyre and places gained (under the gap)
+                // on the left under the name: the iRating, then the licence (when on), a little smaller so it does not outweigh the iRating
+                StackPanel ratings = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 0) };
                 if (On("iR"))
                 {
                     FrameworkElement rating = BuildItem(slot, "iR", small);
-                    rating.Margin = new Thickness(0, 2, 0, 0);
-                    rating.HorizontalAlignment = HorizontalAlignment.Left;
-                    Place(inner, rating, 2, 1, 1, VerticalAlignment.Top);
+                    rating.VerticalAlignment = VerticalAlignment.Center;
+                    ratings.Children.Add(rating);
+                }
+
+                if (On("Lic"))
+                {
+                    FrameworkElement licence = BuildItem(slot, "Lic", small - 2);
+                    licence.Margin = new Thickness(ratings.Children.Count > 0 ? Space : 0, 0, 0, 0);
+                    ratings.Children.Add(licence);
+                }
+
+                if (ratings.Children.Count > 0)
+                {
+                    Place(inner, ratings, 2, 1, 1, VerticalAlignment.Top);
                 }
 
                 StackPanel right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 2, 0, 0) };
@@ -503,6 +522,27 @@ namespace Shiftline.Plugin
                 case "iR":
                     slot.IRating = Text(size, MutedBrush);
                     return slot.IRating;
+                case "Lic":
+                    // like the standings: the rating on a dark shade of the licence colour, the class letter on the full colour
+                    slot.LicNumber = Text(size, Brushes.White);
+                    slot.LicNumber.Margin = new Thickness(3, 0, 2, 0);
+                    slot.LicNumber.Visibility = _options.GetBool("Lic.Number") ? Visibility.Visible : Visibility.Collapsed;
+                    slot.LicLetter = Text(size, Brushes.White);
+                    slot.LicLetter.FontWeight = FontWeights.Bold;
+                    StandingsOverlay.CentreInk(slot.LicNumber, StandingsOverlay.InkDigits);
+                    StandingsOverlay.CentreInk(slot.LicLetter, StandingsOverlay.InkLetters);
+
+                    slot.LicLetter.Margin = new Thickness(3, 0, 3, 0);
+                    slot.LicRight = new Border
+                    {
+                        CornerRadius = _options.GetBool("Lic.Number") ? new CornerRadius(0, 3 * _round, 3 * _round, 0) : new CornerRadius(3 * _round),
+                        Child = slot.LicLetter
+                    };
+                    StackPanel parts = new StackPanel { Orientation = Orientation.Horizontal };
+                    parts.Children.Add(slot.LicNumber);
+                    parts.Children.Add(slot.LicRight);
+                    slot.LicBox = new Border { CornerRadius = new CornerRadius(3 * _round), Child = StandingsOverlay.WithGloss(parts, 3 * _round), VerticalAlignment = VerticalAlignment.Center };
+                    return slot.LicBox;
                 case "Tyre":
                     slot.TyreRing = new Ellipse { Width = 14, Height = 14, StrokeThickness = 2, Stroke = MutedBrush, Fill = RingFill };
                     slot.TyreLetter = new Path { Fill = TextBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Stretch = Stretch.None };
@@ -828,7 +868,7 @@ namespace Shiftline.Plugin
                 Set(slot.Pos, field.PositionOf(row) > 0 ? field.PositionOf(row).ToString(CultureInfo.InvariantCulture) : "-");
             }
 
-            Brush classBrush = StandingsOverlay.LicenceBrush(row.ClassColor) ?? MutedBrush;
+            Brush classBrush = StandingsOverlay.ClassBrush(row.ClassColor);
             if (slot.ClassBar != null && !ReferenceEquals(slot.ClassBar.Fill, classBrush))
             {
                 slot.ClassBar.Fill = classBrush;
@@ -848,6 +888,24 @@ namespace Shiftline.Plugin
             if (slot.IRating != null)
             {
                 Set(slot.IRating, StandingsOverlay.FormatIRating(row.IRating, "K1"));
+            }
+
+            if (slot.LicBox != null)
+            {
+                string[] parts = (row.License ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                double rating = 0;
+                bool hasRating = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out rating);
+                Set(slot.LicLetter, parts.Length > 0 ? parts[0] : string.Empty);
+                Set(slot.LicNumber, hasRating ? (Math.Floor(rating * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture) : string.Empty);
+                Brush colour = StandingsOverlay.LicenceBrush(row.LicenseColor);
+                slot.LicBox.Visibility = colour == null || parts.Length == 0 ? Visibility.Hidden : Visibility.Visible;
+                Brush soft = colour == null ? null : StandingsOverlay.Soften(colour);
+                if (soft != null && !ReferenceEquals(slot.LicRight.Background, soft))
+                {
+                    slot.LicRight.Background = soft;
+                    slot.LicLetter.Foreground = StandingsOverlay.ContrastText(soft);
+                    slot.LicBox.Background = _options.GetBool("Lic.Number") ? StandingsOverlay.Shade(colour) : null;
+                }
             }
 
             if (slot.Pit != null)
@@ -978,11 +1036,11 @@ namespace Shiftline.Plugin
         }
 
         private static readonly Brush LappedBrush = StandingsOverlay.Frozen(0xFF, 0x7F, 0xB2, 0xE0);
-        private static readonly Brush LappingBrush = StandingsOverlay.Frozen(0xFF, 0xFF, 0x7A, 0x45);
+        private static readonly Brush LappingBrush = StandingsOverlay.Frozen(0xFF, 0xF0, 0x40, 0x3E);
 
         /// <summary>
         /// Sorted by the track, cars of another lap sit right next to the player. Like iRacing's relative: a car a lap (or more)
-        /// down gets a muted blue name and "-1L", a car a lap up an orange name and "+1L".
+        /// down gets a muted blue name and "-1L", a car a lap up a red name and "+1L".
         /// </summary>
         private void UpdateLapMark(Slot slot, StandingsRow row, Field field)
         {
@@ -1593,6 +1651,10 @@ namespace Shiftline.Plugin
             public TextBlock Gap;
             public Path Trend;
             public TextBlock IRating;
+            public Border LicBox;
+            public Border LicRight;
+            public TextBlock LicNumber;
+            public TextBlock LicLetter;
             public Ellipse TyreRing;
             public Path TyreLetter;
             public TextBlock Pit;
@@ -1637,7 +1699,10 @@ namespace Shiftline.Plugin
                     // On the track: each car's distance to the player the shorter way around the lap (-0.5 .. 0.5, positive in
                     // front). The farthest car in front comes first, then the nearer ones, the player, and the cars behind.
                     double start = Player.LapDistPct;
+                    bool hideLapped = Race && options.Get("Lapped") == "Hide";
+                    StandingsRow me = Player;
                     Order = cars.Where(r => r.LapDistPct >= 0)
+                        .Where(r => !hideLapped || r.IsPlayer || Math.Round(r.Progress - me.Progress) == 0)
                         .OrderByDescending(r => r.IsPlayer ? 0 : Relative(r.LapDistPct - start))
                         .ToList();
                 }
