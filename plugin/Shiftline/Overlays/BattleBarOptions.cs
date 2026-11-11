@@ -70,12 +70,18 @@ namespace Shiftline.Plugin
             new StandingsChoice("Look", "Weight", "Font weight", "SemiBold", "Normal", "Normal", "SemiBold", "Semi-bold", "Bold", "Bold"),
             new StandingsChoice("Look", "Corners", "Boxes", "Rounded", "Rounded", "Rounded", "Square", "Square"),
             new StandingsChoice("Look", "PosBg", "Position box", "White", "White", "White, dark text", "Subtle", "Subtle grey", "None", "None"),
-            new StandingsChoice("Header", "H.Session", "Session (R, Q, P)", "1", OnOff),
-            new StandingsChoice("Header", "H.Laps", "Laps or time left", "1", OnOff),
-            new StandingsChoice("Header", "H.Sof", "Strength of field", "1", OnOff),
-            new StandingsChoice("Header", "H.Inc", "Your incidents", "1", OnOff),
-            new StandingsChoice("Header", "H.Temp", "Track temperature", "1", OnOff),
-            new StandingsChoice("Header", "H.Clock", "Time on this PC", "1", OnOff),
+            new StandingsChoice("Header", "H.S1", "First", "Session", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S2", "Second", "Laps", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S3", "Third", "Time", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S4", "Fourth", "Sof", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S5", "Fifth", "Inc", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S6", "Sixth", "Temp", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S7", "Seventh", "Sim", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.S8", "Eighth", "Off", StandingsOptions.HeaderSlot),
+            new StandingsChoice("Header", "H.TempUnit", "Unit of the temperatures", "C",
+                "C", "\u00B0C", "F", "\u00B0F", "Both", "\u00B0C and \u00B0F"),
+            new StandingsChoice("Header", "H.Time12", "Format of the times", "24",
+                "24", "24 hours (19:45)", "12", "12 hours (7:45 pm)"),
             new StandingsChoice("Footer", "F.Last", "LAST: your last lap", "1", OnOff),
             new StandingsChoice("Footer", "F.Delta", "Live delta to your best lap", "1", OnOff),
             new StandingsChoice("Footer", "F.Best", "BEST: your best lap", "1", OnOff),
@@ -232,6 +238,18 @@ namespace Shiftline.Plugin
         public static void SetChoice(string choice, string value)
         {
             OverlaySettings.SetOption(Key, choice, value);
+        }
+
+        /// <summary>Puts every choice of one group (such as "Header") back to its default.</summary>
+        public static void ResetGroup(string column)
+        {
+            foreach (StandingsChoice choice in AllChoices)
+            {
+                if (choice.Column == column)
+                {
+                    OverlaySettings.SetOption(Key, choice.Key, choice.Fallback);
+                }
+            }
         }
 
         public static void SetHeader(bool on)

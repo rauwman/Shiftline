@@ -139,7 +139,7 @@ namespace Shiftline.Plugin
         private static readonly string[] OnOff = { "1", "On", "0", "Off" };
 
         // The header has fixed places, each with a choice of content, so it can never get too long.
-        private static readonly string[] HeaderSlot =
+        internal static readonly string[] HeaderSlot =
         {
             "Off", "Nothing", "Clock", "PC time", "Sim", "Sim time", "Temp", "Track temperature", "Sof", "Strength of field",
             "Laps", "Laps (the leader's lap and the total)", "Time", "Time left", "Elapsed", "Session time (elapsed and total)",
@@ -445,10 +445,12 @@ namespace Shiftline.Plugin
             OverlaySettings.ClearOptions(overlay);
         }
 
-        /// <summary>The five places of the header (left, three in the centre, right).</summary>
+        /// <summary>The places of a header: left, three in the centre and right (Standings), or eight in a row (Battle Bar).</summary>
         public static bool IsHeaderSlot(string key)
         {
-            return key == "H.Left" || key == "H.C1" || key == "H.C2" || key == "H.C3" || key == "H.Right";
+            return key == "H.Left" || key == "H.C1" || key == "H.C2" || key == "H.C3" || key == "H.Right"
+                || key == "H.S1" || key == "H.S2" || key == "H.S3" || key == "H.S4" || key == "H.S5"
+                || key == "H.S6" || key == "H.S7" || key == "H.S8";
         }
 
         /// <summary>False for "Off"; every other entry of a header place may be used only once.</summary>

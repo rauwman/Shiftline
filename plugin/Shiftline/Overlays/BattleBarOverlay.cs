@@ -53,7 +53,9 @@ namespace Shiftline.Plugin
         private double _designWidth;
         private double _designHeight;
 
-        private TextBlock _header;
+        private StackPanel _header;
+        private Border _headerBox;
+        private List<HeaderItem> _headerItems = new List<HeaderItem>();
         private Panel _footer;
         private TextBlock _footLast;
         private TextBlock _footDelta;
@@ -138,21 +140,35 @@ namespace Shiftline.Plugin
 
             StackPanel root = new StackPanel { Margin = new Thickness(8) };
             _header = null;
+            _headerBox = null;
+            _headerItems = new List<HeaderItem>();
             _footer = null;
             if (options.Header)
             {
-                _header = Text(12, MutedBrush);
-                _header.HorizontalAlignment = HorizontalAlignment.Center;
-                root.Children.Add(new Border
+                // Eight places in a row, each showing what was chosen for it (the contents are shared with the standings).
+                _header = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                System.Windows.Documents.TextElement.SetFontFamily(_header, _font);
+                foreach (string slot in new[] { "H.S1", "H.S2", "H.S3", "H.S4", "H.S5", "H.S6", "H.S7", "H.S8" })
+                {
+                    HeaderItem item = HeaderItems.Create(options.Get(slot), key => options.Get(key), TextBrush, MutedBrush, 12, new Thickness(6, 0, 6, 0));
+                    if (item != null)
+                    {
+                        _headerItems.Add(item);
+                        _header.Children.Add(item.Panel);
+                    }
+                }
+
+                _headerBox = new Border
                 {
                     Background = _cardBrush,
                     CornerRadius = new CornerRadius(4 * _round),
                     Height = LineHeight,
-                    Padding = new Thickness(10, 0, 10, 0),
+                    Padding = new Thickness(4, 0, 4, 0),
                     Margin = new Thickness(0, 0, 0, 4),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Child = _header
-                });
+                };
+                root.Children.Add(_headerBox);
             }
 
             string mode = Mode;
@@ -183,13 +199,31 @@ namespace Shiftline.Plugin
                 width += SideWidth + CardGap;
             }
 
+            // The header may be wider than the cards; the overlay then grows and the cards stay in the middle.
+            double headerWidth = 0;
+            if (_header != null)
+            {
+                foreach (HeaderItem item in _headerItems)
+                {
+                    item.ValueRun.Text = item.Sample;
+                }
+
+                _header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                headerWidth = Math.Ceiling(_header.DesiredSize.Width) + 8;
+                foreach (HeaderItem item in _headerItems)
+                {
+                    item.ValueRun.Text = string.Empty;
+                }
+            }
+
+            middle.HorizontalAlignment = HorizontalAlignment.Center;
             root.Children.Add(middle);
             if (options.Footer)
             {
                 root.Children.Add(BuildFooter());
             }
 
-            _designWidth = width + 16;
+            _designWidth = Math.Max(width, headerWidth) + 16;
             _designHeight = rowHeight + 16 + (options.Header ? LineHeight + 4 : 0) + (options.Footer ? LineHeight + 4 : 0);
             root.LayoutTransform = new ScaleTransform(options.Scale * BaseScale, options.Scale * BaseScale);
             Child = root;
@@ -734,7 +768,9 @@ namespace Shiftline.Plugin
             Field field = new Field(snapshot, _options);
             if (_header != null)
             {
-                Set(_header, HeaderText(snapshot, field));
+                StandingsRow lapRow = field.Order.Count > 0 && !field.ByTrack ? field.Order[0] : field.Player;
+                HeaderItems.Update(_headerItems, snapshot, key => _options.Get(key), true, lapRow);
+                _headerBox.Visibility = _headerItems.Any(item => item.Panel.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Hidden;
             }
 
             UpdateSide(_left, snapshot, field);
@@ -1433,54 +1469,6 @@ namespace Shiftline.Plugin
                 default:
                     return 0.5;
             }
-        }
-
-        private string HeaderText(StandingsSnapshot snapshot, Field field)
-        {
-            List<string> parts = new List<string>();
-            string type = snapshot.SessionType ?? string.Empty;
-            if (_options.GetBool("H.Session") && type.Length > 0)
-            {
-                parts.Add(type.ToUpperInvariant());
-            }
-
-            if (_options.GetBool("H.Laps"))
-            {
-                string laps = LapsText(snapshot, field);
-                if (laps.Length > 0)
-                {
-                    parts.Add(laps);
-                }
-            }
-
-            if (_options.GetBool("H.Sof") && snapshot.StrengthOfField > 0 && (snapshot.Features & StandingsFeatures.IRating) != 0)
-            {
-                parts.Add("SOF " + (snapshot.StrengthOfField / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + "k");
-            }
-
-            string limit = snapshot.IncidentLimit ?? string.Empty;
-            if (_options.GetBool("H.Inc") && (snapshot.Features & StandingsFeatures.Incidents) != 0)
-            {
-                parts.Add("Inc " + snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty));
-            }
-
-            string temp = TempText(snapshot);
-            if (_options.GetBool("H.Temp") && temp.Length > 0)
-            {
-                parts.Add("Track " + temp);
-            }
-
-            if (_options.GetBool("H.Clock"))
-            {
-                parts.Add(DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture));
-            }
-
-            if (snapshot.IsSample)
-            {
-                parts.Add("Preview");
-            }
-
-            return string.Join("    ", parts);
         }
 
         private static string LapsText(StandingsSnapshot snapshot, Field field)

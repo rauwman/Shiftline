@@ -23,12 +23,6 @@ namespace Shiftline.Plugin
         private const double HeaderHeight = 26;
         private const double LabelHeight = 18;
         private const double FooterHeight = 26;
-        private static readonly Geometry ClockShape = FrozenGeometry("M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2");
-        private static readonly Geometry ThermoShape = FrozenGeometry("M 4.6,7.2 L 4.6,2.4 A 1.4,1.4 0 0 1 7.4,2.4 L 7.4,7.2 A 2.6,2.6 0 1 1 4.6,7.2 Z M 6,5 L 6,8.4");
-        private static readonly Geometry FlagShape = FrozenGeometry("M 2.5,10.5 L 2.5,1.5 M 2.5,2 L 10,2 L 8.2,4.9 L 10,7.8 L 2.5,7.8");
-        private static readonly Geometry HourglassShape = FrozenGeometry("M 2.5,1 L 9.5,1 M 2.5,11 L 9.5,11 M 3,1 L 3,3 L 6,6 L 3,9 L 3,11 M 9,1 L 9,3 L 6,6 L 9,9 L 9,11");
-        private static readonly Geometry SunShape = FrozenGeometry("M 0.8,9.5 L 11.2,9.5 M 3,9.5 A 3,3 0 0 1 9,9.5 M 6,2 L 6,3.6 M 1.6,4.4 L 2.8,5.5 M 10.4,4.4 L 9.2,5.5");
-        private static readonly Geometry MoonShape = FrozenGeometry("M 6.5,1.2 A 4.8,4.8 0 1 0 10.8,8.2 A 3.8,3.8 0 0 1 6.5,1.2 Z M 9.2,1.6 L 9.2,3.8 M 8.1,2.7 L 10.3,2.7");
         private const int AroundPlayer = 3;           // rows kept for the player and the cars right before and after
         private const int MaxDelta = 5;
 
@@ -62,7 +56,6 @@ namespace Shiftline.Plugin
         private Border _headerBox;
         private Border _footerBox;
         private List<HeaderItem> _headerItems = new List<HeaderItem>();
-        private FontFamily _narrowFont;
         private TextBlock _footLast;
         private TextBlock _footDelta;
         private TextBlock _footBest;
@@ -1058,11 +1051,6 @@ namespace Shiftline.Plugin
             UpdateFooter(context);
         }
 
-        private static Path NewIcon()
-        {
-            return new Path { Width = 12, Height = 12, Stroke = MutedBrush, StrokeThickness = 1.3, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round, VerticalAlignment = VerticalAlignment.Center };
-        }
-
         private static FrameworkElement FooterItem(string label, out TextBlock value)
         {
             TextBlock name = new TextBlock { Text = label, Foreground = MutedBrush, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
@@ -1084,200 +1072,21 @@ namespace Shiftline.Plugin
             return item;
         }
 
-        private TextBlock NewHeaderText(Thickness margin)
-        {
-            return new TextBlock { Foreground = TextBrush, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = margin };
-        }
-
-        /// <summary>A time of day in the chosen format: 19:45, or 7:45 pm.</summary>
-        private string TimeText(DateTime time)
-        {
-            return _options.Get("H.Time12") == "12"
-                ? time.ToString("h:mm tt", CultureInfo.InvariantCulture).ToLowerInvariant()
-                : time.ToString("HH:mm", CultureInfo.InvariantCulture);
-        }
-
-        /// <summary>A temperature in the chosen unit.</summary>
-        private string Temperature(double celsius)
-        {
-            string unit = _options.Get("H.TempUnit");
-            string c = celsius.ToString("0", CultureInfo.InvariantCulture) + "\u00B0C";
-            string f = (celsius * 9 / 5 + 32).ToString("0", CultureInfo.InvariantCulture) + "\u00B0F";
-            return unit == "F" ? f : unit == "Both" ? c + " / " + f : c;
-        }
-
-        private sealed class HeaderItem
-        {
-            public string Kind;
-            public StackPanel Panel;
-            public Path Icon;
-            public TextBlock Value;
-            public Run ValueRun;
-            public string Sample;
-        }
-
-        /// <summary>One content of a header place: an icon or a short label (in a narrow font), then the value. Null for "Off".</summary>
+        /// <summary>One content of a header place (see HeaderItems). Null for "Off".</summary>
         private HeaderItem NewHeaderItem(string kind, Thickness margin)
         {
-            string label = null;
-            Geometry icon = null;
-            string sample;
-            double maxWidth = 0;
-            switch (kind)
+            HeaderItem item = HeaderItems.Create(kind, key => _options.Get(key), TextBrush, MutedBrush, 13, margin);
+            if (item != null)
             {
-                case "Clock": icon = ClockShape; sample = "00:00 pm"; break;
-                case "Sim": icon = SunShape; sample = "00:00 pm"; break;
-                case "Oil": label = "OIL"; sample = Temperature(100); break;
-                case "Water": label = "WATER"; sample = Temperature(100); break;
-                case "Air": label = "AIR"; sample = Temperature(100); break;
-                case "Humidity": label = "HUM"; sample = "100 %"; break;
-                case "Temp": icon = ThermoShape; sample = Temperature(100); break;
-                case "Sof": label = "SOF"; sample = "0000"; break;
-                case "Laps": icon = FlagShape; sample = "000/000"; break;
-                case "Time": icon = HourglassShape; sample = "0:00:00"; break;
-                case "Elapsed": icon = ClockShape; sample = "0:00:00 / 0:00:00"; break;
-                case "Session": sample = "R"; break;
-                case "Track": sample = "Interlagos"; maxWidth = 110; break;
-                case "Car": sample = "Porsche 911 GT3"; maxWidth = 120; break;
-                case "Inc": label = "INC"; sample = "00/00"; break;
-                default: return null;
+                _headerItems.Add(item);
             }
 
-            HeaderItem item = new HeaderItem { Kind = kind, Sample = sample };
-            item.Panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = margin };
-            if (icon != null)
-            {
-                item.Icon = NewIcon();
-                item.Icon.Data = kind == "Sim" ? null : icon;
-
-     // the sun or moon is set by the first update
-                item.Icon.Margin = new Thickness(0, 0, 4, 0);
-                item.Panel.Children.Add(item.Icon);
-            }
-
-            if (label != null)
-            {
-                if (_narrowFont == null)
-                {
-                    _narrowFont = OverlayFonts.Get("Bahnschrift");
-                }
-
-            }
-
-            // Label and value are runs of one text, so they sit on the same baseline.
-            item.Value = NewHeaderText(new Thickness(0));
-            if (label != null)
-            {
-                item.Value.Inlines.Add(new Run(label + "  ") { FontFamily = _narrowFont, FontStretch = FontStretches.Condensed, FontWeight = FontWeights.Normal, Foreground = MutedBrush });
-            }
-
-            item.ValueRun = new Run();
-            item.Value.Inlines.Add(item.ValueRun);
-            if (maxWidth > 0)
-            {
-                item.Value.MaxWidth = maxWidth;
-                item.Value.TextTrimming = TextTrimming.CharacterEllipsis;
-            }
-
-            item.Panel.Children.Add(item.Value);
-            _headerItems.Add(item);
             return item;
         }
 
-        /// <summary>Fills every place of the header; what the game does not deliver is hidden.</summary>
         private void UpdateHeader(StandingsSnapshot snapshot)
         {
-            foreach (HeaderItem item in _headerItems)
-            {
-                string text = HeaderValue(item.Kind, snapshot);
-                Visibility shown = text != null ? Visibility.Visible : Visibility.Collapsed;
-                if (item.Panel.Visibility != shown)
-                {
-                    item.Panel.Visibility = shown;
-                }
-
-                if (text == null)
-                {
-                    continue;
-                }
-
-                if (item.ValueRun.Text != text)
-                {
-                    item.ValueRun.Text = text;
-                }
-
-                if (item.Kind == "Sim")
-                {
-                    double seconds = snapshot.TimeOfDay % 86400;
-                    bool day = seconds >= 6 * 3600 && seconds < 20 * 3600;
-                    Geometry shape = day ? SunShape : MoonShape;
-                    if (!ReferenceEquals(item.Icon.Data, shape))
-                    {
-                        item.Icon.Data = shape;
-                    }
-                }
-            }
-        }
-
-        private string HeaderValue(string kind, StandingsSnapshot snapshot)
-        {
-            switch (kind)
-            {
-                case "Clock":
-                    return TimeText(DateTime.Now);
-                case "Sim":
-                    return snapshot.TimeOfDay >= 0 ? TimeText(DateTime.Today.AddSeconds(snapshot.TimeOfDay % 86400)) : null;
-                case "Oil":
-                    return double.IsNaN(snapshot.OilTemp) ? null : Temperature(snapshot.OilTemp);
-                case "Water":
-                    return double.IsNaN(snapshot.WaterTemp) ? null : Temperature(snapshot.WaterTemp);
-                case "Air":
-                    return double.IsNaN(snapshot.AirTemp) ? null : Temperature(snapshot.AirTemp);
-                case "Humidity":
-                    return double.IsNaN(snapshot.Humidity) ? null : Math.Round(snapshot.Humidity).ToString("0", CultureInfo.InvariantCulture) + " %";
-                case "Temp":
-                    double temp;
-                    return double.TryParse((snapshot.TrackTemp ?? string.Empty).Split(' ')[0], NumberStyles.Float, CultureInfo.InvariantCulture, out temp) ? Temperature(temp) : null;
-                case "Sof":
-                    return snapshot.StrengthOfField > 0 ? snapshot.StrengthOfField.ToString(CultureInfo.InvariantCulture) : null;
-                case "Laps":
-                    StandingsRow[] rows = snapshot.Rows ?? new StandingsRow[0];
-                    int leaderLap = rows.Length > 0 ? Math.Max(0, rows[0].LapsCompleted) + 1 : 0;
-                    if (snapshot.LapsTotal > 0)
-                    {
-                        return Math.Min(leaderLap, snapshot.LapsTotal) + "/" + snapshot.LapsTotal;
-                    }
-
-                    return leaderLap > 0 ? leaderLap.ToString(CultureInfo.InvariantCulture) : null;
-                case "Time":
-                    return snapshot.TimeRemaining > 0 && snapshot.TimeRemaining < 360000
-                        ? TimeSpan.FromSeconds(snapshot.TimeRemaining).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
-                        : null;
-                case "Elapsed":
-                    if (snapshot.TimeTotal <= 0 || snapshot.TimeTotal >= 360000 || snapshot.TimeRemaining < 0)
-                    {
-                        return null;
-                    }
-
-                    double done = Math.Max(0, snapshot.TimeTotal - snapshot.TimeRemaining);
-                    return TimeSpan.FromSeconds(done).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture) + " / " + TimeSpan.FromSeconds(snapshot.TimeTotal).ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture);
-                case "Session":
-                    string type = snapshot.SessionType ?? string.Empty;
-                    return type.IndexOf("Race", StringComparison.OrdinalIgnoreCase) >= 0 ? "R"
-                        : type.IndexOf("Qual", StringComparison.OrdinalIgnoreCase) >= 0 ? "Q"
-                        : type.Length > 0 ? "P" : "-";
-                case "Track":
-                    return string.IsNullOrEmpty(snapshot.TrackShort) ? null : snapshot.TrackShort;
-                case "Car":
-                    return string.IsNullOrEmpty(snapshot.CarName) ? null : snapshot.CarName;
-                case "Inc":
-                    string limit = snapshot.IncidentLimit ?? string.Empty;
-                    return (snapshot.Features & StandingsFeatures.Incidents) != 0
-                        ? snapshot.Incidents + (limit.Length > 0 && char.IsDigit(limit[0]) ? "/" + limit : string.Empty)
-                        : null;
-                default:
-                    return null;
-            }
+            HeaderItems.Update(_headerItems, snapshot, key => _options.Get(key), false, null);
         }
 
         private void UpdateFooter(Context context)

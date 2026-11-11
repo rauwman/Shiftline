@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -105,6 +106,8 @@ namespace Shiftline.Plugin
         {
             panel.Children.Clear();
             BattleBarOptions options = BattleBarOptions.Load();
+            Action refreshSlots = null;
+            List<ComboBox> slotCombos = new List<ComboBox>();
             foreach (StandingsChoice choice in BattleBarOptions.AllChoices.Where(c => c.Column == group))
             {
                 Grid row = new Grid { Margin = new System.Windows.Thickness(0, 0, 0, 8) };
@@ -129,13 +132,34 @@ namespace Shiftline.Plugin
                     if (changed.SelectedIndex >= 0)
                     {
                         BattleBarOptions.SetChoice(picked.Key, picked.Values[changed.SelectedIndex]);
+                        refreshSlots?.Invoke();
                         RefreshPreview();
                     }
                 };
+                if (StandingsOptions.IsHeaderSlot(choice.Key))
+                {
+                    slotCombos.Add(combo);
+                }
+
                 Grid.SetColumn(combo, 1);
                 row.Children.Add(label);
                 row.Children.Add(combo);
                 panel.Children.Add(row);
+            }
+
+            // A place of the header can only show what no other place shows; taken entries are grey.
+            refreshSlots = HeaderSlotLock.Wire(slotCombos);
+            refreshSlots();
+            if (group == "Header" && slotCombos.Count > 0)
+            {
+                Button reset = new Button { Style = (System.Windows.Style)FindResource("GlassButton"), Content = "Reset the header", HorizontalAlignment = System.Windows.HorizontalAlignment.Left, Margin = new System.Windows.Thickness(0, 4, 0, 0) };
+                reset.Click += (sender, args) =>
+                {
+                    BattleBarOptions.ResetGroup("Header");
+                    AddChoices(panel, group);
+                    RefreshPreview();
+                };
+                panel.Children.Add(reset);
             }
         }
 

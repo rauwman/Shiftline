@@ -353,31 +353,7 @@ namespace Shiftline.Plugin
             }
 
             // A place of the header can only show what no other place shows; taken entries are grey and cannot be picked.
-            refreshSlots = () =>
-            {
-                HashSet<string> taken = new HashSet<string>();
-                foreach (ComboBox slot in slotCombos)
-                {
-                    StandingsChoice slotChoice = (StandingsChoice)slot.Tag;
-                    if (slot.SelectedIndex >= 0 && StandingsOptions.IsContent(slotChoice.Values[slot.SelectedIndex]))
-                    {
-                        taken.Add(slotChoice.Values[slot.SelectedIndex]);
-                    }
-                }
-
-                foreach (ComboBox slot in slotCombos)
-                {
-                    StandingsChoice slotChoice = (StandingsChoice)slot.Tag;
-                    for (int i = 0; i < slot.Items.Count; i++)
-                    {
-                        string value = slotChoice.Values[i];
-                        bool free = !StandingsOptions.IsContent(value) || i == slot.SelectedIndex || !taken.Contains(value);
-                        ComboBoxItem entry = (ComboBoxItem)slot.Items[i];
-                        entry.IsEnabled = free;
-                        entry.Opacity = free ? 1 : 0.35;
-                    }
-                }
-            };
+            refreshSlots = HeaderSlotLock.Wire(slotCombos);
             refreshSlots();
 
             if (any && column == "Header")
