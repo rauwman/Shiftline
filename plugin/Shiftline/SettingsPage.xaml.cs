@@ -17,7 +17,11 @@ namespace Shiftline.Plugin
         public SettingsPage()
         {
             InitializeComponent();
+            ExtendPage();
         }
+
+        /// <summary>Extension point: does nothing unless another part of this class provides a body.</summary>
+        partial void ExtendPage();
 
         public SettingsPage(Shiftline plugin) : this()
         {
