@@ -30,6 +30,7 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 ### Overlays (new)
 
 - **Standings:** position, class colour, places gained, car number, name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
+- **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows and a battle frame
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
 - Classes on their own, grouped or mixed; animated position changes
 - **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
