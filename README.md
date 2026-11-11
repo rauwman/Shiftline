@@ -111,7 +111,7 @@ Shiftline is free and open source under the GNU General Public License v3. You c
 
 ## License
 
-GNU General Public License v3 (GPL-3.0), see `LICENSE.txt`.
+MIT License, see `LICENSE.txt`.
 
 The overlays include the fonts Inter and Saira SemiCondensed under the SIL Open Font License 1.1, see `plugin/Shiftline/Assets/Fonts`.
 
