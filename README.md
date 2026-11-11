@@ -45,10 +45,11 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 
 *Battle Bar: you in the middle, the cars around you with gaps, trend arrows and a battle frame (invented data)*
 
-- **Standings:** position, class colour, places gained, car number, name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
+- **Standings:** position, class colour, places gained, car number, country flag (iRacing), name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
 - **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
-- **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows and a battle frame
+- **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows, country flags and a battle frame
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
+- **Main settings** on the General page: update rate, background opacity of the rows and of the header and footer, font, weight and corners for all overlays at once. Each overlay page follows them ("Same as in General") or has its own values
 - Classes on their own, grouped or mixed; animated position changes
 - **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
 - Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
@@ -113,3 +114,5 @@ Shiftline is free and open source under the GNU General Public License v3. You c
 GNU General Public License v3 (GPL-3.0), see `LICENSE.txt`.
 
 The overlays include the fonts Inter and Saira SemiCondensed under the SIL Open Font License 1.1, see `plugin/Shiftline/Assets/Fonts`.
+
+The country flags are from the [flag-icons](https://github.com/lipis/flag-icons) project (MIT licence), see `plugin/Shiftline/Assets/Flags/LICENSE-flag-icons.txt`.
