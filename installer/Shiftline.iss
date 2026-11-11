@@ -4,7 +4,7 @@
 ;   ISCC.exe /DAppVersion=0.2.1 Shiftline.iss). The installer appears in installer\Output.
 
 #ifndef AppVersion
-  #define AppVersion "0.2.4"
+  #define AppVersion "0.2.5"
 #endif
 
 [Setup]
@@ -28,7 +28,7 @@ InfoBeforeFile=info.txt
 UninstallDisplayName=Shiftline (SimHub plugin)
 UninstallFilesDir={commonappdata}\Shiftline
 CloseApplications=no
-VersionInfoVersion=0.2.4.0
+VersionInfoVersion=0.2.5.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

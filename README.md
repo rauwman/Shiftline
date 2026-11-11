@@ -107,7 +107,7 @@ node test_modes.js && node test_layout.js && node test_ui_values.js && node test
 
 ## About
 
-Shiftline is free and open source under the GNU General Public License v3. You can use, change and share it; changed versions must stay open under the same licence. Bug reports, ideas and pull requests are welcome in the issues of this repository.
+Shiftline is free and open source under the MIT License. You can use, change and share it. Bug reports, ideas and pull requests are welcome in the issues of this repository.
 
 ## License
 
