@@ -60,12 +60,6 @@
         </Border>
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
-                <local:IconTitle IconKey="Layers" Text="Overlays" />
-                <TextBlock Style="{StaticResource CardHint}" Text="Overlays for maps and telemetry inside iRacing are planned and will be switched on here." />
-            </StackPanel>
-        </Border>
-        <Border Style="{StaticResource GlassCard}">
-            <StackPanel>
                 <local:IconTitle IconKey="Archive" Text="Backups and restore" />
                 <TextBlock Style="{StaticResource CardHint}" Text="A backup is a copy of everything you can set: all settings, colour themes and the effect priority, whatever page they are on. Restoring replaces the current settings (they are saved into the active preset); a backup of the current state is made first, so nothing is lost." />
                 <StackPanel Margin="0,14,0,0">

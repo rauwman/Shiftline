@@ -77,6 +77,12 @@
                 </Border>
                 <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
                     <StackPanel>
+                        <local:IconTitle IconKey="Layers" Text="Overlays" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Standings, Relatives and Battle Bar as overlays on top of the game." />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
+                    <StackPanel>
                         <local:IconTitle IconKey="ThemeStudio" Text="Theme Studio" />
                         <TextBlock Style="{StaticResource CardHint}" Text="Create your own colour themes and use them for the rev bar, the idle animation and the fuel gauge." />
                     </StackPanel>
@@ -92,8 +98,8 @@
         <WrapPanel>
                 <Border Style="{StaticResource GlassCard}" Width="300" Margin="0,0,14,14" VerticalAlignment="Top">
                     <StackPanel>
-                        <local:IconTitle IconKey="Layers" Text="Dashboards and overlays" />
-                        <TextBlock Style="{StaticResource CardHint}" Text="Dashboards, map and telemetry overlays, button boxes and flag LEDs." />
+                        <local:IconTitle IconKey="Layers" Text="Dashboards" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Dashboards, track map, button boxes and flag LEDs." />
                     </StackPanel>
                 </Border>
         </WrapPanel>
