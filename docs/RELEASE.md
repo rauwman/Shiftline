@@ -48,4 +48,4 @@ The installer:
 3. SimHub closes, a small PowerShell script replaces the DLL (Windows asks for administrator rights when needed) and starts SimHub again.
 4. The old DLL is kept in `PluginsData\Shiftline\Update\previous`, the log is `PluginsData\Shiftline\Update\update.log`.
 
-The repository has to be public, otherwise the plugin cannot read the releases. The update installer is untested so far, see the README.
+The repository has to be public, otherwise the plugin cannot read the releases.
