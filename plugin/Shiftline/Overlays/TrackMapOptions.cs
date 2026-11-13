@@ -74,7 +74,7 @@ namespace Shiftline.Plugin
             new StandingsChoice("Map", "Mode", "Mode (On the ring, Centred on me turns the ring so that you stay at the top.)", "Whole", "Whole", "Whole lap", "Centred", "Centred on me"),
             new StandingsChoice("Map", "Range", "Range (How much of the lap is shown on each side of you. Only on the line in the mode Centred on me.)", "20",
                 "10", "± 10 %", "15", "± 15 %", "20", "± 20 %", "25", "± 25 %", "30", "± 30 %", "40", "± 40 %"),
-            new StandingsChoice("Cars", "Dot", "Circle size (Your own circle is drawn larger.)", "20", DotChoices()),
+            new StandingsChoice("Cars", "Dot", "Circle size (Your own circle is drawn larger.)", "21", DotChoices()),
             new StandingsChoice("Cars", "Label", "Number in the circle", "Number",
                 "None", "None", "Number", "Car number", "Position", "Position", "ClassPosition", "Class position",
                 "Auto", "Auto (In races the position, in the class when there are several classes. Otherwise the car number.)"),

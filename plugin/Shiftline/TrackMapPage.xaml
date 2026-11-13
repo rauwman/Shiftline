@@ -15,7 +15,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,16,0">
-                    <local:IconTitle IconKey="Layout" Text="Track Map" />
+                    <local:IconTitle IconKey="TrackMap" Text="Track Map" />
                     <TextBlock Style="{StaticResource CardHint}" Text="The cars as numbered circles on a line or a ring, with you highlighted. Place it in edit mode on the General page; pull the right or bottom edge to change its size." />
                 </StackPanel>
                 <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
