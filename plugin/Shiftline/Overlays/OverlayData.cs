@@ -24,6 +24,9 @@ namespace Shiftline.Plugin
         public const string BattleBarKey = "BattleBar";
         public const string RelativesKey = "Relatives";
 
+        /// <summary>The name under which the Track Map keeps its own settings.</summary>
+        public const string TrackMapKey = "TrackMap";
+
         private static readonly RateClock StandingsClock = new RateClock(10);
         private static readonly RateClock DriverClock = new RateClock(0.5);
 
@@ -56,7 +59,7 @@ namespace Shiftline.Plugin
         private static int DataRate()
         {
             int rate = OverlaySettings.RateFor(StandingsKey);
-            foreach (string key in new[] { BattleBarKey, RelativesKey })
+            foreach (string key in new[] { BattleBarKey, RelativesKey, TrackMapKey })
             {
                 if (OverlaySettings.IsEnabled(key))
                 {

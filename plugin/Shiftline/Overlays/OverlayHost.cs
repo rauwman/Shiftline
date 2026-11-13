@@ -24,6 +24,9 @@ namespace Shiftline.Plugin
         private static DispatcherTimer _relativesTimer;
         private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
         private static bool _relativesRace = true;         // whether the relatives are laid out for a race (the iRating change needs room only there)
+        private static OverlayWindow _trackWindow;
+        private static TrackMapOverlay _trackView;
+        private static DispatcherTimer _trackTimer;
         private static bool _edit;
 
         /// <summary>Raised on the UI thread after edit mode was switched.</summary>
@@ -52,6 +55,8 @@ namespace Shiftline.Plugin
                 _battleTimer.Tick += (sender, args) => TickBattleBar();
                 _relativesTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _relativesTimer.Tick += (sender, args) => TickRelatives();
+                _trackTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
+                _trackTimer.Tick += (sender, args) => TickTrackMap();
                 Sync();
             }));
         }
@@ -100,6 +105,17 @@ namespace Shiftline.Plugin
                         _relativesWindow.Close();
                         _relativesWindow = null;
                     }
+
+                    if (_trackTimer != null)
+                    {
+                        _trackTimer.Stop();
+                    }
+
+                    if (_trackWindow != null)
+                    {
+                        _trackWindow.Close();
+                        _trackWindow = null;
+                    }
                 }));
             }
             catch (Exception ex)
@@ -139,6 +155,11 @@ namespace Shiftline.Plugin
                     _relativesWindow.SetEditMode(edit);
                 }
 
+                if (_trackWindow != null)
+                {
+                    _trackWindow.SetEditMode(edit);
+                }
+
                 Sync();
                 Action handler = EditModeChanged;
                 if (handler != null)
@@ -168,6 +189,11 @@ namespace Shiftline.Plugin
                 {
                     _relativesWindow.RestorePlacement();
                 }
+
+                if (_trackWindow != null && _trackWindow.IsVisible)
+                {
+                    _trackWindow.RestorePlacement();
+                }
             });
         }
 
@@ -181,6 +207,7 @@ namespace Shiftline.Plugin
 
             SyncBattleBar();
             SyncRelatives();
+            SyncTrackMap();
 
             bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
             if (!enabled)
@@ -607,6 +634,139 @@ namespace Shiftline.Plugin
             _relativesScale = 0;
             StandingsOptions.SetScale(scale, OverlayData.RelativesKey);       // raises Changed: the window snaps to the saved size
             _relativesWindow.SetFixedSize(_relativesView.DesignSize);
+        }
+
+        // ---------------------------------------------------------------- Track Map
+
+        private static void SyncTrackMap()
+        {
+            if (!OverlaySettings.IsEnabled(OverlayData.TrackMapKey))
+            {
+                _trackTimer.Stop();
+                if (_trackWindow != null)
+                {
+                    _trackWindow.Hide();
+                }
+
+                return;
+            }
+
+            if (_trackView != null)
+            {
+                _trackView.ApplyOptions(TrackMapOptions.Load());
+                if (_trackWindow != null)
+                {
+                    _trackWindow.SetFixedSize(_trackView.DesignSize);
+                }
+            }
+
+            _trackTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.TrackMapKey));
+            _trackTimer.Start();
+            TickTrackMap();
+        }
+
+        /// <summary>The data, or invented cars spread around the lap in edit mode without a session.</summary>
+        private static StandingsSnapshot TrackMapSnapshot()
+        {
+            StandingsSnapshot snapshot = OverlayData.Current;
+            return snapshot.HasData ? snapshot : TrackMapSample.Create(0).As(OverlayData.PreviewFeatures(), OverlayData.SelectedGame);
+        }
+
+        private static void TickTrackMap()
+        {
+            try
+            {
+                bool enabled = OverlaySettings.IsEnabled(OverlayData.TrackMapKey);
+                StandingsSnapshot snapshot = OverlayData.Current;
+                bool inGame = snapshot.HasData
+                    && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront(snapshot.Game))
+                    && (OverlaySettings.ShowInReplays || !snapshot.IsReplay)
+                    && (OverlaySettings.ShowInGarage || !snapshot.IsInGarage);
+                if (!enabled || !(_edit || inGame))
+                {
+                    if (_trackWindow != null && _trackWindow.IsVisible)
+                    {
+                        _trackWindow.Hide();
+                    }
+
+                    return;
+                }
+
+                if (_trackWindow == null)
+                {
+                    _trackView = new TrackMapOverlay();
+                    _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", _trackView, _trackView.DesignSize);
+                    _trackWindow.SetEditMode(_edit);
+                    _trackWindow.SetFixedSize(_trackView.DesignSize);
+                    // the size is the length of the line: both edges change it
+                    _trackWindow.WidthDragging += factor => TrackMapDragging(factor, !_trackView.Vertical);
+                    _trackWindow.WidthDragged += TrackMapDragged;
+                    _trackWindow.HeightDragging += height =>
+                    {
+                        if (_trackHeightAtStart <= 0)
+                        {
+                            _trackHeightAtStart = _trackWindow.Height;
+                        }
+
+                        TrackMapDragging(height / Math.Max(1, _trackHeightAtStart), _trackView.Vertical);
+                    };
+                    _trackWindow.HeightDragged += height => TrackMapDragged();
+                }
+
+                _trackView.Update(TrackMapSnapshot());
+                if (!_trackWindow.IsVisible)
+                {
+                    _trackWindow.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                _trackTimer.Stop();
+                PluginLog.Info("Track Map stopped: " + ex);
+            }
+        }
+
+        private static int _trackLengthAtStart;
+        private static double _trackExtentAtStart;      // the window size along the line when the pulling started
+        private static double _trackHeightAtStart;
+        private static int _trackDragged;
+
+        /// <summary>
+        /// Pulling an edge of the window changes the length of the line in steps; saved when the edge is released. The edge along the
+        /// line grows the length by what the window grows, the edge across it scales the length by the factor.
+        /// </summary>
+        private static void TrackMapDragging(double factor, bool alongTheLine)
+        {
+            TrackMapOptions current = TrackMapOptions.Load();
+            if (_trackLengthAtStart <= 0)
+            {
+                _trackLengthAtStart = current.Length;
+                System.Windows.Size size = _trackView.DesignSize;
+                _trackExtentAtStart = current.Vertical ? size.Height : size.Width;
+            }
+
+            double length = alongTheLine ? _trackLengthAtStart + (factor - 1) * _trackExtentAtStart : _trackLengthAtStart * factor;
+            int rounded = TrackMapOptions.ClampLength((int)Math.Round(length));
+            if (rounded == _trackDragged)
+            {
+                return;
+            }
+
+            _trackDragged = rounded;
+            _trackView.ApplyOptions(current.WithLength(rounded));
+            _trackView.Update(TrackMapSnapshot());
+            _trackWindow.SetFixedSize(_trackView.DesignSize);
+        }
+
+        private static void TrackMapDragged()
+        {
+            int length = _trackDragged > 0 ? _trackDragged : TrackMapOptions.Load().Length;
+            _trackLengthAtStart = 0;
+            _trackExtentAtStart = 0;
+            _trackHeightAtStart = 0;
+            _trackDragged = 0;
+            TrackMapOptions.SetLength(length);          // raises Changed: the window snaps to the saved size
+            _trackWindow.SetFixedSize(_trackView.DesignSize);
         }
 
         private static void OnUi(Action action)

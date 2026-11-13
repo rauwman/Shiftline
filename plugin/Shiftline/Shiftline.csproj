@@ -105,8 +105,15 @@
     <Compile Include="BattleBarPage.xaml.cs">
       <DependentUpon>BattleBarPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="TrackMapPage.xaml.cs">
+      <DependentUpon>TrackMapPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Overlays\BattleBarOptions.cs" />
     <Compile Include="Overlays\BattleBarOverlay.cs" />
+    <Compile Include="Overlays\TrackMapGeometry.cs" />
+    <Compile Include="Overlays\TrackMapOptions.cs" />
+    <Compile Include="Overlays\TrackMapOverlay.cs" />
+    <Compile Include="Overlays\TrackMapSample.cs" />
     <Compile Include="Overlays\CarMakes.cs" />
     <Compile Include="Overlays\GameFocus.cs" />
     <Compile Include="Overlays\IRacingReader.cs" />
@@ -208,6 +215,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="BattleBarPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="TrackMapPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
