@@ -42,6 +42,9 @@ Source: "..\README.md"; DestDir: "{commondocs}\Shiftline"; Flags: ignoreversion
 Source: "..\plugin\Shiftline\Assets\Fonts\OFL-*.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
 ; The country flags of the standings come from the flag-icons project (MIT licence), built into the DLL. Its licence travels with them.
 Source: "..\plugin\Shiftline\Assets\Flags\LICENSE-flag-icons.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
+; The track map data (data\tracks) is built into the DLL. Its layouts come from SIMRacingApps (Apache License 2.0), whose
+; licence and NOTICE have to travel with them.
+Source: "..\data\tracks\LICENSES\SIMRacingApps\*"; DestDir: "{commondocs}\Shiftline\Licenses\SIMRacingApps"; Flags: ignoreversion
 
 [Icons]
 Name: "{commonprograms}\Shiftline\Uninstall Shiftline"; Filename: "{uninstallexe}"

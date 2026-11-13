@@ -30,7 +30,7 @@ Always upload the files from that folder. The order matters: the checksum has to
 
 The installer:
 - copies `Shiftline.Plugin.dll` into the SimHub folder (the one with `SimHubWPF.exe`, default `C:\Program Files (x86)\SimHub`) and asks to close SimHub if it is running,
-- puts the loader profile and the README into `C:\Users\Public\Documents\Shiftline`,
+- puts the loader profile and the README into `C:\Users\Public\Documents\Shiftline`, and the licences of the fonts, flags and track data (built into the DLL) into its `Licenses` folder,
 - when Shiftline is already installed, the first page offers "Update or repair" or "Uninstall". "Uninstall" starts the normal Windows uninstaller (also reachable from the Start menu and Windows Settings > Apps): it closes SimHub, asks whether to delete the settings and presets (`PluginsData\Shiftline` and `PluginsData\Common\Shiftline.GeneralSettings.json`) and offers to start SimHub again. The imported LED profile has to be removed in SimHub by hand.
 
 ## 3. Publish on GitHub
