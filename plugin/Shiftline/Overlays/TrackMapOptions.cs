@@ -14,6 +14,10 @@ namespace Shiftline.Plugin
         public const int MaxLength = 1500;
         public const int LengthStep = 50;
         public const int DefaultLength = 850;
+        public const int MinRing = 150;
+        public const int MaxRing = 800;
+        public const int RingStep = 25;
+        public const int DefaultRing = 300;
 
         private static readonly string[] OnOff = { "1", "On", "0", "Off" };
 
@@ -31,19 +35,39 @@ namespace Shiftline.Plugin
             return pairs.ToArray();
         }
 
+        /// <summary>The ring sizes as the page offers them: 150 px to 800 px across in steps of 25.</summary>
+        private static string[] RingChoices()
+        {
+            List<string> pairs = new List<string>();
+            for (int size = MinRing; size <= MaxRing; size += RingStep)
+            {
+                string text = size.ToString(CultureInfo.InvariantCulture);
+                pairs.Add(text);
+                pairs.Add(text + " px");
+            }
+
+            return pairs.ToArray();
+        }
+
         public static readonly StandingsChoice[] AllChoices =
         {
+            new StandingsChoice("Map", "Shape", "Shape", "Line", "Line", "Line", "Ring", "Ring"),
             new StandingsChoice("Map", "Orientation", "Orientation", "Horizontal", "Horizontal", "Horizontal", "Vertical", "Vertical"),
             new StandingsChoice("Map", "Length", "Length (How long the line is. In edit mode you can also pull the edge of the window.)", DefaultLength.ToString(CultureInfo.InvariantCulture), LengthChoices()),
-            new StandingsChoice("Map", "Mode", "Mode", "Whole", "Whole", "Whole lap", "Centred", "Centred on me"),
-            new StandingsChoice("Map", "Range", "Range (How much of the lap is shown on each side of you. Only in the mode Centred on me.)", "20",
+            new StandingsChoice("Map", "RingSize", "Ring size (How wide the ring is. In edit mode you can also pull the edge of the window.)", DefaultRing.ToString(CultureInfo.InvariantCulture), RingChoices()),
+            new StandingsChoice("Map", "StartAt", "Start/finish on the ring", "Top", "Top", "Top", "Right", "Right", "Bottom", "Bottom", "Left", "Left"),
+            new StandingsChoice("Map", "Direction", "Direction on the ring", "Clockwise", "Clockwise", "Clockwise", "Anticlockwise", "Anticlockwise"),
+            new StandingsChoice("Map", "Mode", "Mode (On the ring, Centred on me turns the ring so that you stay at the top.)", "Whole", "Whole", "Whole lap", "Centred", "Centred on me"),
+            new StandingsChoice("Map", "Range", "Range (How much of the lap is shown on each side of you. Only on the line in the mode Centred on me.)", "20",
                 "10", "± 10 %", "15", "± 15 %", "20", "± 20 %", "25", "± 25 %", "30", "± 30 %", "40", "± 40 %"),
             new StandingsChoice("Cars", "Dot", "Circle size (Your own circle is drawn larger.)", "22",
                 "16", "16 px", "18", "18 px", "20", "20 px", "22", "22 px", "24", "24 px", "28", "28 px"),
             new StandingsChoice("Cars", "Label", "Number in the circle", "Number",
-                "None", "None", "Number", "Car number", "Position", "Position", "ClassPosition", "Class position"),
+                "None", "None", "Number", "Car number", "Position", "Position", "ClassPosition", "Class position",
+                "Auto", "Auto (In races the position, in the class when there are several classes. Otherwise the car number.)"),
             new StandingsChoice("Cars", "Show", "Show", "All", "All", "All cars", "Class", "Only my class"),
             new StandingsChoice("Cars", "Pit", "Cars in the pit", "Dim", "Dim", "Dimmed and hollow", "Hide", "Hidden"),
+            new StandingsChoice("Cars", "Fastest", "Fastest lap (A violet ring around the car with the fastest lap in your class. A lap ring goes first.)", "1", OnOff),
             new StandingsChoice("Cars", "LapRings", "Lap rings (Red ring: a lap ahead of you. Blue ring: a lap behind you. Races only.)", "1", OnOff),
             new StandingsChoice("Line", "LineStyle", "Style", "Road",
                 "Line", "Thin line", "Road", "Road (Two parallel lines.)", "Strip", "Strip (A rounded strip the cars sit in.)"),
@@ -71,11 +95,11 @@ namespace Shiftline.Plugin
             return new TrackMapOptions { _values = values };
         }
 
-        /// <summary>The same options with another length (while the window edge is being pulled).</summary>
-        public TrackMapOptions WithLength(int length)
+        /// <summary>The same options with another length of the line or size of the ring (while the window edge is being pulled).</summary>
+        public TrackMapOptions WithSize(int size)
         {
             Dictionary<string, string> values = new Dictionary<string, string>(_values, StringComparer.Ordinal);
-            values["Length"] = ClampLength(length).ToString(CultureInfo.InvariantCulture);
+            values[Ring ? "RingSize" : "Length"] = ClampSize(size).ToString(CultureInfo.InvariantCulture);
             return new TrackMapOptions { _values = values };
         }
 
@@ -119,6 +143,34 @@ namespace Shiftline.Plugin
             get { return Get("Mode") == "Centred"; }
         }
 
+        public bool Ring
+        {
+            get { return Get("Shape") == "Ring"; }
+        }
+
+        /// <summary>Width of the ring in pixels (across the middle of the track), always one of the offered steps.</summary>
+        public int RingSize
+        {
+            get { return ClampRing(GetInt("RingSize")); }
+        }
+
+        /// <summary>The size that pulling the window edge changes: the length of the line or the size of the ring.</summary>
+        public int Size
+        {
+            get { return Ring ? RingSize : Length; }
+        }
+
+        public int ClampSize(int size)
+        {
+            return Ring ? ClampRing(size) : ClampLength(size);
+        }
+
+        public static int ClampRing(int size)
+        {
+            int rounded = (int)(Math.Round(size / (double)RingStep) * RingStep);
+            return Math.Max(MinRing, Math.Min(MaxRing, rounded));
+        }
+
         public static int ClampLength(int length)
         {
             int rounded = (int)(Math.Round(length / (double)LengthStep) * LengthStep);
@@ -132,10 +184,10 @@ namespace Shiftline.Plugin
             OverlaySettings.SetOption(Key, choice, value);
         }
 
-        /// <summary>Stores the length; raises Changed, so the window snaps to the new size.</summary>
-        public static void SetLength(int length)
+        /// <summary>Stores the length of the line or the size of the ring; raises Changed, so the window snaps to the new size.</summary>
+        public void SetSize(int size)
         {
-            OverlaySettings.SetOption(Key, "Length", ClampLength(length).ToString(CultureInfo.InvariantCulture));
+            OverlaySettings.SetOption(Key, Ring ? "RingSize" : "Length", ClampSize(size).ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>Puts every choice of one group (such as "Cars") back to its default.</summary>

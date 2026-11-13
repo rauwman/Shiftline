@@ -102,7 +102,13 @@ namespace Shiftline.Plugin
         private void UpdateEnabled()
         {
             TrackMapOptions options = TrackMapOptions.Load();
-            SetRowEnabled("Range", options.Centred);
+            bool ring = options.Ring;
+            SetRowEnabled("Orientation", !ring);
+            SetRowEnabled("Length", !ring);
+            SetRowEnabled("Range", !ring && options.Centred);
+            SetRowEnabled("RingSize", ring);
+            SetRowEnabled("StartAt", ring && !options.Centred);
+            SetRowEnabled("Direction", ring);
             SetRowEnabled("Thickness", options.Get("LineStyle") != "Strip");
         }
 
@@ -152,6 +158,11 @@ namespace Shiftline.Plugin
             if (options.GetBool("LapRings"))
             {
                 parts.Add("Red ring: a lap ahead of you. Blue ring: a lap behind you (races only).");
+            }
+
+            if (options.GetBool("Fastest"))
+            {
+                parts.Add("Violet ring: fastest lap in your class.");
             }
 
             if (options.Get("Pit") == "Dim")

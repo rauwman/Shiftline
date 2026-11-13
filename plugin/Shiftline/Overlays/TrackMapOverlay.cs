@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Windows.Threading;
+using System.Windows.Media.Animation;
 using System.Windows;
 using System.Windows.Media;
 
@@ -38,6 +38,7 @@ namespace Shiftline.Plugin
         private static readonly Pen PlayerRingPen = MakePen(PlayerRingBrush, RingWidth);
         private static readonly Pen LapAheadPen = MakePen(LapAheadBrush, RingWidth);
         private static readonly Pen LapBehindPen = MakePen(LapBehindBrush, RingWidth);
+        private static readonly Pen FastestPen = MakePen(StandingsOverlay.Frozen(0xFF, 0xC0, 0x7C, 0xFF), RingWidth);    // violet: fastest lap
 
         private sealed class Figure
         {
@@ -55,8 +56,15 @@ namespace Shiftline.Plugin
         private Pen _roadPen;
         private double _roadGap;                    // distance between the two lines of the road (centre to centre)
         private Brush _stripBrush;
+        private Pen _stripPen;                      // the strip around the ring: one wide circle
+        private bool _ring;
+        private double _ringRadius;                 // radius of the middle of the track on the ring
+        private Point _ringCentre;
+        private double _startAngle;                 // where start/finish sits on the ring, in degrees clockwise from the top
+        private double _turn;                       // +1 clockwise, -1 anticlockwise
         private string _startLine = "Off";
-        private DispatcherTimer _flowTimer;         // runs while the start/finish line is the moving Shiftline colours
+        private Pen _flowPen;                       // the moving Shiftline colours; WPF animates the brush itself, no redraw needed
+        private double _flowLength;
         private string _style;
         private double _dpi = 1;
         private bool _vertical;
@@ -71,8 +79,8 @@ namespace Shiftline.Plugin
         private sealed class Car
         {
             public StandingsRow Row;
-            public double Along;                    // position along the line, in pixels from the left (horizontal) or from the top (vertical)
-            public double Cross;                    // the other coordinate (the line)
+            public Point At;                        // middle of the circle in the window
+            public bool Fastest;                    // holds the fastest lap of its class
             public bool Player;
             public bool Pit;
             public bool OtherClass;                 // another class than the player (only when the player is known)
@@ -87,13 +95,16 @@ namespace Shiftline.Plugin
             SnapsToDevicePixels = true;
             UseLayoutRounding = true;
             ApplyOptions(TrackMapOptions.Load());
-            Loaded += (s, e) => UpdateFlowTimer();
-            Unloaded += (s, e) => UpdateFlowTimer();
         }
 
         public bool Vertical
         {
             get { return _vertical; }
+        }
+
+        public bool Ring
+        {
+            get { return _ring; }
         }
 
         /// <summary>The window size that fits the current design.</summary>
@@ -122,15 +133,44 @@ namespace Shiftline.Plugin
             _roadPen.Freeze();
             _roadGap = thickness * 2 + 2;
             _stripBrush = Frozen(alpha, colour);
+            _stripPen = new Pen(_stripBrush, _playerRadius * 2 + 8);
+            _stripPen.Freeze();
             _startLine = options.Get("StartLine");
-            UpdateFlowTimer();
             _texts.Clear();
 
+            _ring = options.Ring;
             _alongPad = EdgeMargin + _reach;
             _crossCentre = EdgeMargin + _reach;
-            _designSize = _vertical
-                ? new Size(2 * _crossCentre, _length + 2 * _alongPad)
-                : new Size(_length + 2 * _alongPad, 2 * _crossCentre);
+            if (_ring)
+            {
+                double side = options.RingSize + 2 * _alongPad;
+                _ringRadius = options.RingSize / 2.0;
+                _ringCentre = new Point(side / 2, side / 2);
+                _turn = options.Get("Direction") == "Anticlockwise" ? -1 : 1;
+                switch (options.Get("StartAt"))
+                {
+                    case "Right":
+                        _startAngle = 90;
+                        break;
+                    case "Bottom":
+                        _startAngle = 180;
+                        break;
+                    case "Left":
+                        _startAngle = 270;
+                        break;
+                    default:
+                        _startAngle = 0;
+                        break;
+                }
+
+                _designSize = new Size(side, side);
+            }
+            else
+            {
+                _designSize = _vertical
+                    ? new Size(2 * _crossCentre, _length + 2 * _alongPad)
+                    : new Size(_length + 2 * _alongPad, 2 * _crossCentre);
+            }
 
             InvalidateMeasure();
             InvalidateVisual();
@@ -160,26 +200,6 @@ namespace Shiftline.Plugin
         private static Brush Frozen(byte alpha, Color colour)
         {
             return StandingsOverlay.Frozen(alpha, colour.R, colour.G, colour.B);
-        }
-
-        /// <summary>The Shiftline colours move along the start/finish line: redraw now and then, only while that line is shown.</summary>
-        private void UpdateFlowTimer()
-        {
-            bool wanted = _startLine == "Shiftline" && IsLoaded;
-            if (wanted)
-            {
-                if (_flowTimer == null)
-                {
-                    _flowTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(50) };
-                    _flowTimer.Tick += (s, e) => InvalidateVisual();
-                }
-
-                _flowTimer.Start();
-            }
-            else if (_flowTimer != null)
-            {
-                _flowTimer.Stop();
-            }
         }
 
         public void Update(StandingsSnapshot snapshot)
@@ -217,24 +237,22 @@ namespace Shiftline.Plugin
 
             if (_startLine != "Off")
             {
-                List<double> marks = new List<double>();
-                if (centred)
+                if (_ring)
+                {
+                    DrawStartLine(dc, RingAngle(0, playerPct, centred));
+                }
+                else if (centred)
                 {
                     double startFraction;
                     if (TrackMapGeometry.LineFraction(0, playerPct, true, range, out startFraction))
                     {
-                        marks.Add(startFraction);
+                        DrawStartLine(dc, startFraction);
                     }
                 }
                 else
                 {
-                    marks.Add(0);
-                    marks.Add(1);
-                }
-
-                foreach (double markFraction in marks)
-                {
-                    DrawStartLine(dc, markFraction);
+                    DrawStartLine(dc, 0);
+                    DrawStartLine(dc, 1);
                 }
             }
 
@@ -262,6 +280,25 @@ namespace Shiftline.Plugin
         /// <summary>The track from fraction 0 (start/finish; left or bottom) to fraction 1: a thin line, a road or a strip.</summary>
         private void DrawTrack(DrawingContext dc)
         {
+            if (_ring)
+            {
+                if (_style == "Strip")
+                {
+                    dc.DrawEllipse(null, _stripPen, _ringCentre, _ringRadius, _ringRadius);
+                }
+                else if (_style == "Road")
+                {
+                    dc.DrawEllipse(null, _roadPen, _ringCentre, _ringRadius - _roadGap / 2, _ringRadius - _roadGap / 2);
+                    dc.DrawEllipse(null, _roadPen, _ringCentre, _ringRadius + _roadGap / 2, _ringRadius + _roadGap / 2);
+                }
+                else
+                {
+                    dc.DrawEllipse(null, _linePen, _ringCentre, _ringRadius, _ringRadius);
+                }
+
+                return;
+            }
+
             Point start = LinePoint(0, _crossCentre);
             Point end = LinePoint(1, _crossCentre);
             if (_style == "Strip")
@@ -284,15 +321,33 @@ namespace Shiftline.Plugin
             }
         }
 
-        /// <summary>The start/finish line: one line across the track, plain or in the moving Shiftline colours.</summary>
-        private void DrawStartLine(DrawingContext dc, double fraction)
+        /// <summary>
+        /// The start/finish line: one line across the track, plain or in the moving Shiftline colours. On the line "at" is the
+        /// fraction of the line, on the ring the angle in degrees.
+        /// </summary>
+        private void DrawStartLine(DrawingContext dc, double at)
         {
-            Point centre = LinePoint(fraction, _crossCentre);
             double half = _reach + 2;
-            Rect line = _vertical
-                ? new Rect(centre.X - half, centre.Y - StartLineWidth / 2, 2 * half, StartLineWidth)
-                : new Rect(centre.X - StartLineWidth / 2, centre.Y - half, StartLineWidth, 2 * half);
-            dc.DrawRectangle(StartBrush(centre, 2 * half), null, line);
+            Point centre;
+            Vector across;
+            if (_ring)
+            {
+                centre = RingPoint(at, _ringRadius);
+                across = RingPoint(at, _ringRadius + 1) - centre;
+            }
+            else
+            {
+                centre = LinePoint(at, _crossCentre);
+                across = _vertical ? new Vector(1, 0) : new Vector(0, 1);
+            }
+
+            // drawn upright in its own coordinates and turned across the track, so the colours always run along the line
+            double angle = Math.Atan2(-across.X, across.Y) * 180 / Math.PI;
+            dc.PushTransform(new TranslateTransform(centre.X, centre.Y));
+            dc.PushTransform(new RotateTransform(angle));
+            dc.DrawLine(StartPen(2 * half), new Point(0, -half), new Point(0, half));
+            dc.Pop();
+            dc.Pop();
         }
 
         private static readonly Brush StartWhite = StandingsOverlay.Frozen(0xFF, 0xF4, 0xF6, 0xF9);
@@ -300,32 +355,70 @@ namespace Shiftline.Plugin
         private static readonly Brush StartBlack = StandingsOverlay.Frozen(0xFF, 0x0E, 0x12, 0x19);
         private static readonly int[] ShiftlineColours = { 0x01ABFF, 0x903AA1, 0xFF8C00, 0xD60000 };
 
-        private Brush StartBrush(Point centre, double length)
+        private readonly Dictionary<Brush, Pen> _startPens = new Dictionary<Brush, Pen>();
+
+        private Pen StartPen(double length)
         {
+            Brush plain = null;
             switch (_startLine)
             {
                 case "White":
-                    return StartWhite;
+                    plain = StartWhite;
+                    break;
                 case "Black":
-                    return StartBlack;
+                    plain = StartBlack;
+                    break;
                 case "Grey":
-                    return StartGrey;
+                    plain = StartGrey;
+                    break;
             }
 
-            // the four Shiftline colours as a repeating gradient along the line, shifted a little further every frame
-            double phase = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % (long)(FlowSeconds * 1000) / (FlowSeconds * 1000);
-            double shift = phase * length;
-            Point from = _vertical ? new Point(centre.X - length / 2 - shift, centre.Y) : new Point(centre.X, centre.Y - length / 2 - shift);
-            Point to = _vertical ? new Point(from.X + length, from.Y) : new Point(from.X, from.Y + length);
-            LinearGradientBrush brush = new LinearGradientBrush { MappingMode = BrushMappingMode.Absolute, StartPoint = from, EndPoint = to, SpreadMethod = GradientSpreadMethod.Repeat };
+            if (plain != null)
+            {
+                Pen pen;
+                if (!_startPens.TryGetValue(plain, out pen))
+                {
+                    pen = new Pen(plain, StartLineWidth) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
+                    pen.Freeze();
+                    _startPens[plain] = pen;
+                }
+
+                return pen;
+            }
+
+            return FlowPen(length);
+        }
+
+        /// <summary>
+        /// The four Shiftline colours as a repeating gradient along the upright line (0, -length/2) to (0, length/2). The gradient is
+        /// moved by a WPF animation, which runs at the frame rate of the screen without drawing the map again.
+        /// </summary>
+        private Pen FlowPen(double length)
+        {
+            if (_flowPen != null && Math.Abs(_flowLength - length) < 0.01)
+            {
+                return _flowPen;
+            }
+
+            LinearGradientBrush brush = new LinearGradientBrush
+            {
+                MappingMode = BrushMappingMode.Absolute,
+                StartPoint = new Point(0, -length / 2),
+                EndPoint = new Point(0, length / 2),
+                SpreadMethod = GradientSpreadMethod.Repeat
+            };
             for (int i = 0; i <= ShiftlineColours.Length; i++)
             {
                 int c = ShiftlineColours[i % ShiftlineColours.Length];
                 brush.GradientStops.Add(new GradientStop(Color.FromRgb((byte)(c >> 16), (byte)(c >> 8), (byte)c), i / (double)ShiftlineColours.Length));
             }
 
-            brush.Freeze();
-            return brush;
+            TranslateTransform move = new TranslateTransform();
+            brush.Transform = move;
+            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, length, TimeSpan.FromSeconds(FlowSeconds)) { RepeatBehavior = RepeatBehavior.Forever });
+            _flowPen = new Pen(brush, StartLineWidth) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
+            _flowLength = length;
+            return _flowPen;
         }
 
         private static int Rank(Car car)
@@ -343,6 +436,22 @@ namespace Shiftline.Plugin
         {
             double along = _alongPad + fraction * _length;
             return _vertical ? new Point(cross, _designSize.Height - along) : new Point(along, cross);
+        }
+
+        /// <summary>
+        /// The angle of a point of the lap on the ring, in degrees clockwise from the top. Whole lap: start/finish at the chosen
+        /// place, the lap runs in the chosen direction. Centred on me: the ring turns so that the player stays at the top.
+        /// </summary>
+        private double RingAngle(double pct, double playerPct, bool centred)
+        {
+            return centred ? _turn * TrackMapGeometry.Signed(pct, playerPct) * 360 : _startAngle + _turn * pct * 360;
+        }
+
+        /// <summary>The point at "angle" (degrees clockwise from the top) and "radius" from the middle of the ring.</summary>
+        private Point RingPoint(double angle, double radius)
+        {
+            double rad = angle * Math.PI / 180;
+            return new Point(_ringCentre.X + radius * Math.Sin(rad), _ringCentre.Y - radius * Math.Cos(rad));
         }
 
         /// <summary>The cars to draw, with their place on the line. Not sorted for drawing yet.</summary>
@@ -367,6 +476,24 @@ namespace Shiftline.Plugin
             bool hidePit = _options.Get("Pit") == "Hide";
             bool lapRings = _options.GetBool("LapRings") && (_snapshot.IsRace || _snapshot.IsSample);
             string label = _options.Get("Label");
+            bool marksFastest = _options.GetBool("Fastest");
+
+            // the fastest lap of each class, and whether there is more than one class
+            Dictionary<int, double> fastest = new Dictionary<int, double>();
+            foreach (StandingsRow row in rows)
+            {
+                double best;
+                if (row.BestLap > 0 && (!fastest.TryGetValue(row.ClassId, out best) || row.BestLap < best))
+                {
+                    fastest[row.ClassId] = row.BestLap;
+                }
+            }
+
+            bool classes = fastest.Count > 1;
+            if (label == "Auto")
+            {
+                label = !_snapshot.IsRace && !_snapshot.IsSample ? "Number" : classes ? "ClassPosition" : "Position";
+            }
 
             List<Car> cars = new List<Car>();
             foreach (StandingsRow row in rows)
@@ -394,11 +521,26 @@ namespace Shiftline.Plugin
                     continue;
                 }
 
-                double fraction;
-                if (!TrackMapGeometry.LineFraction(row.LapDistPct, playerPct, centred, range, out fraction))
+                Point at;
+                if (_ring)
                 {
-                    continue;
+                    at = RingPoint(RingAngle(row.LapDistPct, playerPct, centred), _ringRadius);
                 }
+                else
+                {
+                    double fraction;
+                    if (!TrackMapGeometry.LineFraction(row.LapDistPct, playerPct, centred, range, out fraction))
+                    {
+                        continue;
+                    }
+
+                    at = LinePoint(fraction, _crossCentre);
+                }
+
+                double classBest;
+                // only the own class: the fastest lap of another class says nothing about your race (all classes without a player)
+                bool isFastest = marksFastest && row.BestLap > 0 && (player == null || row.ClassId == player.ClassId)
+                    && fastest.TryGetValue(row.ClassId, out classBest) && row.BestLap <= classBest;
 
                 double distance = hasPlayer ? Math.Abs(TrackMapGeometry.Signed(row.LapDistPct, playerPct)) : 0;
                 int lapRelation = 0;
@@ -421,12 +563,11 @@ namespace Shiftline.Plugin
                         break;
                 }
 
-                Point at = LinePoint(fraction, _crossCentre);
                 cars.Add(new Car
                 {
                     Row = row,
-                    Along = _vertical ? at.Y : at.X,
-                    Cross = _vertical ? at.X : at.Y,
+                    At = at,
+                    Fastest = isFastest,
                     Player = isPlayer,
                     Pit = pit,
                     OtherClass = otherClass,
@@ -442,9 +583,13 @@ namespace Shiftline.Plugin
 
         private void DrawCar(DrawingContext dc, Car car)
         {
-            Point centre = new Point(_vertical ? car.Cross : car.Along, _vertical ? car.Along : car.Cross);
+            Point centre = car.At;
             double r = car.Player ? _playerRadius : _dot / 2;       // outer edge of the circle
-            Pen ringPen = car.Player ? PlayerRingPen : car.LapRelation > 0 ? LapAheadPen : car.LapRelation < 0 ? LapBehindPen : null;
+            // one ring at most: the player's own (violet with the fastest lap), else a lap ring, else the fastest lap
+            Pen ringPen = car.Player ? (car.Fastest ? FastestPen : PlayerRingPen)
+                : car.LapRelation > 0 ? LapAheadPen
+                : car.LapRelation < 0 ? LapBehindPen
+                : car.Fastest ? FastestPen : null;
             double inner = ringPen != null ? r - EdgeWidth - RingWidth : r - OutlineWidth;       // the coloured disc inside the bands
             if (car.Pit)
             {

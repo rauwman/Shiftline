@@ -699,7 +699,7 @@ namespace Shiftline.Plugin
                     _trackWindow.SetEditMode(_edit);
                     _trackWindow.SetFixedSize(_trackView.DesignSize);
                     // the size is the length of the line: both edges change it
-                    _trackWindow.WidthDragging += factor => TrackMapDragging(factor, !_trackView.Vertical);
+                    _trackWindow.WidthDragging += factor => TrackMapDragging(factor, _trackView.Ring || !_trackView.Vertical);
                     _trackWindow.WidthDragged += TrackMapDragged;
                     _trackWindow.HeightDragging += height =>
                     {
@@ -708,7 +708,7 @@ namespace Shiftline.Plugin
                             _trackHeightAtStart = _trackWindow.Height;
                         }
 
-                        TrackMapDragging(height / Math.Max(1, _trackHeightAtStart), _trackView.Vertical);
+                        TrackMapDragging(height / Math.Max(1, _trackHeightAtStart), _trackView.Ring || _trackView.Vertical);
                     };
                     _trackWindow.HeightDragged += height => TrackMapDragged();
                 }
@@ -740,32 +740,33 @@ namespace Shiftline.Plugin
             TrackMapOptions current = TrackMapOptions.Load();
             if (_trackLengthAtStart <= 0)
             {
-                _trackLengthAtStart = current.Length;
+                _trackLengthAtStart = current.Size;
                 System.Windows.Size size = _trackView.DesignSize;
-                _trackExtentAtStart = current.Vertical ? size.Height : size.Width;
+                _trackExtentAtStart = current.Vertical && !current.Ring ? size.Height : size.Width;
             }
 
             double length = alongTheLine ? _trackLengthAtStart + (factor - 1) * _trackExtentAtStart : _trackLengthAtStart * factor;
-            int rounded = TrackMapOptions.ClampLength((int)Math.Round(length));
+            int rounded = current.ClampSize((int)Math.Round(length));
             if (rounded == _trackDragged)
             {
                 return;
             }
 
             _trackDragged = rounded;
-            _trackView.ApplyOptions(current.WithLength(rounded));
+            _trackView.ApplyOptions(current.WithSize(rounded));
             _trackView.Update(TrackMapSnapshot());
             _trackWindow.SetFixedSize(_trackView.DesignSize);
         }
 
         private static void TrackMapDragged()
         {
-            int length = _trackDragged > 0 ? _trackDragged : TrackMapOptions.Load().Length;
+            TrackMapOptions current = TrackMapOptions.Load();
+            int length = _trackDragged > 0 ? _trackDragged : current.Size;
             _trackLengthAtStart = 0;
             _trackExtentAtStart = 0;
             _trackHeightAtStart = 0;
             _trackDragged = 0;
-            TrackMapOptions.SetLength(length);          // raises Changed: the window snaps to the saved size
+            current.SetSize(length);          // raises Changed: the window snaps to the saved size
             _trackWindow.SetFixedSize(_trackView.DesignSize);
         }
 

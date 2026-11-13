@@ -372,7 +372,7 @@ namespace Shiftline.Plugin
             new SearchEntry("Overlays", "Settings", null, "overlay map telemetry iracing"),
             new SearchEntry("Battle Bar (horizontal standings, ticker)", "BattleBar", null, "battle bar horizontal ticker cards standings tv"),
             new SearchEntry("Relatives (the cars around you, gaps)", "Relatives", null, "relatives relative cars around gap ahead behind iracing delta"),
-            new SearchEntry("Track Map (the cars on a line)", "TrackMap", null, "track map line cars dots position lapped pit radar"),
+            new SearchEntry("Track Map (the cars on a line or a ring)", "TrackMap", null, "track map line ring circle cars dots position lapped pit radar fastest lap"),
             new SearchEntry("Presets (create, favourite, game, import, export)", "Presets", null, "preset profile save load car game favourite import export rename delete"),
             new SearchEntry("Backups and restore (also reset to standard)", "Settings", null, "backup restore copy reset default standard"),
             new SearchEntry("System log", "Settings", null, "log errors messages"),
