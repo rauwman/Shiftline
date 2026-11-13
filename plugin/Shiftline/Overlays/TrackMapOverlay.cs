@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Media.Animation;
 using System.Windows;
@@ -9,7 +10,7 @@ namespace Shiftline.Plugin
 {
     /// <summary>
     /// The Track Map: the cars as numbered circles on a line (horizontal or vertical), either the whole lap or the part around the
-    /// player. Drawn directly (OnRender) from the latest snapshot; the size follows from the options (DesignSize), there is no
+    /// player. Drawn in two layers (the map, and the cars gliding between data updates); the size follows from the options (DesignSize), there is no
     /// other scaling. A circle carries the class colour and a dark outline, the bold number sits inside. The player is larger with a
     /// light ring, a lap ring is the same band in red or blue; both sit flush on the circle. The player is always on top. Where circles overlap the important ones stay on top: cars close to the player over far
     /// ones, the own class over the others, cars in the pit below everything.
@@ -18,7 +19,10 @@ namespace Shiftline.Plugin
     {
         private const double EdgeMargin = 6;
         private const double PlayerZoom = 1.25;
-        private const double OutlineWidth = 2;      // the dark outline of a plain circle
+        private const double OutlineWidth = 2;      // the hollow ring of a car in the pit
+        private const double GlassWidth = 1.5;      // edge of a plain circle in its own colour, darker and see-through
+        private const double GlassShade = 0.75;
+        private const byte GlassAlpha = 0x66;       // 40 %
         private const double EdgeWidth = 1;         // the thin dark edge outside a ring
         private const double RingWidth = 2.5;       // the ring of the player and the lap rings, drawn inside the circle's size
         private const double PitOpacity = 0.55;
@@ -33,7 +37,6 @@ namespace Shiftline.Plugin
         private static readonly Brush PlayerRingBrush = StandingsOverlay.Frozen(0xFF, 0xF4, 0xF6, 0xF9);
         private static readonly Brush LapAheadBrush = StandingsOverlay.Frozen(0xFF, 0xF0, 0x40, 0x3E);      // a lap up on you, like the Relatives
         private static readonly Brush LapBehindBrush = StandingsOverlay.Frozen(0xFF, 0x7F, 0xB2, 0xE0);     // a lap down
-        private static readonly Pen OutlinePen = MakePen(OutlineBrush, OutlineWidth);
         private static readonly Pen EdgePen = MakePen(OutlineBrush, EdgeWidth);
         private static readonly Pen PlayerRingPen = MakePen(PlayerRingBrush, RingWidth);
         private static readonly Pen LapAheadPen = MakePen(LapAheadBrush, RingWidth);
@@ -47,6 +50,7 @@ namespace Shiftline.Plugin
 
         private readonly Dictionary<string, Figure> _texts = new Dictionary<string, Figure>();
         private readonly Dictionary<Brush, Pen> _hollowPens = new Dictionary<Brush, Pen>();
+        private readonly Dictionary<Color, Pen> _outlinePens = new Dictionary<Color, Pen>();
         private TrackMapOptions _options;
         private StandingsSnapshot _snapshot = StandingsSnapshot.Empty;
         private Typeface _typeface;
@@ -76,6 +80,26 @@ namespace Shiftline.Plugin
         private double _crossCentre;                // distance of the line from the top (horizontal) or the left edge (vertical)
         private Size _designSize;
 
+        // Two layers: the map (background and track) is drawn only when the options change, the cars on top are drawn for every
+        // frame of the screen while they move. Between two data updates every car glides from where it was to where it is now
+        // (one update behind), so the cars move smoothly whatever the update rate is.
+        private readonly DrawingVisual _trackLayer = new DrawingVisual();
+        private readonly DrawingVisual _carLayer = new DrawingVisual();
+        private static readonly Stopwatch Clock = Stopwatch.StartNew();
+        private readonly Dictionary<int, Glide> _glides = new Dictionary<int, Glide>();
+        private double _lastUpdate = -1;            // seconds on Clock
+        private double _interval = 0.05;            // time between two data updates, smoothed
+        private bool _rendering;                    // hooked to CompositionTarget.Rendering
+        private double _shownPlayerPct;
+        private const double MaxGlide = 0.05;       // a step longer than this part of a lap between two updates is a jump, not glided
+
+        private sealed class Glide
+        {
+            public double From;                     // LapDistPct shown at the last update
+            public double To;                       // LapDistPct of the last update
+            public bool Pit;
+        }
+
         private sealed class Car
         {
             public StandingsRow Row;
@@ -94,6 +118,22 @@ namespace Shiftline.Plugin
         {
             SnapsToDevicePixels = true;
             UseLayoutRounding = true;
+            AddVisualChild(_trackLayer);
+            AddVisualChild(_carLayer);
+            IsVisibleChanged += (s, e) =>
+            {
+                if (!IsVisible)
+                {
+                    StopRendering();
+                }
+            };
+            Unloaded += (s, e) => StopRendering();
+            Loaded += (s, e) =>
+            {
+                _dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                _texts.Clear();
+                DrawCarLayer();
+            };
             ApplyOptions(TrackMapOptions.Load());
         }
 
@@ -173,7 +213,8 @@ namespace Shiftline.Plugin
             }
 
             InvalidateMeasure();
-            InvalidateVisual();
+            DrawTrackLayer();
+            DrawCarLayer();
         }
 
         private static Color LineColour(string name)
@@ -204,8 +245,122 @@ namespace Shiftline.Plugin
 
         public void Update(StandingsSnapshot snapshot)
         {
+            double now = Clock.Elapsed.TotalSeconds;
+            double before = GlideFraction();       // how far the cars had glided towards the last update
+            if (_lastUpdate >= 0)
+            {
+                double gap = Math.Max(0.01, Math.Min(0.5, now - _lastUpdate));
+                _interval = _interval * 0.7 + gap * 0.3;
+            }
+
+            _lastUpdate = now;
             _snapshot = snapshot ?? StandingsSnapshot.Empty;
-            InvalidateVisual();
+            bool moving = false;
+            HashSet<int> seen = new HashSet<int>();
+            foreach (StandingsRow row in _snapshot.Rows ?? new StandingsRow[0])
+            {
+                seen.Add(row.CarIdx);
+                double pct = row.LapDistPct;
+                Glide glide;
+                if (!_glides.TryGetValue(row.CarIdx, out glide))
+                {
+                    _glides[row.CarIdx] = new Glide { From = pct, To = pct, Pit = row.OnPitRoad };
+                    continue;
+                }
+
+                // glide on from where the car is shown now; a jump (into or out of the pit, a tow, a reset, no position) is not glided
+                double shown = glide.From >= 0 && glide.To >= 0 ? Wrap(glide.From + TrackMapGeometry.Signed(glide.To, glide.From) * before) : glide.To;
+                bool jump = pct < 0 || shown < 0 || row.OnPitRoad != glide.Pit || Math.Abs(TrackMapGeometry.Signed(pct, shown)) > MaxGlide;
+                glide.From = jump ? pct : shown;
+                glide.To = pct;
+                glide.Pit = row.OnPitRoad;
+                moving |= glide.From != glide.To;
+            }
+
+            List<int> gone = new List<int>();
+            foreach (int idx in _glides.Keys)
+            {
+                if (!seen.Contains(idx))
+                {
+                    gone.Add(idx);
+                }
+            }
+
+            foreach (int idx in gone)
+            {
+                _glides.Remove(idx);
+            }
+
+            DrawCarLayer();
+            if (moving && IsVisible)
+            {
+                StartRendering();
+            }
+        }
+
+        /// <summary>Where a car is shown now: between the last two updates, or its last position.</summary>
+        private double Shown(StandingsRow row)
+        {
+            Glide glide;
+            if (!_glides.TryGetValue(row.CarIdx, out glide) || glide.From < 0 || glide.To < 0)
+            {
+                return row.LapDistPct;
+            }
+
+            return Wrap(glide.From + TrackMapGeometry.Signed(glide.To, glide.From) * GlideFraction());
+        }
+
+        private static double Wrap(double pct)
+        {
+            return pct - Math.Floor(pct);
+        }
+
+        private double GlideFraction()
+        {
+            if (_lastUpdate < 0)
+            {
+                return 1;
+            }
+
+            return Math.Max(0, Math.Min(1, (Clock.Elapsed.TotalSeconds - _lastUpdate) / _interval));
+        }
+
+        private void StartRendering()
+        {
+            if (!_rendering)
+            {
+                _rendering = true;
+                CompositionTarget.Rendering += OnFrame;
+            }
+        }
+
+        private void StopRendering()
+        {
+            if (_rendering)
+            {
+                _rendering = false;
+                CompositionTarget.Rendering -= OnFrame;
+            }
+        }
+
+        /// <summary>One frame of the screen: draw the cars where they are now; stop once they have reached the last update.</summary>
+        private void OnFrame(object sender, EventArgs e)
+        {
+            DrawCarLayer();
+            if (GlideFraction() >= 1)
+            {
+                StopRendering();
+            }
+        }
+
+        protected override int VisualChildrenCount
+        {
+            get { return 2; }
+        }
+
+        protected override Visual GetVisualChild(int index)
+        {
+            return index == 0 ? (Visual)_trackLayer : _carLayer;
         }
 
         protected override Size MeasureOverride(Size availableSize)
@@ -215,25 +370,41 @@ namespace Shiftline.Plugin
 
         // ================================================================ drawing
 
-        protected override void OnRender(DrawingContext dc)
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
         {
-            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-            if (Math.Abs(dpi - _dpi) > 0.001)
+            base.OnDpiChanged(oldDpi, newDpi);
+            _dpi = newDpi.PixelsPerDip;
+            _texts.Clear();
+            DrawCarLayer();
+        }
+
+        /// <summary>The background and the track; only when the options change.</summary>
+        private void DrawTrackLayer()
+        {
+            using (DrawingContext dc = _trackLayer.RenderOpen())
             {
-                _dpi = dpi;
-                _texts.Clear();
+                dc.DrawRoundedRectangle(_plate, null, new Rect(0, 0, _designSize.Width, _designSize.Height), _round, _round);
+                DrawTrack(dc);
             }
+        }
 
-            dc.DrawRoundedRectangle(_plate, null, new Rect(0, 0, _designSize.Width, _designSize.Height), _round, _round);
+        /// <summary>The start/finish line (it moves in the mode Centred on me) and the cars.</summary>
+        private void DrawCarLayer()
+        {
+            using (DrawingContext dc = _carLayer.RenderOpen())
+            {
+                DrawCars(dc);
+            }
+        }
 
-            DrawTrack(dc);
-
+        private void DrawCars(DrawingContext dc)
+        {
             StandingsRow player;
             bool hasPlayer;
             bool centred;
             List<Car> cars = Collect(out player, out hasPlayer, out centred);
             double range = _options.GetInt("Range") / 100.0;
-            double playerPct = hasPlayer ? player.LapDistPct : 0;
+            double playerPct = _shownPlayerPct;
 
             if (_startLine != "Off")
             {
@@ -471,7 +642,8 @@ namespace Shiftline.Plugin
             hasPlayer = player != null && player.TrackSurface != -1 && player.LapDistPct >= 0;
             centred = _options.Centred && hasPlayer;
             double range = _options.GetInt("Range") / 100.0;
-            double playerPct = hasPlayer ? player.LapDistPct : 0;
+            double playerPct = hasPlayer ? Shown(player) : 0;
+            _shownPlayerPct = playerPct;
             bool classOnly = _options.Get("Show") == "Class" && player != null;
             bool hidePit = _options.Get("Pit") == "Hide";
             bool lapRings = _options.GetBool("LapRings") && (_snapshot.IsRace || _snapshot.IsSample);
@@ -524,12 +696,12 @@ namespace Shiftline.Plugin
                 Point at;
                 if (_ring)
                 {
-                    at = RingPoint(RingAngle(row.LapDistPct, playerPct, centred), _ringRadius);
+                    at = RingPoint(RingAngle(Shown(row), playerPct, centred), _ringRadius);
                 }
                 else
                 {
                     double fraction;
-                    if (!TrackMapGeometry.LineFraction(row.LapDistPct, playerPct, centred, range, out fraction))
+                    if (!TrackMapGeometry.LineFraction(Shown(row), playerPct, centred, range, out fraction))
                     {
                         continue;
                     }
@@ -590,14 +762,16 @@ namespace Shiftline.Plugin
                 : car.LapRelation > 0 ? LapAheadPen
                 : car.LapRelation < 0 ? LapBehindPen
                 : car.Fastest ? FastestPen : null;
-            double inner = ringPen != null ? r - EdgeWidth - RingWidth : r - OutlineWidth;       // the coloured disc inside the bands
+            // disc: the coloured area; inner: the part of it the number may use
+            double disc = ringPen != null ? r - EdgeWidth - RingWidth + 0.5 : r;
+            double inner = ringPen != null ? r - EdgeWidth - RingWidth : r - GlassWidth;
             if (car.Pit)
             {
                 dc.PushOpacity(PitOpacity);
             }
             else
             {
-                dc.DrawEllipse(car.Colour, null, centre, inner + 0.5, inner + 0.5);
+                dc.DrawEllipse(car.Colour, null, centre, disc, disc);
             }
 
             if (ringPen != null)
@@ -608,7 +782,8 @@ namespace Shiftline.Plugin
             }
             else
             {
-                dc.DrawEllipse(null, OutlinePen, centre, r - OutlineWidth / 2, r - OutlineWidth / 2);
+                // glass: the own class colour, a little darker and see-through, as a soft rim
+                dc.DrawEllipse(null, GlassPen(car.Colour), centre, r - GlassWidth / 2, r - GlassWidth / 2);
             }
 
             if (car.Pit)
@@ -631,6 +806,21 @@ namespace Shiftline.Plugin
             {
                 dc.Pop();
             }
+        }
+
+        /// <summary>The glass edge: the class colour a little darker and see-through, so it reads as a soft rim of the same colour.</summary>
+        private Pen GlassPen(Brush colour)
+        {
+            SolidColorBrush solid = colour as SolidColorBrush;
+            Color c = solid != null ? solid.Color : Color.FromRgb(0x3F, 0xA9, 0xF5);
+            Pen pen;
+            if (!_outlinePens.TryGetValue(c, out pen))
+            {
+                pen = MakePen(StandingsOverlay.Frozen(GlassAlpha, (byte)(c.R * GlassShade), (byte)(c.G * GlassShade), (byte)(c.B * GlassShade)), GlassWidth);
+                _outlinePens[c] = pen;
+            }
+
+            return pen;
         }
 
         private Pen HollowPen(Brush colour)
