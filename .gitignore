@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+__pycache__/
+gen_summary.json
+node_modules/
+
+Claude outputs/
+
+installer/Output/
+
+release/
+
+# private working notes
+.dev/

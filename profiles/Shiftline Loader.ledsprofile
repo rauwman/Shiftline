@@ -1,0 +1,85 @@
+{
+  "CarChoices": [],
+  "UseStrictJSIsolation": false,
+  "EmbeddedJavascript": "// Shiftline loader profile script. It contains no LED logic: it runs the script that the Shiftline plugin publishes as the\r\n// property Shiftline.ScriptSource, and compiles it again whenever Shiftline.ScriptBuild changes. A plugin update therefore\r\n// updates the LEDs without importing the profile again.\r\n// Without the plugin (or when the script does not compile) LED 1 and 2 blink red in turns.\r\n\r\nfunction sl_notice() {\r\n\tconst frame = [];\r\n\tfor (let i = 0; i < 48; i++) frame.push(null);\r\n\tconst on = Math.floor(Date.now() / 500) % 2 === 0;\r\n\tframe[0] = on ? '#FFFF0000' : '#FF000000';\r\n\tframe[1] = on ? '#FF000000' : '#FFFF0000';\r\n\treturn frame;\r\n}\r\n\r\n// Where the compiled script is kept between frames: the formula's root object when there is one, otherwise the global object.\r\nfunction sl_holder() {\r\n\ttry {\r\n\t\tif (typeof root !== 'undefined' && root) return root;\r\n\t} catch (e) { }\r\n\treturn (function () { return this; })();\r\n}\r\n\r\nfunction sl_loader() {\r\n\tconst build = $prop('Shiftline.ScriptBuild');\r\n\tconst source = $prop('Shiftline.ScriptSource');\r\n\tif (typeof source !== 'string' || source.length < 1000) return sl_notice();\r\n\tconst holder = sl_holder();\r\n\tif (!holder) return sl_notice();\r\n\tif (holder.__shiftlineBuild !== build || typeof holder.__shiftlineFrame !== 'function') {\r\n\t\ttry {\r\n\t\t\tholder.__shiftlineFrame = new Function(source + '\\nreturn sl_frame;')();\r\n\t\t\tholder.__shiftlineBuild = build;\r\n\t\t} catch (e) {\r\n\t\t\treturn sl_notice();\r\n\t\t}\r\n\t}\r\n\treturn holder.__shiftlineFrame();\r\n}\r\n",
+  "GlobalBrightness": 100.0,
+  "GlobalBrightnessPreset": {
+    "CurrentMode": 0,
+    "Brightness": 100.0,
+    "BrightnessSettings": {}
+  },
+  "LedContainers": [
+    {
+      "LedContainers": [
+        {
+          "ContentFormula": {
+            "JSExt": 4,
+            "Interpreter": 1,
+            "Expression": "return sl_loader();"
+          },
+          "LedCount": 48,
+          "ContainerType": "ScriptedContent",
+          "Description": "Shiftline (composite: rev, brake, pit, flags, status, idle)"
+        }
+      ],
+      "ContainerType": "Base.Group",
+      "Description": "Shiftline"
+    }
+  ],
+  "TestLedsGameData": {
+    "CarModel": null,
+    "CarId": null,
+    "CarChoice": {
+      "CarId": null,
+      "CarModel": null,
+      "GameCode": null,
+      "IsSet": false
+    },
+    "GearEx": 0,
+    "FuelMax": 100.0,
+    "RPMSMax": 10000.0,
+    "TurboMax": 3.5,
+    "TurnIndicatorLeftEnabled": false,
+    "TurnIndicatorRightEnabled": false,
+    "SessionBestDeltaEx": 0.0,
+    "AllTimeBestDeltaEx": 0.0,
+    "DRSEnabled": false,
+    "DRSAvailable": false,
+    "MaxRpm": 10000.0,
+    "GameRunning": false,
+    "Brake": 0.0,
+    "GameName": "IRacing",
+    "Fuel": 0.0,
+    "RPMPercent": 0.0,
+    "RPMRedlineReached": false,
+    "SpeedKmh": 0.0,
+    "SpeedMph": 0.0,
+    "Turbo": 0.0,
+    "TurboPercent": 0.0,
+    "Gear": "N",
+    "IsInPitLane": false,
+    "PitLimiterOn": false,
+    "AbsEnabled": false,
+    "AbsActive": false,
+    "TCEnabled": false,
+    "TCActive": false,
+    "LowFuelAlert": false,
+    "SpotterCarLeft": false,
+    "SpotterCarRight": false,
+    "BlackFlag": false,
+    "YellowFlag": false,
+    "WhiteFlag": false,
+    "BlueFlag": false,
+    "GreenFlag": false,
+    "CarStartedTime": "0001-01-01T00:00:00",
+    "SessionBestDelta": 0.0,
+    "AllTimeBestDelta": 0.0
+  },
+  "UseProfileBrightness": false,
+  "LastLoaded": "0001-01-01T00:00:00",
+  "Description": "Own LED profile (layout set in the plugin): RPM bar, brake bar, spotter, flags, pit lane, status LEDs, idle animation. Settings come from the Shiftline plugin (defaults apply without it).",
+  "Name": "Shiftline Loader [3059341c]",
+  "ProfileId": "c46e59f7-1d3d-4242-830d-64e3d3589ff8",
+  "GameCode": null,
+  "CarChoice": null
+}

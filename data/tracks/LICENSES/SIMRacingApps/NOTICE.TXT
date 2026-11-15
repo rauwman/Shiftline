@@ -1,0 +1,23 @@
+Jetty
+    Web Server for Java
+    Apache License 2.0, http://www.eclipse.org/jetty/licenses.php    
+
+Genson
+    Java and Scala to JSON conversion library.
+    http://owlike.github.io/genson/
+    
+    Copyright 2011-2014 Genson - Cepoi Eugen
+    Licensed under the Apache License, Version 2.0 (the "License"); 
+    you may not use this file except in compliance with the License.
+    
+jna
+    https://github.com/java-native-access/jna
+    
+    JNA is dual-licensed under 2 alternative Open Source/Free 
+    licenses: LGPL 2.1 and Apache License 2.0. (starting with
+    JNA version 4.0.0). 
+
+Sound
+    http://freesound.org        
+    http://creativecommons.org/publicdomain/zero/1.0/
+    Brian Yaczik - Pit Count Down

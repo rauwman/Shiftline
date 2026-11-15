@@ -1,0 +1,52 @@
+﻿<UserControl x:Class="Shiftline.Plugin.ColoursPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin"
+             xmlns:ui="clr-namespace:SimHub.Plugins.UI;assembly=SimHub.Plugins">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ThemeStudio" Text="Colour themes" />
+                <TextBlock Style="{StaticResource CardHint}" Text="A theme is a list of 2 to 5 colours. Select one to edit it. The rev bar, the idle animation and the fuel gauge each pick a theme on the Dash Panel page." />
+                <TextBlock Style="{StaticResource CardHint}" Foreground="{StaticResource AccentBrush}" Text="This is a built-in theme. It cannot be changed or deleted. Duplicate it to make your own version."
+                           Visibility="{Binding SelectedItem.IsBuiltIn, ElementName=ThemeList, Converter={StaticResource BoolVis}}" />
+                <ListBox x:Name="ThemeList" Style="{StaticResource ThemeTileList}" Margin="0,12,0,0" ItemsSource="{Binding Themes}" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource GlassButton}" Content="New theme" Click="NewTheme_Click" />
+                    <Button Style="{StaticResource GlassButton}" Content="Duplicate" Click="DuplicateTheme_Click" />
+                    <Button x:Name="DeleteThemeButton" Style="{StaticResource GlassButton}" Content="Delete" Click="DeleteTheme_Click" IsEnabled="{Binding SelectedItem.IsEditable, ElementName=ThemeList}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel DataContext="{Binding SelectedItem, ElementName=ThemeList}" IsEnabled="{Binding IsEditable}">
+                <local:IconTitle IconKey="Pencil" Text="Edit theme" />
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Name" />
+                <TextBox Style="{StaticResource GlassTextBox}" Width="260" HorizontalAlignment="Left" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Preview" />
+                <local:GradientBar Theme="{Binding}" Height="22" CornerRadius="6" BorderBrush="#40FFFFFF" BorderThickness="1" />
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Colours (first to last)" />
+                <ItemsControl ItemsSource="{Binding Stops}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,3">
+                                <local:ColourPickerButton Colour="{Binding Hex, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <Button Style="{StaticResource GlassButton}" Margin="14,0,0,0" Content="Remove" Click="RemoveStop_Click"
+                                        Visibility="{Binding DataContext.IsEditable, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolVis}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Style="{StaticResource GlassButton}" HorizontalAlignment="Left" Margin="0,10,0,0" Content="Add colour" Click="AddStop_Click"
+                        Visibility="{Binding IsEditable, Converter={StaticResource BoolVis}}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

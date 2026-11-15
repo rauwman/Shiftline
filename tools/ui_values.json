@@ -1,0 +1,118 @@
+{
+ "PedalBrake": [
+  "off",
+  "centreMiddle",
+  "centreLeft",
+  "centreRight",
+  "halfLeft",
+  "halfRight",
+  "centreEnds",
+  "sideLeft",
+  "sideRight",
+  "sideBoth"
+ ],
+ "PedalThrottle": [
+  "off",
+  "centreMiddle",
+  "centreLeft",
+  "centreRight",
+  "halfLeft",
+  "halfRight",
+  "centreEnds",
+  "sideLeft",
+  "sideRight",
+  "sideBoth"
+ ],
+ "PedalClutch": [
+  "off",
+  "centreMiddle",
+  "centreLeft",
+  "centreRight",
+  "halfLeft",
+  "halfRight",
+  "centreEnds",
+  "sideLeft",
+  "sideRight",
+  "sideBoth"
+ ],
+ "IdleStyle": [
+  "sweep",
+  "wave",
+  "comet",
+  "fillDrain",
+  "centreOut",
+  "solid",
+  "colourFade",
+  "breathe",
+  "bounce",
+  "orbit",
+  "theatreChase",
+  "alternate",
+  "wipe",
+  "rain",
+  "ripple",
+  "twinkle"
+ ],
+ "Game": [
+  null
+ ],
+ "Car": [
+  null
+ ],
+ "LedFunction": [
+  "rpmBrake",
+  "rpmOnly",
+  "brakeOnly",
+  "brakeThrottle",
+  "fuel",
+  "flags"
+ ],
+ "RpmStyle": [
+  "middle",
+  "leftRight",
+  "simhub"
+ ],
+ "RpmColourMode": [
+  "blocks",
+  "gradient"
+ ],
+ "RpmRedline": [
+  "flash",
+  "flashAlt",
+  "flashSwap",
+  "off"
+ ],
+ "BrakeArea": [
+  "both",
+  "left",
+  "right",
+  "top"
+ ],
+ "BrakeDirection": [
+  "outIn",
+  "leftRight",
+  "rightLeft",
+  "inOut"
+ ],
+ "IdleSpeed": [
+  "slow",
+  "normal",
+  "fast"
+ ],
+ "FuelPlacement": [
+  "off",
+  "centre",
+  "sides",
+  "left",
+  "right"
+ ],
+ "FuelColourMode": [
+  "blocks",
+  "gradient"
+ ],
+ "TestMode": [
+  "Off",
+  "Manual",
+  "Auto"
+ ]
+}

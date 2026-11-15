@@ -1,0 +1,87 @@
+<UserControl x:Class="Shiftline.Plugin.OverlaySettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Shiftline.Plugin">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Shiftline.Plugin;component/ShiftlineStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="RowTitle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="RowLine" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource GlassBorder}" />
+                <Setter Property="BorderThickness" Value="0,1,0,0" />
+                <Setter Property="Margin" Value="0,14,0,14" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource GlassCard}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0">
+                    <local:IconTitle IconKey="Pencil" Text="Edit mode" />
+                    <TextBlock Style="{StaticResource CardHint}" Text="Shows all switched-on overlays with a frame so you can drag and resize them. Click an overlay to select it: the bar above it aligns it on its screen, and the arrow keys move it (with Shift 10 px). While you drag it, it snaps to the screen edges, the centre and the other overlays; hold Alt to move it freely. Also via the action ToggleOverlayEditMode in SimHub's Controls and events." />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="Distance to the screen edge when aligning" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
+                        <Slider x:Name="MarginSlider" Width="200" Minimum="0" Maximum="50" TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="MarginSlider_ValueChanged" />
+                        <TextBlock x:Name="MarginText" Width="50" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                    <ToggleButton x:Name="EditToggle" Style="{StaticResource SegmentToggle}" HorizontalAlignment="Right" Click="EditToggle_Click" />
+                    <Button Margin="0,10,0,0" Style="{StaticResource GlassButton}" HorizontalAlignment="Right" Content="Reset positions" Click="ResetPositions_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layers" Text="When overlays show" />
+                <Grid Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="Only while the game is in front" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Hide them when you switch to the desktop or another program." />
+                    </StackPanel>
+                    <ToggleButton x:Name="FrontToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="FrontToggle_Click" />
+                </Grid>
+                <Border Style="{StaticResource RowLine}" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="In replays" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Show them while a replay plays." />
+                    </StackPanel>
+                    <ToggleButton x:Name="ReplayToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="ReplayToggle_Click" />
+                </Grid>
+                <Border Style="{StaticResource RowLine}" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource RowTitle}" Text="In the garage and menus" />
+                        <TextBlock Style="{StaticResource CardHint}" Text="Show them in the car setup and the game's menus. The pits during a session count as driving." />
+                    </StackPanel>
+                    <ToggleButton x:Name="GarageToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Center" Click="GarageToggle_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="Layout" Text="Monitors" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The screens Windows reports. An overlay appears on the screen you drag it to. The game must run in windowed or borderless mode for overlays to show above it." />
+                <TextBlock x:Name="MonitorText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource GlassCard}">
+            <StackPanel>
+                <local:IconTitle IconKey="ThemeStudio" Text="Main settings" />
+                <TextBlock Style="{StaticResource CardHint}" Text="The look and the update rate of all overlays. An overlay takes these values while its own page says &quot;Same as in General&quot; (the update rate: &quot;Global&quot;); there you can also choose a value for that overlay alone. A lower update rate saves computing time, and more than 60 per second brings nothing." />
+                <StackPanel x:Name="MainSettingsPanel" Margin="0,14,0,0" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>
