@@ -11,7 +11,9 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "assettocorsa/ks_nordschleife-endurance"
+      ]
     }
   },
   "center": [

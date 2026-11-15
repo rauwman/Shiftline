@@ -13,3 +13,7 @@ Where a map made from these layouts is shown, "(c) OpenStreetMap contributors" h
 
 Changes made by Shiftline: shapes traced by eye along the OpenStreetMap ways, projected to metres,
 smoothed with a centripetal Catmull-Rom spline and resampled to evenly spaced points.
+
+Start/finish positions of these layouts are taken from OpenTrackData (https://github.com/chendo/opentrackdata),
+researched there from official circuit sources: bahrain, mexico
+(c) OpenTrackData contributors, Open Database License (ODbL) 1.0; OpenTrackData is itself derived from OpenStreetMap.

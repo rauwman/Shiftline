@@ -12,7 +12,9 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "assettocorsa/ks_laguna_seca"
+      ]
     }
   },
   "center": [

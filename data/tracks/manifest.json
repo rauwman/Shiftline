@@ -19,6 +19,18 @@
   ],
   "layouts": [
     {
+      "id": "albert_park",
+      "config": null,
+      "lengthM": 5304.9,
+      "closed": true,
+      "points": 266,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/albert_park.json",
+      "sha256": "152b318ecea584bd5c0bf0241bea2ab0b89a2378cef26c7f1577cd7020a43e3d"
+    },
+    {
       "id": "algarve_gp",
       "config": null,
       "lengthM": 4636.1,
@@ -40,7 +52,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/algarve_gpchicane.json",
-      "sha256": "29a5ce8729678c9c1a332fd0632ec769a5e983d974510a0fec034d61947a78c5"
+      "sha256": "8b84fdbaf9a0304c72aef31b8e0da73b40a8fef852e2e638feb80ee12734ce15"
     },
     {
       "id": "algarve_moto",
@@ -52,7 +64,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/algarve_moto.json",
-      "sha256": "770e5f9fc4e8209c26b5c6325ea7599d60e19747717dcbb0a48307a68df5645c"
+      "sha256": "2fbc836b44e94ad2a453a99e3ac9f64097973a41e467b440e315626601de8a74"
     },
     {
       "id": "algarve_motochicane",
@@ -64,7 +76,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/algarve_motochicane.json",
-      "sha256": "6ac8fc280a315c819af30c878a9871570a8bbf4eff243dfbfdfed3298a89a492"
+      "sha256": "bb20a3139692abd7785c870a17134938666a8636970bd0f73d2677cc60612273"
     },
     {
       "id": "aragon_gp",
@@ -160,7 +172,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/atlanta_2022_oval.json",
-      "sha256": "c4633cddfae9396e92e11592fcbbed1548e4e56274910ac0a8ea48e2fb73abe2"
+      "sha256": "38e9ef910f626c072346140460c710fa2e824381b126b39265712635f97dc99b"
     },
     {
       "id": "atlanta_legendsoval",
@@ -172,7 +184,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/atlanta_legendsoval.json",
-      "sha256": "1056f090d85700a4979a9d52dfb848fbb8bba7b5c34ab25853ecb05359021011"
+      "sha256": "46d5a02e2d8556aa27b02bdbabd9f9462dd12422b99070946f3cd6593b38b554"
     },
     {
       "id": "atlanta_quadoval",
@@ -184,7 +196,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/atlanta_quadoval.json",
-      "sha256": "21349333b688e8bb05b9001bb37939a5fb6b6849857c7bd8031fb036c8ee0e94"
+      "sha256": "6de1d9ece0ffeced11ad83c3b139ba7b3913bc93124f01175cb0892ff0df9f98"
     },
     {
       "id": "atlanta_rallycross_long",
@@ -196,7 +208,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/atlanta_rallycross_long.json",
-      "sha256": "5a857432d47bb6cae6e65e3244234e42ba621a4a9d3748d94fb4ffa5d0431ba1"
+      "sha256": "85dcae4d17c51abd103db138c812ac1a3f341ba46bd2c03cd89e707fa30a92b7"
     },
     {
       "id": "atlanta_rallycross_short",
@@ -220,7 +232,19 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/atlanta_roadcourse.json",
-      "sha256": "f9075c8b8a56d36bb4b91863dc5825e392ae6d44bec2563fb3cde871b3fd7f86"
+      "sha256": "88efbef3334e32278bd208e5e609d79bf9dcbacb5867b2971d9da54f0c3f7584"
+    },
+    {
+      "id": "bahrain",
+      "config": "Grand Prix",
+      "lengthM": 5407.6,
+      "closed": true,
+      "points": 271,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/bahrain.json",
+      "sha256": "9de9afeb8db46861de9b0b9e9b1f8105fa9dfcb01e3750f16b173bf96afa325e"
     },
     {
       "id": "barber_full",
@@ -268,7 +292,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_club.json",
-      "sha256": "e2e000f3ec5101cd03360cd35763366994a7831ef61547e92d7a27a10912799c"
+      "sha256": "278bf44a2560af4e48c07fa40c807011659b147e03c570b9d28c67428e8bc887"
     },
     {
       "id": "barcelona_gp",
@@ -280,7 +304,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_gp.json",
-      "sha256": "e62768303b01a7ed1302ea5f6b2ab1fef03b2ae48306aaae9a87f4bf0a797e16"
+      "sha256": "ab53a31dc9a32cbcc5ce03b61ad8e18207e367a4147dd4759587bf577a86d333"
     },
     {
       "id": "barcelona_historic",
@@ -292,7 +316,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_historic.json",
-      "sha256": "eb5c13b9e8aac7cfffe070e6aa9fccd8b759b1685bbecac10dc59f9c7c2c61a9"
+      "sha256": "d2294f8b8b233adf7e935575a111d91deef36989e2850ffa69b2db1a6d5eee51"
     },
     {
       "id": "barcelona_moto",
@@ -304,7 +328,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_moto.json",
-      "sha256": "6f70ba3fc0b3e64591181921bc6704863055c07e25e1e5dd3985fe40d1e69ae5"
+      "sha256": "91c3492f5954397d0354fc9053d46667035f2aa26e2e45fa0613cabed59a792b"
     },
     {
       "id": "barcelona_national",
@@ -316,7 +340,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_national.json",
-      "sha256": "b8a4453d88af8d56889adac4c1741420ff7d2fdfe4055b93c099ee9302798d5f"
+      "sha256": "0984b82fd0b4c740ee0fa0f5bf05cdcafd9ffcd3e228b11c218b93cb17a9ae2b"
     },
     {
       "id": "barcelona_rallycross",
@@ -328,7 +352,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_rallycross.json",
-      "sha256": "32e7740635054dc39c4d13b64bb3d379f56ef9b1a1702d04bfe2a963edfadb86"
+      "sha256": "2a895928029ad49d933ff71be5d04258f9b826615702f7dd9837322af56bd754"
     },
     {
       "id": "bathurst",
@@ -352,7 +376,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/belleisle.json",
-      "sha256": "8be14cd18a39d6df5df7cf9357c5da83f8a8a1bad946f2849bd36d7634da7876"
+      "sha256": "ff01778d87966007a2deca40fef93920fd8c0508063c22f29573ec51d7c57037"
     },
     {
       "id": "brandshatch_grandprix",
@@ -376,7 +400,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/brandshatch_indy.json",
-      "sha256": "7c75036f55ec9a7e3715f18593570b1b59ede8c43f038c5355ae34dc0ccb7e7a"
+      "sha256": "e0864a2e5ad757801c270ef11666cd31785e28cca64c57988ab4c953d3b084c3"
     },
     {
       "id": "bristol",
@@ -400,7 +424,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/bristol_dirt.json",
-      "sha256": "7d76add3ecedbfb3db7a8568a262a2cb1533ff18044e41f25aabe2be1412b4ba"
+      "sha256": "ca3eac20a8cd1ded918c614f1d6c69ffc66d3ea2c0186f0cfd40597ba78890ad"
     },
     {
       "id": "bristol_dirt_2022",
@@ -412,7 +436,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/bristol_dirt_2022.json",
-      "sha256": "9761933f30783feb476e554c2c873c51dca071c282b51ec4c4da4c5eafaadff9"
+      "sha256": "8feeb12ceccc78437156ef1543b4a7954a903d302f004ade76bf217aa3a61755"
     },
     {
       "id": "bristol_fullpit",
@@ -424,7 +448,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/bristol_fullpit.json",
-      "sha256": "bf9592a626155f82018b29221433c2fc7c9ba226dc0dca62c94751a2d63cb0db"
+      "sha256": "ed06fe8c33e9ec369bc64fcdf2818f0ec73ad7bbe4460e26b6039f69921576c7"
     },
     {
       "id": "bullring",
@@ -460,7 +484,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/cadwell_full.json",
-      "sha256": "bb174777275729ffcba2299d5e12f0f915d7bccbb01d31eb2f7e1a823181d6f5"
+      "sha256": "706d3fa3b7fbfda8a73d7bd6ebd1de2b7f8168a77cee8ad0c6971fad12d3794f"
     },
     {
       "id": "cadwell_moto",
@@ -472,7 +496,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/cadwell_moto.json",
-      "sha256": "5da2a86707783866691173136f9576926969330183802cc673fe525f82822d22"
+      "sha256": "95f11f53b6cbf0a75f7e4493862287d4879738c25c14e6eb14703ce4b88355c1"
     },
     {
       "id": "cadwell_woodlands",
@@ -484,7 +508,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/cadwell_woodlands.json",
-      "sha256": "7491b799e982e95313d37ef5821c0936db3be1d586be7373a856fdaf0f66d660"
+      "sha256": "cf07d8e0742808a1bfe293b4a995997029209bd58319cb5768d1e2742044ea02"
     },
     {
       "id": "california_competition",
@@ -808,7 +832,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/cota_west.json",
-      "sha256": "c85fe516e4a161e80ccc2704c418aaab02cb698b5d26aae2b15ad0d07cb55ede"
+      "sha256": "48a756e6bc4afc3f004089d2dfb32f7ab0617549aed1323bc45b6e948ba6b9c9"
     },
     {
       "id": "crandon_full",
@@ -868,7 +892,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/daytona_2011_oval.json",
-      "sha256": "86ce10c8d92c8e25a0abab6bdabf71243d117d4aa72351de99fc833b33f24410"
+      "sha256": "624c85acada6c3a05032eb3ebea16190b8d14a47a80e6631e1fe293faae9439f"
     },
     {
       "id": "daytona_2011_road",
@@ -880,7 +904,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_2011_road.json",
-      "sha256": "6ebe0eb17261e913edbf0567e04370630ae177760e50f57bc0b0b5fcca89089c"
+      "sha256": "b8c0cca736bf307be6fb2fc45f43553fdb5b98ae5dd230006a99ad3af85dbdd5"
     },
     {
       "id": "daytona_2011_roadnascar2020",
@@ -892,7 +916,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_2011_roadnascar2020.json",
-      "sha256": "476db784db360335e4cc4fe18f0606cd9651c06a0c1b1de21f90beb87b5f7761"
+      "sha256": "59c1fc19ad4609c9bb06c3663ec13457a6cebc1c6f920899cffc601eff3d34a6"
     },
     {
       "id": "daytona_2011_short",
@@ -904,7 +928,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_2011_short.json",
-      "sha256": "e286e7b56fb0086d039dd4ea7c7037eb3215bf6a86a93b17a483eb3879c081ab"
+      "sha256": "98537e6458ca86c2c8607b758397066996785ae220e53f22eb134afb18df7d28"
     },
     {
       "id": "daytona_bike",
@@ -916,7 +940,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_bike.json",
-      "sha256": "987269809cbb60e045705be06f21940a21062876c409120f9b2dd8b9e672cdd7"
+      "sha256": "121982e7ed0c7b30c0381338cf7bc8ed6967243400228f7b1eb0fa25bd1f38be"
     },
     {
       "id": "daytona_oval",
@@ -928,7 +952,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/daytona_oval.json",
-      "sha256": "01670138e3e338f89d7e5141dc20d66846436e75679ddefca1f33e16e8875092"
+      "sha256": "7f1478c5e8db712d7ac5520a07e37870dd5d98b53568c64e7fa5f94960274d4a"
     },
     {
       "id": "daytona_rallycross_long",
@@ -952,7 +976,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_rallycross_long_nojoker.json",
-      "sha256": "45f7c7e13e8c78af5142456515b3a7a1966acb11303b0b7b550ce97c51d15c36"
+      "sha256": "50125c39b903387730196706dff81a7361a0d2f7244ef6f82f314c413bf767e6"
     },
     {
       "id": "daytona_rallycross_short",
@@ -964,7 +988,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_rallycross_short.json",
-      "sha256": "fba615235b42acda01f9aa7cdeda27a33cc50fda6b3e285d43e4550810cd45fc"
+      "sha256": "65b61e4959e7b576675642310b158dc3d8df89ab95f8f360df5a8953ae27d754"
     },
     {
       "id": "daytona_rallycross_short_nojoker",
@@ -976,7 +1000,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_rallycross_short_nojoker.json",
-      "sha256": "f98a4c1fca2c50889792a709b6dae86bd0bb6254fd8e6dd8e7e040d090e38dab"
+      "sha256": "c255a9ff286d63ee3ddb7b7ecd7a94392b15e2ad3103cad1417f11b1c45b2c28"
     },
     {
       "id": "daytona_road",
@@ -988,7 +1012,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_road.json",
-      "sha256": "cb4352cf8ecf19833cd37a140c27388d275eae947d18d10b37d4edd31d194ce0"
+      "sha256": "8daceaa4d7742de37ff4e4adf8015405a0c49f4dade15e12bb3ba798856cb65a"
     },
     {
       "id": "daytona_short",
@@ -1000,7 +1024,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/daytona_short.json",
-      "sha256": "1be57ca2c34662b1b9de52e08ddde0d8b2bc2787709d3f05ea6a8119550e06da"
+      "sha256": "191ce692bf3ab0e9d407d98ccf8652d827a571d7fd68fecfc060ca9be3226da3"
     },
     {
       "id": "donington_gp",
@@ -1024,7 +1048,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/donington_national.json",
-      "sha256": "d9452c9ad9915a318f3182bc404d60abe6e5e054894902968c0cd9ab712f3601"
+      "sha256": "5ee189e1fc0fd73e6cc479cb7a4ab43f95aa891022f2afa40ba10b9465c499b0"
     },
     {
       "id": "dover",
@@ -1183,6 +1207,42 @@
       "sha256": "f007fc4ddeb6a7a7256d4f295f62f2c8f7220bf3667859ca87215c6040cd91d7"
     },
     {
+      "id": "hockenheim_pec_peceast",
+      "config": null,
+      "lengthM": 1668.5,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/hockenheim_pec_peceast.json",
+      "sha256": "d16d23e7470cfcd9b9e3271c3ea5ec3b67ca1f97951c2f9d685f81445d567620"
+    },
+    {
+      "id": "hockenheim_pec_pechandling",
+      "config": null,
+      "lengthM": 2615.3,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/hockenheim_pec_pechandling.json",
+      "sha256": "2be84c619ebec923b43aa91dac21b23d671f97f8de13adffc6d96a0ed91f04bd"
+    },
+    {
+      "id": "hockenheim_pec_pecouter",
+      "config": null,
+      "lengthM": 1490.7,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/hockenheim_pec_pecouter.json",
+      "sha256": "40ee81f3c8ad75343b9b113adce38d0ddc5edfd00cdcbd4a1c038b8128f6d8f6"
+    },
+    {
       "id": "hockenheim_shorta",
       "config": null,
       "lengthM": 2601.5,
@@ -1216,7 +1276,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/homestead_oval.json",
-      "sha256": "e70091eb1040c00a8b0d928643e6aa52b2d0ce45bb78aeaa435104fc71bd2db9"
+      "sha256": "83a80bde8d732972814092389e65fa134d29df24ed23787914a85099419ab8ec"
     },
     {
       "id": "homestead_ovalindy",
@@ -1228,7 +1288,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/homestead_ovalindy.json",
-      "sha256": "7ee86cdfb8dfcd015258a03727ef322643146d35b463f5195a6ebd29d7bd6224"
+      "sha256": "d59272ed7d9ef7702dd48153f751be38e1fbe119567779ccf2febbfbc8f35a8f"
     },
     {
       "id": "homestead_roada",
@@ -1276,7 +1336,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/imola_gp.json",
-      "sha256": "f420264ae0581ce69f641088de5166d7eaacd5fed5f043338b9a876dce229500"
+      "sha256": "205c9c3780c2ec60a936115a62e9fb22db099346660e3d6d1cb2788d8afbccf6"
     },
     {
       "id": "imola_moto",
@@ -1288,7 +1348,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/imola_moto.json",
-      "sha256": "0d9e8bf219784880e3b7e38859de8b0340fa8f77b7faf90ad44abd11184001a0"
+      "sha256": "c47fb78749129e2f68e9042b934f54ce7d24f0a90ff5f152feb0c1f88c78e0cd"
     },
     {
       "id": "indianapolis",
@@ -1432,7 +1492,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/iowa_legends.json",
-      "sha256": "62ed27e3b73e7f13ce4b90f4e50b2f9c8ea44d969eda2437eafd94a80e90d379"
+      "sha256": "35515152f51f1ece78f72dbc2075065b846e3380418e623adbeebba97b9afb98"
     },
     {
       "id": "iowa_oval",
@@ -1444,7 +1504,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/iowa_oval.json",
-      "sha256": "66cab05446fc83a8e1ab0fe7db212ef00ffcade2d35f4d46f1196bf1e511eb0f"
+      "sha256": "2ec31eecfe9bcc60a55f0f7eb6ff886b52efc507662bae67c93dd28ab1a7e074"
     },
     {
       "id": "iowa_rallycross",
@@ -1456,7 +1516,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/iowa_rallycross.json",
-      "sha256": "78861f174ef87545594df798d24cec3cae43f7b3a60d10e46f8e573509c2f4cc"
+      "sha256": "45a0ddf7caca89528f9cc2570eff4e2fdf97b1c89ccc53b3f6c15f935292e99a"
     },
     {
       "id": "iowa_road",
@@ -1468,7 +1528,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/iowa_road.json",
-      "sha256": "c18b4dd6aac8d4b2b03e1974614dac385c74712bb6149b1e9de60388141d082a"
+      "sha256": "fd87cf6d159334a9b918a105bc7c2289e336902cb2ece593d2c4ea2dcfe8f4f9"
     },
     {
       "id": "iracingss",
@@ -1495,6 +1555,18 @@
       "sha256": "6a8ba3d4b0dd7573336e927634b1427b104a64aecc1f64d84b37f8f32b9ce46d"
     },
     {
+      "id": "irp_rallycross",
+      "config": null,
+      "lengthM": 1287.9,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/irp_rallycross.json",
+      "sha256": "fdc3ba5d4fee92820eadc6c29d0244fd644d8b0d989832a3d413b315c674f66d"
+    },
+    {
       "id": "irwindale_figureeight",
       "config": null,
       "lengthM": 561.5,
@@ -1504,7 +1576,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/irwindale_figureeight.json",
-      "sha256": "5373b257f07533496661208d5aaed33827e31baa33de3daa924c078d70d8c091"
+      "sha256": "131d8475b8258bc76caaf60c79d9dc8109148a905776392d0a98ca30fa1b3393"
     },
     {
       "id": "irwindale_figureeightjump",
@@ -1516,7 +1588,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/irwindale_figureeightjump.json",
-      "sha256": "e651638207a5998aead3cc35eacc84f5700718e7f4887286eaf5a12bf6e6b67a"
+      "sha256": "f44b40d9d14433828c19125a1dc742ee87cb24cd6d573a239f810f2c62aa5dad"
     },
     {
       "id": "irwindale_inner",
@@ -1528,7 +1600,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/irwindale_inner.json",
-      "sha256": "a5d6f065749a56ee12d371deb46feafa81ea05cb1f1c0367fa36ff84730f4d7b"
+      "sha256": "bdfee4fd8319acc1765de3313e58b88877a9c7fc0d8dd1ba8ef319c469b5c018"
     },
     {
       "id": "irwindale_outer",
@@ -1540,7 +1612,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/irwindale_outer.json",
-      "sha256": "43176434a3e6a26c16d6fc9d69b5970436bc0bd3c6ea86a9f8eb1ffd6e19b5e8"
+      "sha256": "91823ba1de25c53b68b814b3d958d3b8eb23061b81e4f7bf394091ac3b6ad237"
     },
     {
       "id": "irwindale_outerinner",
@@ -1552,7 +1624,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/irwindale_outerinner.json",
-      "sha256": "7b2f1cf28a695633a2f8462d47ab29e294ede478f975011dd370ead361d7d3d6"
+      "sha256": "29d28ae7bf0ab5c2bc4f9648f350df98f62598c9434e7af05e7dfb66e30eb3b7"
     },
     {
       "id": "jerez_gp",
@@ -1648,7 +1720,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/kentucky_oval.json",
-      "sha256": "e4ce2e8b38cf7093f00dc589db74cf8a4c54c9f8938a0f91655b172347bcff9e"
+      "sha256": "844740a90e955f1e1a830d6314c92b064cee70f870da868f62b7ce789df32d7a"
     },
     {
       "id": "kern_dirt",
@@ -1672,7 +1744,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/kern_dirtmini.json",
-      "sha256": "0df1fb2e2daf74170d1e2bcd4e70de19613b07f9f8164995ead41c9a8102afd9"
+      "sha256": "a1481284c57f78d1fb771a4f86106aa373dbfc856dcbc7ab7c5e90b3fe9e4b3a"
     },
     {
       "id": "kern_legends",
@@ -1684,7 +1756,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/kern_legends.json",
-      "sha256": "db7c0d72da19586d4c92a86bd1d4f30d4a8a0046d833f628b83af62d6296bbde"
+      "sha256": "416f5b64ce9ef0056fb921c3bd2c80bfe39352e326e78c886557026b7cb2260d"
     },
     {
       "id": "kern_oval",
@@ -1696,7 +1768,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/kern_oval.json",
-      "sha256": "878cd59f409e95b1a9aee686f6df2a0629cde795dfeb2c6a5854adf235cf3416"
+      "sha256": "56476de422123d413eedc9d42eda910a17701035b70508b4a1d7c15e09d95229"
     },
     {
       "id": "knockhill_international",
@@ -1828,7 +1900,7 @@
       "check": "unchecked",
       "source": "SIMRacingApps",
       "file": "layouts/lagunaseca.json",
-      "sha256": "32b69511645f0fd0db94cef1ade4244febf914e1b27fe4d3d416ca80a534fa7b"
+      "sha256": "197176ea806af14f214e09d79748e0c843c116d0b94d8bc8cf1752805c16b59b"
     },
     {
       "id": "lagunaseca_school",
@@ -1951,6 +2023,18 @@
       "sha256": "c524177778b9ee94e77a28fe70649974674a4e357f86bf2dc167d02ea9e535df"
     },
     {
+      "id": "lankebanen_road_roadshort",
+      "config": null,
+      "lengthM": 811.6,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/lankebanen_road_roadshort.json",
+      "sha256": "5c8549dd8568165e4619baeb236b96e262aa81b7121b6192f8cad2b3d8114af3"
+    },
+    {
       "id": "ledenon",
       "config": null,
       "lengthM": 3144.3,
@@ -2056,7 +2140,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/limerock_2019_gp.json",
-      "sha256": "41c879f05700d2898061d812ce85f670605ef90845effbc5e305090a60139f59"
+      "sha256": "0c9e6ad3c2674cd37caca909f0cd0277e53962a7c54f1bb5ba708fa4fb65ff57"
     },
     {
       "id": "limerock_2019_school",
@@ -2153,6 +2237,18 @@
       "source": "SIMRacingApps",
       "file": "layouts/martinsville.json",
       "sha256": "f599d67c340533fdcfe5a3c3576b6a4f7ccdcc1c75b8ac5bc6d1471db4ab7d48"
+    },
+    {
+      "id": "mexico",
+      "config": "Mexican Grand Prix",
+      "lengthM": 4302.6,
+      "closed": true,
+      "points": 256,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/mexico.json",
+      "sha256": "bf7b6928969ee5df8e5a2c38fd47da2efc9d70ece3a55bc235a734c5634acdfc"
     },
     {
       "id": "michigan",
@@ -2356,7 +2452,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/monza_combinedchicanes.json",
-      "sha256": "58f4faf5d707f2fcc6314038ca5f7318b7f2aa4f9b1b31f43797962166a0256f"
+      "sha256": "b21301966e762d6cc5b70558ebdf6853108128b598d2426c0852691e5b00bc94"
     },
     {
       "id": "monza_full",
@@ -2368,7 +2464,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_full.json",
-      "sha256": "c9087e3a3aa42938125cc3d2c88c06b5e4df48cea3a2dfa822d3b5d0e80f9263"
+      "sha256": "b0a5bca5bf00e3bfdb512480307f45f7936365530d73cc67e1a9c2c2106879e5"
     },
     {
       "id": "monza_gpsecondchicane",
@@ -2380,7 +2476,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/monza_gpsecondchicane.json",
-      "sha256": "91d65ebb3e72dcbc5109dd9e601fc00e3fbc247332f51d06f43921370ec4a498"
+      "sha256": "38750bdd89cc6e3b840bba2273aea64a7bba07eb176b48a943653786814842ac"
     },
     {
       "id": "monza_historic",
@@ -2392,7 +2488,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/monza_historic.json",
-      "sha256": "ab919f42703b7fde03e363d12607d15e551d186a33fce5a02c08560dd6c69b73"
+      "sha256": "6f3df230216ab9970ed00102283089a293641d662f035c7b353e9490db1317c1"
     },
     {
       "id": "monza_historicsecondchicane",
@@ -2404,7 +2500,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_historicsecondchicane.json",
-      "sha256": "b43bb10a9acb215d9325fd004745a2d68ec14e17974ff89f4715f6657b22bfca"
+      "sha256": "a7e71081d7fda596c1b817b51ed7c67c58582c29413430edc3369656c9c25faa"
     },
     {
       "id": "monza_junior",
@@ -2416,7 +2512,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_junior.json",
-      "sha256": "c9af328a360f4ab143e512d7d66421bc65c16cb86ff04941b7e62f9b23f9dbc7"
+      "sha256": "5176b601f80246f6c3854eb1706bcbda63de1375a18feca65f0c32552c78f958"
     },
     {
       "id": "monza_nochicane",
@@ -2428,7 +2524,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_nochicane.json",
-      "sha256": "0ecad218c4325077823a3b176009d7c890982f9fe4f142839f566a31512027fc"
+      "sha256": "da3f3b96ebf34b057f7459333c248c4df77530dd7626f16bdb44276fe4ffe5e7"
     },
     {
       "id": "monza_oval",
@@ -2440,7 +2536,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/monza_oval.json",
-      "sha256": "f02432f4fe5e503081956216c2741248d9c65828fcb789bfae621cfddbe942ec"
+      "sha256": "f7c153c0a7349c483f0b875a5ff8fd206d8c648b9ab6f1ef64b50b49544d01ae"
     },
     {
       "id": "monza_ovalleft",
@@ -2452,7 +2548,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_ovalleft.json",
-      "sha256": "68a0c14dea57c88a52ebb97f444bd99315df6369f01288bd3d8225de3269489f"
+      "sha256": "da7c68fab8ed6ad20dfc8635134fbe1ae30cc6e228a3f7faf007c69be24a134c"
     },
     {
       "id": "mosport",
@@ -2476,7 +2572,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/mugello_gp.json",
-      "sha256": "b79cf7e53d3fc5241f08e58d027ded4e78d4f30d97aacff4ee2f16750962c0c8"
+      "sha256": "010918807db7b83981b73562572efd1a4e38b8ae2847844c609b732c967e6fc5"
     },
     {
       "id": "mugello_short",
@@ -2488,7 +2584,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/mugello_short.json",
-      "sha256": "1b37e712ab5ca38edac634341ff4ffe108d19491823cab0454e6f73cf93989ea"
+      "sha256": "75daa31420d047a53bf520a68a6b7b14287e7d375b8ac8a41bcbb547858015c8"
     },
     {
       "id": "myrtlebeach",
@@ -2560,7 +2656,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/navarra_speedmedium.json",
-      "sha256": "e60430389794b715e863b7be63c366a969337242e25d8dd22534e37836436152"
+      "sha256": "a0bf703b5097ac0213fbadd2387d09453e3589dae305c1306d629f31c9ae245c"
     },
     {
       "id": "navarra_speedshort",
@@ -2572,7 +2668,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/navarra_speedshort.json",
-      "sha256": "56f154a12ce7c5ea6cfdfe8e1a7e4cda6f17f602575556f8511da2aa2ae829ce"
+      "sha256": "ac58f526c54c81bbf0cf655d0e3cb969ca673351db38ee3e6bd44ae32aa22fde"
     },
     {
       "id": "newhampshire_chicane",
@@ -2656,7 +2752,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/newjersey_firstchicane.json",
-      "sha256": "cb08405e1f320d08537454534b812a35c101333ad4388343139f1d389e016fe3"
+      "sha256": "4fb85ab02ac8ce0cf326037660489156e00d884344e18a9fc80c23e93ca63c5d"
     },
     {
       "id": "newjersey_full",
@@ -2668,7 +2764,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/newjersey_full.json",
-      "sha256": "91dc8a0ce6b069e52a9d766af5b7e0b2f8a12b7f49a93fb0dbf106154ed4dcdc"
+      "sha256": "02a5bd7d0c718f4fdbc2e8883faee72b9e4f5d8665cdba5312b76f6853d196f7"
     },
     {
       "id": "newjersey_secondchicane",
@@ -2680,7 +2776,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/newjersey_secondchicane.json",
-      "sha256": "6771fe57d20fb090ba43e13b4b57d7f87c8e64dc15237db4e36544bd19b3ea72"
+      "sha256": "e5439017d3933b2b8dfe89897657f822f7495b7a1084ca601210ab33b0a2078e"
     },
     {
       "id": "newsmyrna",
@@ -2716,7 +2812,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/nurburgring_combined.json",
-      "sha256": "6fb4c0f4b53d7922a3926e00f23dd70c0e179cf20cf69080a99cd84ed1ca697d"
+      "sha256": "f7219856edbcdc87dc8d515c51ea7e87168ac3bcab3cab5ee9c00a1911b84f6c"
     },
     {
       "id": "nurburgring_combinedlong",
@@ -2752,7 +2848,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/nurburgring_combinedshortb.json",
-      "sha256": "08f72b6d37a4270bc47d05b643215b86e4e916369531a3054405863ed1d3037a"
+      "sha256": "fefbfbae4a0afd68af5fc467943c3c4c3f80c91bfe92a1fe2003bd6cce2c80e9"
     },
     {
       "id": "nurburgring_gp",
@@ -2764,7 +2860,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/nurburgring_gp.json",
-      "sha256": "4aeb2b712c2e2ecbba19e88c69e884f2ed557480e006f3c3f9417b0b8448fc41"
+      "sha256": "3eae2637c54026523b26010a3def7206bc065823c7cd77f8d750a7fa39c21fa5"
     },
     {
       "id": "nurburgring_gpnochicane",
@@ -2812,7 +2908,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/nurburgring_nordschleife.json",
-      "sha256": "94bf3523d218b1482f36dc94d414a6279b7abd7d57c7a73358a4b7ddf1f8ce43"
+      "sha256": "48667080a5381a94f35ca3912fdc32dc2b784b0fd3f44b1561602aadb7b5abfb"
     },
     {
       "id": "nurburgring_sprintchicane",
@@ -2824,7 +2920,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/nurburgring_sprintchicane.json",
-      "sha256": "24a84999a47f3846e48a2495ccaa0ab159bb43b3a5eb7ecd777f309697d771c1"
+      "sha256": "b99bc1c1835dab869ebd93c89da22abd11ccf187eac42182ca2442db157bcf03"
     },
     {
       "id": "nurburgring_sprintshort",
@@ -2968,7 +3064,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/oswego_mini.json",
-      "sha256": "81c949d1ba015a205c9a37364554c3583f3d2f95dd3ba4d30aaff07d4f38d4ac"
+      "sha256": "cbf89c2392ef6929f15484a0c6486e21c2ed05d84455d8beb81ab53410ee9344"
     },
     {
       "id": "oswego_oval",
@@ -3004,7 +3100,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/oulton_fosterswithhislop.json",
-      "sha256": "6b2605c09ff65c86d4a43345a102b924f49b4781fd074a969132d95da71a9951"
+      "sha256": "9435e8fbfe827986265adf2a2810895cd821e237592233d81c503ca6379a6219"
     },
     {
       "id": "oulton_intbrittens",
@@ -3016,7 +3112,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/oulton_intbrittens.json",
-      "sha256": "cf369d48389c41879c3285f890d79da1562731c759383d67552ce12a36048973"
+      "sha256": "2ce0d13a04c752dde83ae23d45a4e5594765b8f37f12ebe48f7a6dcc5428d9fc"
     },
     {
       "id": "oulton_international",
@@ -3040,7 +3136,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/oulton_inthislop.json",
-      "sha256": "0ea12c2b5da03d60b43652afbd5e79b73f677a698cdcb223fcbc2953ae18f1cb"
+      "sha256": "b8143a4167e34f0a096e7ba31045a7285e0a2c50fc3bdb329f2445b4ec0acda1"
     },
     {
       "id": "oulton_intnochicane",
@@ -3052,7 +3148,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/oulton_intnochicane.json",
-      "sha256": "f79995c8693c63b45d963ffe213a094702a91b3ca0fefcaf151e9c8c44f6f975"
+      "sha256": "5f0d9853640725af0b6e514491ffefe6a059b6a78eef0131d7c0a8b43b9ba848"
     },
     {
       "id": "oulton_island",
@@ -3064,7 +3160,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/oulton_island.json",
-      "sha256": "7e703aa50bb6146019a82e7c83372dfb4b10b69644ba97b14c9092b2f63c8f56"
+      "sha256": "82a400a375312e25be755c881203539b51d8350dbe4eb0d81db46a1f5e66c56d"
     },
     {
       "id": "oulton_islandhistoric",
@@ -3340,7 +3436,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/roadatlanta_full.json",
-      "sha256": "a590afc21ea00fe410102c6c889d271bb0232207edfa396fa1fc230342661129"
+      "sha256": "eb88183d18ff7fdd8d053ccefc5459132ed19f3c346c0b6d3e1235b8bbf26ac4"
     },
     {
       "id": "roadatlanta_short",
@@ -3352,7 +3448,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/roadatlanta_short.json",
-      "sha256": "3307879bdee9f22924c71ec7f9c791f9597da8afd71ae604617fccd671cc19be"
+      "sha256": "6ac2fce9145bc73785bb1851cb23070339f9bee7abf0b5cb6331f0fcbf218881"
     },
     {
       "id": "rockingham_infroad",
@@ -3376,7 +3472,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/rockingham_oval.json",
-      "sha256": "13f07ee9925c45e91793c41d56517bc1802adf401545d46a5ef30ad153124dcf"
+      "sha256": "c10ab0617f06280b925b403a6d96e49ceed27fed5849c1c7ffa9fe00fee24a62"
     },
     {
       "id": "rockingham_road",
@@ -3388,7 +3484,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/rockingham_road.json",
-      "sha256": "a910d3511525def0632c8ff0b4c696611fc277e78267edab168767442016f65c"
+      "sha256": "f26be4c5fd98bc1024936ab7d2efa854313b261fd4bbe38770e7ae2af63d5d47"
     },
     {
       "id": "rockingham_shortroad",
@@ -3400,7 +3496,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/rockingham_shortroad.json",
-      "sha256": "82a7dfb07e75eafa0c5e7e276afe040891e4162eb1bc8b4ff5be73d2daf50f5e"
+      "sha256": "2e458d2c729bf54f50f4db7a80a10199e21892249db07942a3f7538284874310"
     },
     {
       "id": "rudskogen",
@@ -3484,7 +3580,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/silverstone_2019_gp.json",
-      "sha256": "18fee915b70d53ec441b9e569443c402e80dbad0a74bbcb9a6199a3f387f91e0"
+      "sha256": "a369ff13583673a1f70a8a8b5064e266a1ae22dc90432ce7a5bdfbab106cdcfa"
     },
     {
       "id": "silverstone_2019_international",
@@ -3508,7 +3604,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/silverstone_2019_national.json",
-      "sha256": "7bcee0dedbd773834be30e5eb45244fb9bb4f05049d19499568ee3f1b5adcf47"
+      "sha256": "826b1bfd9db2e8a1d0194753e100ad0e3fd4b09c354e1ec5411890c8c27cd391"
     },
     {
       "id": "silverstone_gp",
@@ -3532,7 +3628,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/silverstone_historicgp.json",
-      "sha256": "77060d227edadad9af4db034291e0aa2f6e7256c868b48b0a10a9591bcfeaf49"
+      "sha256": "1dc15b2afd1141d303f78274645b4a691dee3af448cca256128e04ac2142f820"
     },
     {
       "id": "silverstone_international",
@@ -3544,7 +3640,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/silverstone_international.json",
-      "sha256": "a6f81a57eef548e899807d3bb64751687aae8e00219c477b4d6c560403c8123b"
+      "sha256": "4c6080e7133551fd29f2c17a63d5f92db8971a2cf6618d64eb6551dd62f5f265"
     },
     {
       "id": "silverstone_national",
@@ -3556,7 +3652,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/silverstone_national.json",
-      "sha256": "302674079f87fd9a1212d3e54e6716834a1fdf0b090d8a5c24febb92e6688f84"
+      "sha256": "23c9ed460ae25d86acfdd3dbff61c9fa615e2a947e20dd5cc943f3ff411defae"
     },
     {
       "id": "silverstone_southern",
@@ -3568,7 +3664,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/silverstone_southern.json",
-      "sha256": "8d00eeaa488f4539715d8d81bd955819fc8f1c0fb76b2ca21a8cab0108d3e625"
+      "sha256": "2dd8e8d07e93b9eba38592a791699710ca3ce4d0932253f4381f87c625b40a0f"
     },
     {
       "id": "slinger_figure8",
@@ -3784,7 +3880,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/spa_2024_up.json",
-      "sha256": "04fa56c25d53920c6f440fd186129e7b6b8a55ff88b9b40ccb9d9dc4399daf6c"
+      "sha256": "23c5ebedb37d533dd8edd5dd146ff94fda57b603210884ea98a84b0f1278781d"
     },
     {
       "id": "spa_combined",
@@ -3796,7 +3892,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/spa_combined.json",
-      "sha256": "5e284746c2ae4a3819d21ae618cc45456f16becb4dbfb71139fb1eaf4a552056"
+      "sha256": "1e78b59572957b2b6ed33652b0f04a5d98fb350b973669457742a72b15e14c6b"
     },
     {
       "id": "spa_low",
@@ -3808,7 +3904,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/spa_low.json",
-      "sha256": "a678d8fe76764d3e0eaf64dd2a7209cb1635b54d9900dbdbf666c7da32028f12"
+      "sha256": "293a7994bcb3f1237107f7245896a1aecf81d4295940501db4f3a33122aa1755"
     },
     {
       "id": "spa_up",
@@ -3820,7 +3916,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/spa_up.json",
-      "sha256": "b617d24ffbbab141d52879f8387413cb8e13a66d7a411e93f89b293a16423b58"
+      "sha256": "80a679f354a95927588a1923dd504765556faff84beb3114a0dd84fe502c1f48"
     },
     {
       "id": "spielberg_gp",
@@ -3904,7 +4000,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/summit_jefferson_rev.json",
-      "sha256": "00d71892d68b5eeeb56bbd79ab2097b77df8036efb9a0e5dc9b3789c98f067bc"
+      "sha256": "ee102da5b855174d88be34e6828076222a75f4880342c143dfa85e67d3f5a733"
     },
     {
       "id": "summit_summit_raceway",
@@ -3916,7 +4012,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/summit_summit_raceway.json",
-      "sha256": "39b6e0ea1223ec6fea5f8edfd855bfb790a7846c900d5796ebe6c7883e8745d5"
+      "sha256": "f39989c680c474d25a5f82a8e301631bb59eaad3cb6d6a5d1f44aa4f5ac663d3"
     },
     {
       "id": "summit_summit_raceway_school",
@@ -3928,7 +4024,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/summit_summit_raceway_school.json",
-      "sha256": "3c8bcf2e4220e19ef459240e67bfb859efadc9f6b5bebac70d8a68f01bac803f"
+      "sha256": "8efacd50f31819cb5f3ae2aa2155142db38f4a167e5436ac3d943c0d11064b25"
     },
     {
       "id": "summit_summit_short",
@@ -3940,7 +4036,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/summit_summit_short.json",
-      "sha256": "0c7c7669478788e323ab77bdf5a1bf3cae3eed2387b6af7c4ac93bd94bb32cd5"
+      "sha256": "95622ba539ad0d35f0849725c610853e583b39ff35dc1d1a9a20bbf728a713f2"
     },
     {
       "id": "suzuka_east",
@@ -4132,7 +4228,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/tsukuba_1kchicane.json",
-      "sha256": "5391651255b6b87fa364e6e2ebd95331d6ae7b29edf4ec5c45f20749147b3392"
+      "sha256": "6126ad16b859469d2fcf0006b58143adab9e8313a1019a1917e6c452c9936568"
     },
     {
       "id": "tsukuba_1kfull",
@@ -4144,7 +4240,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/tsukuba_1kfull.json",
-      "sha256": "008e21c49f8dc4300537de1386f53ea66316e685a274d6d3f628c1da1c075b4a"
+      "sha256": "62b9ee9daf26bdd3123cecbc30dcb5fe82ddcda3ae7c3b4d100194e9c4a84499"
     },
     {
       "id": "tsukuba_1kfullreverse",
@@ -4156,7 +4252,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/tsukuba_1kfullreverse.json",
-      "sha256": "a8a41257baf990734f857ee33353f4a6b49a2e3de441019280aa4c848a044ba2"
+      "sha256": "c6ffa85b759ec5cc296b2a02f5a6385bcf995a4576e45d34ff1188a93567093d"
     },
     {
       "id": "tsukuba_1kouter",
@@ -4168,7 +4264,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/tsukuba_1kouter.json",
-      "sha256": "537acb278b5091ce0353acdd1e97df3e04301bfbd4897469b7a7551312617c42"
+      "sha256": "910c5d0b663ca0f000fb52e066c3a3f57e37fe3bdf1c10e53d1a21bb2662cf88"
     },
     {
       "id": "tsukuba_2kchicane",
@@ -4204,7 +4300,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/tsukuba_2kshort.json",
-      "sha256": "28b4a96753d5a6a0f34c2d9c3dc7f7c2086e33766580b9900884e5e1525c7e85"
+      "sha256": "27c561452233cf09f874c9814165b45f1fc97b9f790b53c7cdb7c6dc9a6516bb"
     },
     {
       "id": "twinring_east",
@@ -4240,7 +4336,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/twinring_oval.json",
-      "sha256": "e632799485adae427a1f1a87ab06481be5d141667d9530393fd3c1616faa27da"
+      "sha256": "b2e918ca85cf1dfa333b824896c261209c71f554ce68fdd9dbc24c1853f073f2"
     },
     {
       "id": "twinring_west",
@@ -4252,7 +4348,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/twinring_west.json",
-      "sha256": "41f1555b242d1247ef0b4b62af2432e7cf13800a96eb30c2b8bb663386fbed92"
+      "sha256": "8a4debb4ce5a4be619547a3e758627ff26e0574a1b7087b36a76766c6b7dd612"
     },
     {
       "id": "vegas_inflegends",
@@ -4276,7 +4372,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/vegas_oval.json",
-      "sha256": "97eec4de827f3229e80d4572e4752e3752391ba214827f044d33a31df8f7a8c8"
+      "sha256": "2c970dd9fff9ca76466e050d25e87bf951342722215e1ff44e91c7283cc2f006"
     },
     {
       "id": "vegas_roadcombined",
@@ -4288,7 +4384,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/vegas_roadcombined.json",
-      "sha256": "e465e2fb2140e01d3b56ae573eeb2fec6c17e1d5a999e19baa520a2a51f0b81d"
+      "sha256": "13e1bb9a08cb3def369b1e6611cf1b64e62ba608601ff5641b011a9c092ce324"
     },
     {
       "id": "vegas_roadlong",
@@ -4300,7 +4396,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/vegas_roadlong.json",
-      "sha256": "52ccc2154297c0142ecbbfbe114fa35f07d1abd36d8c6f33bf18536be1c6d4f3"
+      "sha256": "1ceb863fe755ec395b888336ab62fca0deebd5306b204d794063f0b77f3d25c0"
     },
     {
       "id": "vegas_roadshort",
@@ -4312,7 +4408,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/vegas_roadshort.json",
-      "sha256": "e823b4dbb59470cff0f51d6927e5c09a41c85313eb7e057839de1ca3b00d6dc1"
+      "sha256": "cd737fbd8835679228dde9a9bbd7e3c61a4d3f3986069fb93f8f130ebe187922"
     },
     {
       "id": "virginia_2022_full",
@@ -4360,7 +4456,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/virginia_2022_patriot.json",
-      "sha256": "a8e89bdcd4ad6930bc6b31544b9fe358ed93589f711fdd2a115ac9eb55d223a9"
+      "sha256": "5a8a33a7cae690935654d5d2511b06fc2b73166fa4af3bdf654bde0fc1945fda"
     },
     {
       "id": "virginia_2022_south",
@@ -4372,7 +4468,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/virginia_2022_south.json",
-      "sha256": "d42fcae4c198c66ab985f8af65e4c3a7098e8d56b0b4b13336c3f2f7025cb4d8"
+      "sha256": "246b93e6d27e0cf627db58f33b2813d45bd80f7bf7dc0925def02fcb1fbb7d8f"
     },
     {
       "id": "virginia_east",
@@ -4492,7 +4588,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/watkinsglen_2021_cupcircuit.json",
-      "sha256": "9d1d82ce976d47223aa6139d47c1d4e26de659c915b1b033d6103489c60a5be4"
+      "sha256": "db07b38115f98431bb769de51ab8b7284f4eba7d0e6dcca85172098430d335b7"
     },
     {
       "id": "watkinsglen_2021_fullcourse",
@@ -4504,7 +4600,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/watkinsglen_2021_fullcourse.json",
-      "sha256": "b293956e0539bd570e385f760a49d3de597c9707ee879a59c2eb38fbc9fc0063"
+      "sha256": "e16da8619a60eccf07b71fa1b90d0c52dc92c458c3ab15eea1809da9871b27d0"
     },
     {
       "id": "watkinsglen_2021_fullnoloop",
@@ -4516,7 +4612,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/watkinsglen_2021_fullnoloop.json",
-      "sha256": "0556087b441fdeb985990dd746ccb3c4b476edd0e50a4f7b77e631ab2d546ff2"
+      "sha256": "266d3fe569b0d923bf810bad822a02be428284f19a4d57d602d6a0856bf065b7"
     },
     {
       "id": "watkinsglen_classic",
@@ -4636,7 +4732,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/winton_national.json",
-      "sha256": "5b3f7c331eb656b15b353d26a86bcf9d41c85036d777d67dc875789e71f37681"
+      "sha256": "f3a218ba1e73d3785cbf81464de3d69ba111ef2312b8835f75635b6847159d28"
     },
     {
       "id": "zandvoort_2023_gp",
@@ -4648,7 +4744,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_2023_gp.json",
-      "sha256": "912246726ccb24aea94581f31be99db6d250881f05a68b6ec624649e35fb526a"
+      "sha256": "5b1f3d9bbaeeaf1a42688cda9506dd96d89618923bd2e5d191663ddcf4141cff"
     },
     {
       "id": "zandvoort_2023_gpchicane",
@@ -4660,7 +4756,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_2023_gpchicane.json",
-      "sha256": "da1940c79fc19b09b9144713ad9806207bc55491105e5fcc9dfe35a33e018d4c"
+      "sha256": "421a6c5634193e1980805877b44ac29c156ff5e962e09c26295da3bf562407d5"
     },
     {
       "id": "zandvoort_2023_nationaal",
@@ -4672,7 +4768,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_2023_nationaal.json",
-      "sha256": "fb806b0e72eea3ef4475c54ec2a61c5d168c8b50725ed803d77c68fca2c5441c"
+      "sha256": "c4d327bed97e81d6c63929ff2d692d5e0d384a07d15b8199b99a9cfe379a551f"
     },
     {
       "id": "zandvoort_2023_national",
@@ -4696,7 +4792,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_2023_oostelijk.json",
-      "sha256": "44caffd8649dbb9c8ccb6d1a14c26f0c571090f71ca8912d9cd93afe1ba45bd2"
+      "sha256": "ba1c26919f40134aec6bdb4dabc150b810110fc6a7095ee7448855aab6aa3eb8"
     },
     {
       "id": "zandvoort_chicane",
@@ -4708,7 +4804,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_chicane.json",
-      "sha256": "dae23fc07c5d4b5187462e72c0ffb827228a914fa27d0c808ff006aee442ca4c"
+      "sha256": "60a0274bd69aea0ea06fa675af5ff8b6b2e73177a47cc099f859c3c298a0127b"
     },
     {
       "id": "zandvoort_club",
@@ -4732,7 +4828,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_grandprix.json",
-      "sha256": "0d038bfea808138b7bc13bcf96fb4a33d1f090695c07c3f1be4f3149ad60ed2a"
+      "sha256": "07b6479c60f316559bd3a50990ad7393a6f71c9daaf3798fc695c2f702d050c8"
     },
     {
       "id": "zandvoort_national",
@@ -4744,7 +4840,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_national.json",
-      "sha256": "e498fe53b3552bc87204fbbb81dada5b0127ebf4ac2cf2865e34ca3837df5e6f"
+      "sha256": "02f447e2afcb8670a1025b572164644928d479d96181ba5f8b57ac58df4c9127"
     },
     {
       "id": "zandvoort_oostelijk",
@@ -4756,7 +4852,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_oostelijk.json",
-      "sha256": "bd2149e0eaffc1df446d8e153f4e491e9f624e3a7aeb8109b67a47892b69eed7"
+      "sha256": "05e66c7b70a398f62142bb23a8ecd14bdfe7494e5815508acac6afbd5cb88602"
     },
     {
       "id": "zolder_alt",
@@ -4780,7 +4876,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zolder_gp.json",
-      "sha256": "1d08b57f466f9f8783fee9b56d3be71a5865c0e7e260eb4feb49fec61e0e3ec0"
+      "sha256": "85713dc798daaf6ed9fad76c28abc43eb2d695dd6aac30d0cf8a1e317146b842"
     }
   ]
 }

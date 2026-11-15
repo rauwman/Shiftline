@@ -47,6 +47,6 @@
       }
     },
     "check": "corrected",
-    "rotationSource": "computed"
+    "rotationSource": "manual"
   }
 }

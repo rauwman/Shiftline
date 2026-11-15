@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "assettocorsa/ks_nurburgring-layout_sprint_a",
+        "assettocorsa/ks_nurburgring-layout_sprint_b"
+      ]
     }
   },
   "center": [
