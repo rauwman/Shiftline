@@ -27,6 +27,9 @@ namespace Shiftline.Plugin
         private static OverlayWindow _trackWindow;
         private static TrackMapOverlay _trackView;
         private static DispatcherTimer _trackTimer;
+        private static TimeSpan _trackSampleInterval = TimeSpan.FromMilliseconds(100);
+        private static long _trackSeenSequence = -1;
+        private static DateTime _trackNextSample = DateTime.MinValue;
         private static bool _edit;
 
         /// <summary>Raised on the UI thread after edit mode was switched.</summary>
@@ -40,6 +43,8 @@ namespace Shiftline.Plugin
         /// <summary>Called once from Init. Safe when there is no WPF application.</summary>
         public static void Start()
         {
+            // the track shapes load in the background at start, so the Track Map page and overlay have them when first shown
+            TrackLibrary.EnsureLoading();
             _dispatcher = Application.Current != null ? Application.Current.Dispatcher : null;
             if (_dispatcher == null)
             {
@@ -656,11 +661,15 @@ namespace Shiftline.Plugin
                 _trackView.ApplyOptions(TrackMapOptions.Load());
                 if (_trackWindow != null)
                 {
-                    _trackWindow.SetFixedSize(_trackView.DesignSize);
+                    FitTrackWindow();
                 }
             }
 
-            _trackTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.TrackMapKey));
+            // The map looks for new data about every frame (cheap: it only reads the snapshot's number), so it sees new data as
+            // soon as it is read from the game, whatever the game's rhythm (AMS2 about every 110 ms). The update rate of the page
+            // sets how often the data is read; the samples of edit mode are redrawn at that rate only.
+            _trackSampleInterval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.TrackMapKey));
+            _trackTimer.Interval = TimeSpan.FromMilliseconds(16);
             _trackTimer.Start();
             TickTrackMap();
         }
@@ -698,7 +707,7 @@ namespace Shiftline.Plugin
                     _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", _trackView, _trackView.DesignSize);
                     _trackWindow.SetEditMode(_edit);
                     _trackWindow.SetFixedSize(_trackView.DesignSize);
-                    _trackView.DesignSizeChanged += () => _trackWindow.SetFixedSize(_trackView.DesignSize);
+                    _trackView.DesignSizeChanged += FitTrackWindow;
                     // the size is the length of the line: both edges change it
                     _trackWindow.WidthDragging += factor => TrackMapDragging(factor, !_trackView.IsTrack && (_trackView.Ring || !_trackView.Vertical));
                     _trackWindow.WidthDragged += TrackMapDragged;
@@ -714,8 +723,19 @@ namespace Shiftline.Plugin
                     _trackWindow.HeightDragged += height => TrackMapDragged();
                 }
 
+                bool fresh = snapshot.HasData ? snapshot.Sequence != _trackSeenSequence : DateTime.UtcNow >= _trackNextSample;
+                if (!fresh && _trackWindow.IsVisible)
+                {
+                    // no new standings, but the cars' places are read on every SimHub update (the view skips what it saw)
+                    _trackView.UpdatePositions(OverlayData.Positions);
+                    return;
+                }
+
+                _trackSeenSequence = snapshot.HasData ? snapshot.Sequence : -1;
+                _trackNextSample = DateTime.UtcNow + _trackSampleInterval;
                 StandingsSnapshot trackSnapshot = TrackMapSnapshot();
                 _trackView.Update(trackSnapshot);
+                _trackView.UpdatePositions(OverlayData.Positions);
                 _trackView.TalkingCarIdx = trackSnapshot.IsSample ? -1 : trackSnapshot.RadioCarIdx;
                 if (!_trackWindow.IsVisible)
                 {
@@ -726,6 +746,53 @@ namespace Shiftline.Plugin
             {
                 _trackTimer.Stop();
                 PluginLog.Info("Track Map stopped: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// Gives the window the size of the map when it changes by itself (another track, other options). It grows away from the
+        /// nearer screen edge: a map on the right half keeps its right edge, one in the lower half its bottom edge.
+        /// </summary>
+        private static void FitTrackWindow()
+        {
+            Size size = _trackView.DesignSize;
+            double left = _trackWindow.Left;
+            double top = _trackWindow.Top;
+            double width = _trackWindow.Width;
+            double height = _trackWindow.Height;
+            if (!_trackWindow.IsVisible || double.IsNaN(left) || double.IsNaN(width) || double.IsNaN(height))
+            {
+                _trackWindow.SetFixedSize(size);
+                return;
+            }
+
+            IntPtr handle = new System.Windows.Interop.WindowInteropHelper(_trackWindow).Handle;
+            System.Windows.Forms.Screen screen = handle == IntPtr.Zero ? System.Windows.Forms.Screen.PrimaryScreen : System.Windows.Forms.Screen.FromHandle(handle);
+            DpiScale dpi = System.Windows.Media.VisualTreeHelper.GetDpi(_trackWindow);
+            Rect area = new Rect(screen.Bounds.Left / dpi.DpiScaleX, screen.Bounds.Top / dpi.DpiScaleY, screen.Bounds.Width / dpi.DpiScaleX, screen.Bounds.Height / dpi.DpiScaleY);
+            bool right = left + width / 2 > area.Left + area.Width / 2;
+            bool bottom = top + height / 2 > area.Top + area.Height / 2;
+            _trackWindow.SetFixedSize(size);
+            if (right)
+            {
+                _trackWindow.Left = left + width - size.Width;
+            }
+
+            if (bottom)
+            {
+                _trackWindow.Top = top + height - size.Height;
+            }
+
+            if (right || bottom)
+            {
+                OverlaySettings.SetPlacement(OverlayData.TrackMapKey, new OverlayPlacement
+                {
+                    Screen = screen.DeviceName,
+                    X = (_trackWindow.Left - area.Left) / area.Width,
+                    Y = (_trackWindow.Top - area.Top) / area.Height,
+                    W = size.Width / area.Width,
+                    H = size.Height / area.Height
+                });
             }
         }
 

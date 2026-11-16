@@ -111,9 +111,12 @@
     </Compile>
     <Compile Include="Overlays\BattleBarOptions.cs" />
     <Compile Include="Overlays\BattleBarOverlay.cs" />
+    <Compile Include="Overlays\CarPositions.cs" />
+    <Compile Include="Overlays\TrackAlignment.cs" />
     <Compile Include="Overlays\TrackLibrary.cs" />
     <Compile Include="Overlays\TrackMatcher.cs" />
     <Compile Include="Overlays\TrackShape.cs" />
+    <Compile Include="Overlays\TrackPositionLog.cs" />
     <Compile Include="Overlays\TrackMapGeometry.cs" />
     <Compile Include="Overlays\TrackMapOptions.cs" />
     <Compile Include="Overlays\TrackMapOverlay.cs" />

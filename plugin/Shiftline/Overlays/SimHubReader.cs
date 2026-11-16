@@ -148,6 +148,12 @@ namespace Shiftline.Plugin
             };
         }
 
+        /// <summary>The id the standings gave a car (for the fast position feed of the Track Map); false for an unknown car.</summary>
+        internal bool TryIdOf(string key, out int id)
+        {
+            return _carIds.TryGetValue(key, out id);
+        }
+
         private static int IdOf(Dictionary<string, int> ids, string key, int max)
         {
             int id;

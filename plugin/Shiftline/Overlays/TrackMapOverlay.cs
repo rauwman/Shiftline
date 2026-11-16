@@ -65,6 +65,7 @@ namespace Shiftline.Plugin
         private TrackLayout _layout;                // the track of the session (or the example track of the samples)
         private TrackShape _shape;                  // the layout fitted into the window; null = line or ring
         private bool _shapesOn;
+        private double _startOffset;                // game LapDistPct + this = LapDistPct on our track shape
         private bool _usualOrientation;
         private int _trackSize;
         private bool _ring;
@@ -92,9 +93,19 @@ namespace Shiftline.Plugin
         private readonly DrawingVisual _trackLayer = new DrawingVisual();
         private readonly DrawingVisual _carLayer = new DrawingVisual();
         private static readonly Stopwatch Clock = Stopwatch.StartNew();
+        private static readonly double ClockStart = DateTime.UtcNow.Ticks / (double)TimeSpan.TicksPerSecond;
+
+        /// <summary>UTC seconds, as fine as the stopwatch (DateTime.UtcNow alone moves in steps of about 16 ms).</summary>
+        private static double Now()
+        {
+            return ClockStart + Clock.Elapsed.TotalSeconds;
+        }
         private readonly Dictionary<int, Glide> _glides = new Dictionary<int, Glide>();
         private double _lastUpdate = -1;            // seconds on Clock
-        private double _interval = 0.05;            // time between two data updates, smoothed
+        private readonly List<double> _gaps = new List<double>();     // the last times between two data updates
+        private double _delay = 0.1;                // the cars are shown this long in the past, between two known places
+        private long _feedSequence = -1;            // the last CarPositions seen (the fast position feed)
+        private double _feedSeen = -1;              // Now() when it was seen; the feed counts as running for half a second
         private bool _rendering;                    // hooked to CompositionTarget.Rendering
         private double _shownPlayerPct;
         private const double WaveSeconds = 1.6;      // one radio wave runs from the circle outwards in this time
@@ -114,10 +125,13 @@ namespace Shiftline.Plugin
         }
         private const double MaxGlide = 0.05;       // a step longer than this part of a lap between two updates is a jump, not glided
 
+        private const int Kept = 8;                 // places kept per car
+
+        /// <summary>The last places of a car with the time they arrived; LapDistPct keeps counting past 1, so 0.99 -> 1.01.</summary>
         private sealed class Glide
         {
-            public double From;                     // LapDistPct shown at the last update
-            public double To;                       // LapDistPct of the last update
+            public readonly List<double> Times = new List<double>();
+            public readonly List<double> Places = new List<double>();
             public bool Pit;
         }
 
@@ -148,7 +162,10 @@ namespace Shiftline.Plugin
                     StopRendering();
                 }
             };
-            Unloaded += (s, e) => StopRendering();
+            Unloaded += (s, e) =>
+            {
+                StopRendering();
+            };
             Loaded += (s, e) =>
             {
                 _dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -183,7 +200,7 @@ namespace Shiftline.Plugin
         /// <summary>The option the window edge changes: "TrackSize", "RingSize" or "Length".</summary>
         public string SizeKey
         {
-            get { return _shape != null ? "TrackSize" : _ring ? "RingSize" : "Length"; }
+            get { return _shape != null || _shapesOn ? "TrackSize" : _ring ? "RingSize" : "Length"; }
         }
 
         /// <summary>The size changed because another track was found (the window has to follow).</summary>
@@ -269,13 +286,15 @@ namespace Shiftline.Plugin
             _startLine = options.Get("StartLine");
             _texts.Clear();
 
-            _ring = options.Ring;
+            // with track shapes on, a track without a shape gets a ring of the track size (it takes the same place as a map)
+            _ring = options.Ring || _shapesOn;
             _alongPad = EdgeMargin + _reach;
             _crossCentre = EdgeMargin + _reach;
             if (_ring)
             {
-                double side = options.RingSize + 2 * _alongPad;
-                _ringRadius = options.RingSize / 2.0;
+                int ringSize = _shapesOn ? _trackSize : options.RingSize;
+                double side = ringSize + 2 * _alongPad;
+                _ringRadius = ringSize / 2.0;
                 _ringCentre = new Point(side / 2, side / 2);
                 _turn = options.Get("Direction") == "Anticlockwise" ? -1 : 1;
                 switch (options.Get("StartAt"))
@@ -341,39 +360,70 @@ namespace Shiftline.Plugin
             return StandingsOverlay.Frozen(alpha, colour.R, colour.G, colour.B);
         }
 
+        /// <summary>Time the Track Map spent on SimHub's UI thread (Stopwatch ticks), for the data check record.</summary>
+        private static long _workTicks;
+
+        internal static double TakeWorkMs()
+        {
+            return System.Threading.Interlocked.Exchange(ref _workTicks, 0) * 1000.0 / Stopwatch.Frequency;
+        }
+
+        private static void AddWork(long started)
+        {
+            System.Threading.Interlocked.Add(ref _workTicks, Stopwatch.GetTimestamp() - started);
+        }
+
         public void Update(StandingsSnapshot snapshot)
         {
-            double now = Clock.Elapsed.TotalSeconds;
-            double before = GlideFraction();       // how far the cars had glided towards the last update
-            if (_lastUpdate >= 0)
+            long started = Stopwatch.GetTimestamp();
+            try
             {
-                double gap = Math.Max(0.01, Math.Min(0.5, now - _lastUpdate));
-                _interval = _interval * 0.7 + gap * 0.3;
+                UpdateCore(snapshot);
+            }
+            finally
+            {
+                AddWork(started);
+            }
+        }
+
+        private void UpdateCore(StandingsSnapshot snapshot)
+        {
+            StandingsSnapshot next = snapshot ?? StandingsSnapshot.Empty;
+            if (ReferenceEquals(next, _snapshot) || (next.Sequence != 0 && next.Sequence == _snapshot.Sequence && !next.IsSample && !_snapshot.IsSample))
+            {
+                // No new data (the overlay can tick faster than a game delivers, AMS2 about 9 times per second): let the cars
+                // glide on instead of starting a new glide from where they stand, which made them stop and jump.
+                return;
             }
 
-            _lastUpdate = now;
-            _snapshot = snapshot ?? StandingsSnapshot.Empty;
+            // Data arrives unevenly (a game's rate and the overlay's rate do not match), so a car is not moved towards its
+            // newest place but shown a little in the past, between the two known places around that moment: the movement stays
+            // even (see Stamp).
+            // Each place is stamped with the time the data was read from the game (not when the overlay saw it), so the
+            // spacing is that of the game and not of the overlay's timer.
+            // While the fast position feed runs (OverlayData.Positions, about 60 times per second) the places come from there;
+            // the standings only say which cars there are. Without it the standings' own places are used.
+            bool feed = FeedRunning() && !next.IsSample;
+            double now = next.TakenUtcTicks > 0 ? next.TakenUtcTicks / (double)TimeSpan.TicksPerSecond : Now();
+            if (!feed)
+            {
+                Stamp(now);
+            }
+
+            _snapshot = next;
             SetLayout(_shapesOn ? TrackMapTracks.For(_snapshot).Layout : null);
+            // where the game starts its lap on our shape (from SimHub's map of the track); 0 until it is known
+            TrackAlignmentResult alignment = _shape != null ? TrackAlignment.For(_snapshot, _layout) : TrackAlignmentResult.None;
+            _startOffset = alignment.Usable ? alignment.Offset : 0;
             bool moving = false;
             HashSet<int> seen = new HashSet<int>();
             foreach (StandingsRow row in _snapshot.Rows ?? new StandingsRow[0])
             {
                 seen.Add(row.CarIdx);
-                double pct = row.LapDistPct;
-                Glide glide;
-                if (!_glides.TryGetValue(row.CarIdx, out glide))
+                if (!feed || !_glides.ContainsKey(row.CarIdx))
                 {
-                    _glides[row.CarIdx] = new Glide { From = pct, To = pct, Pit = row.OnPitRoad };
-                    continue;
+                    moving |= AddPlace(row.CarIdx, row.LapDistPct, row.OnPitRoad, now);
                 }
-
-                // glide on from where the car is shown now; a jump (into or out of the pit, a tow, a reset, no position) is not glided
-                double shown = glide.From >= 0 && glide.To >= 0 ? Wrap(glide.From + TrackMapGeometry.Signed(glide.To, glide.From) * before) : glide.To;
-                bool jump = pct < 0 || shown < 0 || row.OnPitRoad != glide.Pit || Math.Abs(TrackMapGeometry.Signed(pct, shown)) > MaxGlide;
-                glide.From = jump || !_smooth ? pct : shown;
-                glide.To = pct;
-                glide.Pit = row.OnPitRoad;
-                moving |= glide.From != glide.To;
             }
 
             List<int> gone = new List<int>();
@@ -397,31 +447,158 @@ namespace Shiftline.Plugin
             }
         }
 
-        /// <summary>Where a car is shown now: between the last two updates, or its last position.</summary>
+        /// <summary>The fast position feed: new places of every car the standings know, stamped when they were read.</summary>
+        public void UpdatePositions(CarPositions positions)
+        {
+            long started = Stopwatch.GetTimestamp();
+            try
+            {
+                UpdatePositionsCore(positions);
+            }
+            finally
+            {
+                AddWork(started);
+            }
+        }
+
+        private void UpdatePositionsCore(CarPositions positions)
+        {
+            if (positions == null || positions.Sequence == 0 || positions.Sequence == _feedSequence || _snapshot.IsSample || !_snapshot.HasData)
+            {
+                return;
+            }
+
+            _feedSequence = positions.Sequence;
+            _feedSeen = Now();
+            double now = positions.TakenSeconds;
+            Stamp(now);
+            bool moving = false;
+            foreach (StandingsRow row in _snapshot.Rows ?? new StandingsRow[0])
+            {
+                int idx = row.CarIdx;
+                bool pit = idx >= 0 && idx < positions.Pit.Length ? positions.Pit[idx] : row.OnPitRoad;
+                moving |= AddPlace(idx, positions.PctOf(idx), pit, now);
+            }
+
+            if (moving && _smooth && IsVisible)
+            {
+                StartRendering();
+            }
+            else
+            {
+                DrawCarLayer();
+            }
+        }
+
+        private bool FeedRunning()
+        {
+            return _feedSeen >= 0 && Now() - _feedSeen < 0.5;
+        }
+
+        /// <summary>
+        /// Notes the time of new data: the delay follows the time between updates (median of the last ones), two gaps and a
+        /// little, so there are always two known places around the moment shown.
+        /// </summary>
+        private void Stamp(double now)
+        {
+            if (_lastUpdate >= 0)
+            {
+                _gaps.Add(Math.Max(0.005, Math.Min(0.5, now - _lastUpdate)));
+                if (_gaps.Count > 12)
+                {
+                    _gaps.RemoveAt(0);
+                }
+
+                List<double> sorted = new List<double>(_gaps);
+                sorted.Sort();
+                _delay = Math.Max(0.04, Math.Min(0.5, sorted[sorted.Count / 2] * 2 + 0.03));
+            }
+
+            _lastUpdate = now;
+        }
+
+        /// <summary>Adds the newest place of a car; true when the car glides (moves smoothly) towards it.</summary>
+        private bool AddPlace(int carIdx, double pct, bool pit, double now)
+        {
+            Glide glide;
+            if (!_glides.TryGetValue(carIdx, out glide))
+            {
+                glide = new Glide { Pit = pit };
+                _glides[carIdx] = glide;
+            }
+
+            if (glide.Times.Count > 0 && now <= glide.Times[glide.Times.Count - 1])
+            {
+                return false;       // older than what the car has (standings and feed read at different moments)
+            }
+
+            // a jump (into or out of the pit, a tow, a reset, no position) is not glided: the car starts afresh there
+            bool known = glide.Places.Count > 0 && glide.Places[0] >= 0 && glide.Places[glide.Places.Count - 1] > -0.5;
+            double last = known ? glide.Places[glide.Places.Count - 1] : 0;
+            bool jump = !_smooth || pct < 0 || !known || pit != glide.Pit
+                || Math.Abs(TrackMapGeometry.Signed(pct, Wrap(last))) > MaxGlide;
+            bool moving = false;
+            if (jump)
+            {
+                glide.Times.Clear();
+                glide.Places.Clear();
+                glide.Places.Add(pct);
+            }
+            else
+            {
+                glide.Places.Add(last + TrackMapGeometry.Signed(pct, Wrap(last)));
+                moving = true;
+            }
+
+            glide.Times.Add(now);
+            glide.Pit = pit;
+            if (glide.Times.Count > Kept)
+            {
+                glide.Times.RemoveAt(0);
+                glide.Places.RemoveAt(0);
+            }
+
+            return moving;
+        }
+
+        /// <summary>Where a car is shown now: its place a short delay ago, between the two known places around that moment.</summary>
         private double Shown(StandingsRow row)
         {
             Glide glide;
-            if (!_glides.TryGetValue(row.CarIdx, out glide) || glide.From < 0 || glide.To < 0)
+            if (!_glides.TryGetValue(row.CarIdx, out glide) || glide.Places.Count == 0 || glide.Places[0] < 0)
             {
                 return row.LapDistPct;
             }
 
-            return Wrap(glide.From + TrackMapGeometry.Signed(glide.To, glide.From) * GlideFraction());
+            if (!_smooth)
+            {
+                return Wrap(glide.Places[glide.Places.Count - 1]);    // the newest place, from the fast feed when it runs
+            }
+
+            List<double> times = glide.Times;
+            List<double> places = glide.Places;
+            double t = Now() - _delay;
+            if (t <= times[0])
+            {
+                return Wrap(places[0]);
+            }
+
+            for (int k = 1; k < times.Count; k++)
+            {
+                if (t < times[k])
+                {
+                    double span = times[k] - times[k - 1];
+                    double f = span > 0 ? (t - times[k - 1]) / span : 1;
+                    return Wrap(places[k - 1] + (places[k] - places[k - 1]) * f);
+                }
+            }
+
+            return Wrap(places[places.Count - 1]);
         }
 
         private static double Wrap(double pct)
         {
             return pct - Math.Floor(pct);
-        }
-
-        private double GlideFraction()
-        {
-            if (_lastUpdate < 0)
-            {
-                return 1;
-            }
-
-            return Math.Max(0, Math.Min(1, (Clock.Elapsed.TotalSeconds - _lastUpdate) / _interval));
         }
 
         private void StartRendering()
@@ -445,10 +622,12 @@ namespace Shiftline.Plugin
         /// <summary>One frame of the screen: draw the cars where they are now; stop once they have reached the last update.</summary>
         private void OnFrame(object sender, EventArgs e)
         {
+            long started = Stopwatch.GetTimestamp();
             DrawCarLayer();
-            if (GlideFraction() >= 1)
+            AddWork(started);
+            if (Now() - _delay >= _lastUpdate)
             {
-                StopRendering();
+                StopRendering();       // every car has reached its newest place
             }
         }
 
@@ -495,8 +674,18 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The start/finish line (it moves in the mode Centred on me) and the cars.</summary>
+        /// <summary>How often a Track Map with live data drew its cars, and how far in the past it shows them (data check).</summary>
+        internal static long FramesDrawn;
+        internal static double ShownDelay;
+
         private void DrawCarLayer()
         {
+            if (!_snapshot.IsSample)
+            {
+                FramesDrawn++;
+                ShownDelay = _smooth ? _delay : 0;
+            }
+
             using (DrawingContext dc = _carLayer.RenderOpen())
             {
                 DrawCars(dc);
@@ -516,7 +705,7 @@ namespace Shiftline.Plugin
             {
                 if (_shape != null)
                 {
-                    DrawStartLine(dc, 0);
+                    DrawStartLine(dc, Wrap(_startOffset));     // the game's start of the lap
                 }
                 else if (_ring)
                 {
@@ -863,6 +1052,11 @@ namespace Shiftline.Plugin
             double range = _options.GetInt("Range") / 100.0;
             double playerPct = hasPlayer ? Shown(player) : 0;
             _shownPlayerPct = playerPct;
+            if (hasPlayer && !_snapshot.IsSample && TrackPositionLog.IsRecording)
+            {
+                TrackPositionLog.Frame(playerPct, _smooth ? _delay : 0);
+            }
+
             bool classOnly = _options.Get("Show") == "Class" && player != null;
             bool hidePit = _options.Get("Pit") == "Hide";
             bool lapRings = _options.GetBool("LapRings") && (_snapshot.IsRace || _snapshot.IsSample);
@@ -916,7 +1110,8 @@ namespace Shiftline.Plugin
                 Point inPit;
                 if (_shape != null)
                 {
-                    at = row.OnPitRoad && _shape.PitAt(Shown(row), out inPit) ? inPit : _shape.At(Shown(row));
+                    double onShape = Wrap(Shown(row) + _startOffset);
+                    at = row.OnPitRoad && _shape.PitAt(onShape, out inPit) ? inPit : _shape.At(onShape);
                 }
                 else if (_ring)
                 {

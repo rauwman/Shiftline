@@ -98,6 +98,8 @@
                 <local:IconTitle IconKey="Activity" Text="Data check" />
                 <TextBlock Style="{StaticResource CardHint}" Text="How the game names the track. The Track Map finds the shape of a track by these values. Missing means the game does not deliver it." />
                 <TextBlock x:Name="TrackCheckText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" />
+                <Button x:Name="RecordButton" Style="{StaticResource GlassButton}" Content="Record my position (2 minutes)" Click="RecordPosition_Click" HorizontalAlignment="Left" Margin="0,12,0,0"
+                        ToolTip="Writes your position on the lap to a file in PluginsData\Shiftline\Logs for two minutes. Start it, then drive; the settings may be closed meanwhile." />
             </StackPanel>
         </Border>
     </StackPanel>

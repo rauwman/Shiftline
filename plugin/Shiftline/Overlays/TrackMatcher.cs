@@ -162,9 +162,10 @@ namespace Shiftline.Plugin
                 coded = layouts.Where(l => l.TrackCodes.Any(keys.Contains)).ToList();
             }
 
+            HashSet<string> layoutWords = LayoutWordsOf(query.DisplayName + " " + query.Config + " " + query.TrackCode + " " + query.IRacingName);
             if (coded.Count > 0)
             {
-                return new TrackMatch { Layout = Closest(coded, query.LengthM), How = "code" };
+                return new TrackMatch { Layout = Best(coded, query.LengthM, layoutWords), How = "code" };
             }
 
             // (2) name and length, (3) the closest length of several
@@ -189,7 +190,7 @@ namespace Shiftline.Plugin
                 return new TrackMatch();
             }
 
-            return new TrackMatch { Layout = Closest(named, query.LengthM), How = named.Count == 1 ? "name and length" : "closest length" };
+            return new TrackMatch { Layout = Best(named, query.LengthM, layoutWords), How = named.Count == 1 ? "name and length" : "closest length" };
         }
 
         /// <summary>The keys a shipped code may use: &lt;game&gt;/&lt;trackcode&gt;, and the older &lt;game&gt;/&lt;trackid&gt;[/&lt;config&gt;].</summary>
@@ -215,14 +216,36 @@ namespace Shiftline.Plugin
             return keys;
         }
 
-        private static TrackLayout Closest(List<TrackLayout> layouts, double length)
+        /// <summary>
+        /// Of several candidates: first the one whose layout words fit the game's (for example "GP" against "moto": a layout word
+        /// the game names counts for it, one the game does not name counts against it), then the closest length.
+        /// </summary>
+        private static TrackLayout Best(List<TrackLayout> layouts, double length, HashSet<string> gameLayoutWords)
         {
-            if (!(length > 0))
+            return layouts
+                .OrderByDescending(l => LayoutFit(l, gameLayoutWords))
+                .ThenBy(l => length > 0 && l.LengthM > 0 ? Math.Abs(l.LengthM - length) : double.MaxValue)
+                .First();
+        }
+
+        private static int LayoutFit(TrackLayout layout, HashSet<string> gameLayoutWords)
+        {
+            HashSet<string> own = LayoutWordsOf(layout.Id.Replace('_', ' ') + " " + layout.Config);
+            return own.Count(gameLayoutWords.Contains) - own.Count(w => !gameLayoutWords.Contains(w));
+        }
+
+        private static HashSet<string> LayoutWordsOf(string text)
+        {
+            HashSet<string> words = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string word in NormKey(text).Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                return layouts[0];
+                if (LayoutWords.Contains(word))
+                {
+                    words.Add(word);
+                }
             }
 
-            return layouts.OrderBy(l => l.LengthM > 0 ? Math.Abs(l.LengthM - length) : double.MaxValue).First();
+            return words;
         }
 
         private static HashSet<string> Words(string text)

@@ -90,6 +90,17 @@ namespace Shiftline.Plugin
                 || OverlaySettings.KnownFeatures(game).HasValue;
         }
 
+        private static CarPositions _positions = CarPositions.Empty;
+
+        /// <summary>
+        /// Where the cars are on the lap, read on every SimHub update while the Track Map is on (the standings above follow their
+        /// slower rate). Never null; the object never changes after it was returned.
+        /// </summary>
+        public static CarPositions Positions
+        {
+            get { return Volatile.Read(ref _positions); }
+        }
+
         /// <summary>The latest standings. Never null; the object never changes after it was returned.</summary>
         public static StandingsSnapshot Current
         {
@@ -121,9 +132,15 @@ namespace Shiftline.Plugin
                     Volatile.Write(ref _selectedGame, game ?? string.Empty);
                 }
 
+                bool positions = running && OverlaySettings.IsEnabled(TrackMapKey);
                 if (running && !iracing)
                 {
                     // Every other game: SimHub's own opponent list.
+                    if (positions)
+                    {
+                        Volatile.Write(ref _positions, CarPositions.ReadSimHub(data, Generic, Positions));
+                    }
+
                     StandingsClock.SetRate(DataRate());
                     if (StandingsClock.Due())
                     {
@@ -140,6 +157,11 @@ namespace Shiftline.Plugin
 
                 if (!running)
                 {
+                    if (Positions.Sequence != 0)
+                    {
+                        Volatile.Write(ref _positions, CarPositions.Empty);
+                    }
+
                     if (Current.HasData)
                     {
                         Volatile.Write(ref _current, StandingsSnapshot.Empty);
@@ -150,13 +172,18 @@ namespace Shiftline.Plugin
                     return;
                 }
 
+                Func<string, object> get = name => Read(pluginManager, name);
+                if (positions)
+                {
+                    Volatile.Write(ref _positions, CarPositions.ReadIRacing(get, Positions));
+                }
+
                 StandingsClock.SetRate(DataRate());
                 if (!StandingsClock.Due())
                 {
                     return;
                 }
 
-                Func<string, object> get = name => Read(pluginManager, name);
                 if (DriverClock.Due())
                 {
                     _drivers = IRacingReader.ReadDrivers(get);

@@ -16,6 +16,14 @@ namespace Shiftline.Plugin
         private DispatcherTimer _radioTimer;
         private DispatcherTimer _checkTimer;
         private bool _shapesShown;
+        private DispatcherTimer _sampleTimer;      // watches how often the own position changes (data check)
+        private double _lastPct = -2;
+        private int _pctChanges;
+        private int _pctRate;
+        private long _feedSeen;
+        private long _framesSeen;
+        private long _feedRate;
+        private long _frameRate;
         private readonly Random _random = new Random();
         private DispatcherTimer _timer;
         private bool _previewDriving;
@@ -46,11 +54,26 @@ namespace Shiftline.Plugin
                             RefreshPreview();       // the track shapes were still loading when the preview was drawn
                         }
 
+                        _pctRate = _pctChanges;
+                        _pctChanges = 0;
+                        long feed = OverlayData.Positions.Sequence;
+                        _feedRate = feed >= _feedSeen ? feed - _feedSeen : 0;
+                        _feedSeen = feed;
+                        long frames = TrackMapOverlay.FramesDrawn;
+                        _frameRate = frames - _framesSeen;
+                        _framesSeen = frames;
                         ShowTrackCheck();
                     };
                 }
 
                 TrackLibrary.EnsureLoading();
+                if (_sampleTimer == null)
+                {
+                    _sampleTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+                    _sampleTimer.Tick += (timer, tick) => SamplePosition();
+                }
+
+                _sampleTimer.Start();
                 ShowTrackCheck();
                 _checkTimer.Start();
             };
@@ -69,6 +92,11 @@ namespace Shiftline.Plugin
                 if (_checkTimer != null)
                 {
                     _checkTimer.Stop();
+                }
+
+                if (_sampleTimer != null)
+                {
+                    _sampleTimer.Stop();
                 }
             };
         }
@@ -136,11 +164,13 @@ namespace Shiftline.Plugin
         private void UpdateEnabled()
         {
             TrackMapOptions options = TrackMapOptions.Load();
-            bool ring = options.Ring;
+            bool shapes = options.TrackShapes;
+            bool ring = options.Ring || shapes;     // with track shapes on, a track without a shape is a ring of the track size
+            SetRowEnabled("Shape", !shapes);
             SetRowEnabled("Orientation", !ring);
             SetRowEnabled("Length", !ring);
             SetRowEnabled("Range", !ring && options.Centred);
-            SetRowEnabled("RingSize", ring);
+            SetRowEnabled("RingSize", ring && !shapes);
             SetRowEnabled("StartAt", ring && !options.Centred);
             SetRowEnabled("Direction", ring);
             SetRowEnabled("Thickness", options.Get("LineStyle") != "Strip");
@@ -219,6 +249,20 @@ namespace Shiftline.Plugin
             PreviewTrackText.Visibility = text.Length == 0 ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
         }
 
+        private void RecordPosition_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (TrackPositionLog.IsRecording)
+            {
+                TrackPositionLog.Stop();
+            }
+            else
+            {
+                TrackPositionLog.Start(120);
+            }
+
+            ShowTrackCheck();
+        }
+
         private void Link_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
             try
@@ -238,6 +282,7 @@ namespace Shiftline.Plugin
         /// </summary>
         private void ShowTrackCheck()
         {
+            RecordButton.Content = TrackPositionLog.IsRecording ? "Stop recording and save" : "Record my position (2 minutes)";
             if (Plugin == null || Plugin.PluginManager == null)
             {
                 TrackCheckText.Text = "-";
@@ -260,6 +305,7 @@ namespace Shiftline.Plugin
             text.AppendLine("Track config".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackConfig")));
             text.AppendLine("Track code".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackCode")));
             text.AppendLine("Track length".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackLength")));
+            text.AppendLine("Car coordinates".PadRight(24) + Shown(Coordinates("DataCorePlugin.GameData.CarCoordinates")));
             if (game == "IRacing")
             {
                 StandingsSnapshot snapshot = OverlayData.Current;
@@ -267,8 +313,46 @@ namespace Shiftline.Plugin
                 text.AppendLine("iRacing track config".PadRight(24) + Shown(snapshot.TrackConfig));
             }
 
+            if (TrackPositionLog.IsRecording)
+            {
+                text.AppendLine("Recording".PadRight(24) + TrackPositionLog.SecondsLeft + " s left");
+            }
+            else if (TrackPositionLog.LastFile.Length > 0)
+            {
+                text.AppendLine("Recording saved".PadRight(24) + TrackPositionLog.LastFile);
+            }
+
+            StandingsRow me = OwnRow(OverlayData.Current);
+            text.AppendLine("Your position".PadRight(24) + (me == null || me.LapDistPct < 0
+                ? "-"
+                : (me.LapDistPct * 100).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " % of the lap, changes " + _pctRate + " times per second"));
+            text.AppendLine("Position feed".PadRight(24) + _feedRate + " updates per second");
+            text.AppendLine("Map drawn".PadRight(24) + _frameRate + " times per second, "
+                + (TrackMapOverlay.ShownDelay * 1000).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms behind the data");
             AppendTrackShape(text);
             TrackCheckText.Text = text.ToString().TrimEnd();
+        }
+
+        /// <summary>Counts how often the own position on the lap changes (some games deliver it less often than others).</summary>
+        private void SamplePosition()
+        {
+            StandingsRow me = OwnRow(OverlayData.Current);
+            double pct = me == null ? -1 : me.LapDistPct;
+            if (Math.Abs(pct - _lastPct) > 1e-9)
+            {
+                _pctChanges++;
+                _lastPct = pct;
+            }
+        }
+
+        private static StandingsRow OwnRow(StandingsSnapshot snapshot)
+        {
+            if (snapshot == null || snapshot.Rows == null)
+            {
+                return null;
+            }
+
+            return snapshot.Rows.FirstOrDefault(r => r.IsPlayer || r.CarIdx == snapshot.PlayerCarIdx);
         }
 
         /// <summary>Which track shape the plugin picked for the running track, how, and from which source.</summary>
@@ -297,6 +381,14 @@ namespace Shiftline.Plugin
 
             TrackSource source = TrackLibrary.SourceOf(match.Layout);
             text.AppendLine("Track shape".PadRight(24) + match.Layout.Id + " - " + match.Layout.Title);
+            TrackAlignmentResult alignment = TrackAlignment.For(snapshot, match.Layout);
+            text.AppendLine("SimHub map".PadRight(24) + (alignment.State == "looking" ? "looking ..." : alignment.Source.Length == 0 ? "none" : alignment.Source + " (" + System.IO.Path.GetFileName(alignment.File) + ")"));
+            text.AppendLine("Start offset".PadRight(24) + (alignment.Usable
+                ? (alignment.Offset * 100).ToString("+0.0;-0.0;0.0", System.Globalization.CultureInfo.InvariantCulture) + " %, fit "
+                    + (alignment.Fit * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " %"
+                : alignment.State == "no fit"
+                    ? "SimHub's map does not fit this shape (" + (alignment.Fit * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " %), not moved"
+                    : "0 %, not known yet"));
             text.AppendLine("Found by".PadRight(24) + match.How);
             text.AppendLine("Source".PadRight(24) + (source == null ? match.Layout.Source : source.DisplayName + " (" + source.License + ")"));
             text.AppendLine("Length difference".PadRight(24) + (double.IsNaN(match.LengthDifference)
@@ -316,6 +408,33 @@ namespace Shiftline.Plugin
             }
 
             return value == null ? string.Empty : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>A list of numbers (the car's position in the game world) as "x, y, z"; empty when missing.</summary>
+        private string Coordinates(string name)
+        {
+            object value = null;
+            try
+            {
+                value = Plugin.PluginManager.GetPropertyValue(name);
+            }
+            catch (Exception)
+            {
+            }
+
+            System.Collections.IEnumerable list = value as System.Collections.IEnumerable;
+            if (list == null || value is string)
+            {
+                return value == null ? string.Empty : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            List<string> parts = new List<string>();
+            foreach (object item in list)
+            {
+                parts.Add(Convert.ToDouble(item, System.Globalization.CultureInfo.InvariantCulture).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            return string.Join(", ", parts);
         }
 
         private static string Shown(string value)

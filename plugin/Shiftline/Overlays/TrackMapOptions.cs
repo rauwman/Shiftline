@@ -65,10 +65,10 @@ namespace Shiftline.Plugin
 
         public static readonly StandingsChoice[] AllChoices =
         {
-            new StandingsChoice("Map", "TrackShapes", "Track shapes (The real shape of the track when the plugin knows it.)", "1", OnOff),
+            new StandingsChoice("Map", "TrackShapes", "Track shapes (The real shape of the track when the plugin knows it, otherwise a ring of the same size.)", "1", OnOff),
             new StandingsChoice("Map", "TrackOrientation", "Track orientation", "Usual", "Usual", "Usual (The way the track is usually drawn.)", "North", "North up"),
             new StandingsChoice("Map", "TrackSize", "Track size (The longer side of the track. In edit mode you can also pull the edge of the window.)", "400", RingChoices()),
-            new StandingsChoice("Map", "Shape", "Shape (Used when there is no track shape.)", "Line", "Line", "Line", "Ring", "Ring"),
+            new StandingsChoice("Map", "Shape", "Shape (Used when track shapes are off.)", "Line", "Line", "Line", "Ring", "Ring"),
             new StandingsChoice("Map", "Orientation", "Orientation", "Horizontal", "Horizontal", "Horizontal", "Vertical", "Vertical"),
             new StandingsChoice("Map", "Length", "Length (How long the line is. In edit mode you can also pull the edge of the window.)", DefaultLength.ToString(CultureInfo.InvariantCulture), LengthChoices()),
             new StandingsChoice("Map", "RingSize", "Ring size (How wide the ring is. In edit mode you can also pull the edge of the window.)", DefaultRing.ToString(CultureInfo.InvariantCulture), RingChoices()),
