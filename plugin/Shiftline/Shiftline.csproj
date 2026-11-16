@@ -70,6 +70,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
@@ -110,6 +111,9 @@
     </Compile>
     <Compile Include="Overlays\BattleBarOptions.cs" />
     <Compile Include="Overlays\BattleBarOverlay.cs" />
+    <Compile Include="Overlays\TrackLibrary.cs" />
+    <Compile Include="Overlays\TrackMatcher.cs" />
+    <Compile Include="Overlays\TrackShape.cs" />
     <Compile Include="Overlays\TrackMapGeometry.cs" />
     <Compile Include="Overlays\TrackMapOptions.cs" />
     <Compile Include="Overlays\TrackMapOverlay.cs" />
@@ -244,4 +248,14 @@
     </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- Track Map: the track shapes in data/tracks are zipped at build time and embedded as "Shiftline.tracks.zip"
+       (decision of 2026-11-12, variant C). Without data/tracks/manifest.json the plugin builds without track shapes. -->
+  <Target Name="ZipTrackData" BeforeTargets="BeforeBuild" Condition="Exists('$(MSBuildProjectDirectory)\..\..\data\tracks\manifest.json')">
+    <ZipDirectory SourceDirectory="$(MSBuildProjectDirectory)\..\..\data\tracks" DestinationFile="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)tracks.zip" Overwrite="true" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)tracks.zip">
+        <LogicalName>Shiftline.tracks.zip</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>

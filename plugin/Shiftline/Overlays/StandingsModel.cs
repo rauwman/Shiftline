@@ -112,7 +112,9 @@ namespace Shiftline.Plugin
         public string TrackShort { get; internal set; }       // short track name, for example "Interlagos"
         public string TrackName { get; internal set; } = string.Empty;    // the game's internal track name (iRacing WeekendInfo.TrackName), for the Track Map
         public string TrackConfig { get; internal set; } = string.Empty;  // the layout of the track (iRacing WeekendInfo.TrackConfigName)
-        public int RadioCarIdx { get; internal set; } = -1;   // the car whose driver is on the radio (iRacing), -1 = nobody or unknown
+        public int RadioCarIdx { get; internal set; } = -1;
+        public string TrackCode { get; internal set; } = string.Empty;    // SimHub GameData.TrackCode (track and layout), other games
+        public double TrackLengthM { get; internal set; } = double.NaN;   // length of the track in metres, NaN = unknown   // the car whose driver is on the radio (iRacing), -1 = nobody or unknown
         public double TimeOfDay { get; internal set; }        // time of day in the simulation, seconds after midnight, -1 = unknown
         public double OilTemp { get; internal set; } = double.NaN;      // the player's car, degrees Celsius, NaN = not delivered
         public double WaterTemp { get; internal set; } = double.NaN;

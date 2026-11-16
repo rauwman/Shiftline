@@ -14,6 +14,8 @@ namespace Shiftline.Plugin
         private readonly Stopwatch _driving = new Stopwatch();
         private TrackMapOverlay _preview;
         private DispatcherTimer _radioTimer;
+        private DispatcherTimer _checkTimer;
+        private bool _shapesShown;
         private readonly Random _random = new Random();
         private DispatcherTimer _timer;
         private bool _previewDriving;
@@ -33,6 +35,24 @@ namespace Shiftline.Plugin
                 ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.TrackMapKey);
                 FillRates();
                 BuildControls();
+                if (_checkTimer == null)
+                {
+                    _checkTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                    _checkTimer.Tick += (timer, tick) =>
+                    {
+                        if (TrackLibrary.IsReady && !_shapesShown)
+                        {
+                            _shapesShown = true;
+                            RefreshPreview();       // the track shapes were still loading when the preview was drawn
+                        }
+
+                        ShowTrackCheck();
+                    };
+                }
+
+                TrackLibrary.EnsureLoading();
+                ShowTrackCheck();
+                _checkTimer.Start();
             };
             Unloaded += (sender, args) =>
             {
@@ -44,6 +64,11 @@ namespace Shiftline.Plugin
                 if (_radioTimer != null)
                 {
                     _radioTimer.Stop();
+                }
+
+                if (_checkTimer != null)
+                {
+                    _checkTimer.Stop();
                 }
             };
         }
@@ -119,6 +144,8 @@ namespace Shiftline.Plugin
             SetRowEnabled("StartAt", ring && !options.Centred);
             SetRowEnabled("Direction", ring);
             SetRowEnabled("Thickness", options.Get("LineStyle") != "Strip");
+            SetRowEnabled("TrackOrientation", options.TrackShapes);
+            SetRowEnabled("TrackSize", options.TrackShapes);
         }
 
         private void SetRowEnabled(string key, bool enabled)
@@ -138,6 +165,7 @@ namespace Shiftline.Plugin
             if (_preview == null)
             {
                 _preview = new TrackMapOverlay();
+                _preview.DesignSizeChanged += SizePreview;
                 PreviewHost.Child = _preview;
             }
 
@@ -151,7 +179,148 @@ namespace Shiftline.Plugin
             PreviewGameText.Visibility = PreviewGameText.Text.Length == 0 ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
             ShowLegend();
             _preview.Update(Sample());
+            SizePreview();
             UpdateRadio();
+            ShowPreviewTrack();
+        }
+
+        private void SizePreview()
+        {
+            System.Windows.Size size = _preview.DesignSize;
+            _preview.Width = size.Width;
+            _preview.Height = size.Height;
+        }
+
+        /// <summary>The credit line of the track shapes and which track the preview shows.</summary>
+        private void ShowPreviewTrack()
+        {
+            bool shapes = TrackMapOptions.Load().TrackShapes;
+            TrackSourceText.Visibility = shapes ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+            string text = string.Empty;
+            if (shapes)
+            {
+                TrackLayout layout = _preview == null ? null : _preview.Layout;
+                if (!TrackLibrary.IsReady)
+                {
+                    text = "Loading the track shapes ...";
+                }
+                else if (layout != null)
+                {
+                    TrackSource source = TrackLibrary.SourceOf(layout);
+                    text = "Preview track: " + layout.Title + (source == null ? string.Empty : " (" + source.DisplayName + ")") + ".";
+                }
+                else
+                {
+                    text = TrackLibrary.Problem ?? "No track shape to show.";
+                }
+            }
+
+            PreviewTrackText.Text = text;
+            PreviewTrackText.Visibility = text.Length == 0 ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
+        }
+
+        private void Link_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            }
+            catch (Exception)
+            {
+            }
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// How the running game names the track, as SimHub delivers it: the values the track shapes are matched by
+        /// (iRacing: track name and layout; other games: SimHub's game and track id).
+        /// </summary>
+        private void ShowTrackCheck()
+        {
+            if (Plugin == null || Plugin.PluginManager == null)
+            {
+                TrackCheckText.Text = "-";
+                return;
+            }
+
+            string game = Property("DataCorePlugin.CurrentGame");
+            System.Text.StringBuilder text = new System.Text.StringBuilder();
+            text.AppendLine("Game".PadRight(24) + Shown(game));
+            if (game.Length == 0)
+            {
+                text.Append("No game is running. Start a game and join a session.");
+                TrackCheckText.Text = text.ToString();
+                return;
+            }
+
+            string trackId = Property("DataCorePlugin.GameData.TrackId");
+            text.AppendLine("Track name".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackName")));
+            text.AppendLine("Track id".PadRight(24) + Shown(trackId));
+            text.AppendLine("Track config".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackConfig")));
+            text.AppendLine("Track code".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackCode")));
+            text.AppendLine("Track length".PadRight(24) + Shown(Property("DataCorePlugin.GameData.TrackLength")));
+            if (game == "IRacing")
+            {
+                StandingsSnapshot snapshot = OverlayData.Current;
+                text.AppendLine("iRacing track name".PadRight(24) + Shown(snapshot.TrackName));
+                text.AppendLine("iRacing track config".PadRight(24) + Shown(snapshot.TrackConfig));
+            }
+
+            AppendTrackShape(text);
+            TrackCheckText.Text = text.ToString().TrimEnd();
+        }
+
+        /// <summary>Which track shape the plugin picked for the running track, how, and from which source.</summary>
+        private void AppendTrackShape(System.Text.StringBuilder text)
+        {
+            if (!TrackLibrary.IsReady)
+            {
+                text.AppendLine("Track shape".PadRight(24) + "loading ...");
+                return;
+            }
+
+            StandingsSnapshot snapshot = OverlayData.Current;
+            if (!snapshot.HasData)
+            {
+                text.AppendLine("Track shape".PadRight(24) + "- (no session data yet)");
+                return;
+            }
+
+            TrackMatch match = TrackMapTracks.Live(snapshot);
+            text.AppendLine("Match key".PadRight(24) + (match.Key.Length == 0 ? "-" : match.Key));
+            if (match.Layout == null)
+            {
+                text.AppendLine("Track shape".PadRight(24) + "none, shown as " + (TrackMapOptions.Load().Ring ? "a ring" : "a line"));
+                return;
+            }
+
+            TrackSource source = TrackLibrary.SourceOf(match.Layout);
+            text.AppendLine("Track shape".PadRight(24) + match.Layout.Id + " - " + match.Layout.Title);
+            text.AppendLine("Found by".PadRight(24) + match.How);
+            text.AppendLine("Source".PadRight(24) + (source == null ? match.Layout.Source : source.DisplayName + " (" + source.License + ")"));
+            text.AppendLine("Length difference".PadRight(24) + (double.IsNaN(match.LengthDifference)
+                ? "-"
+                : (match.LengthDifference * 100).ToString("+0.0;-0.0;0.0", System.Globalization.CultureInfo.InvariantCulture) + " %"));
+        }
+
+        private string Property(string name)
+        {
+            object value = null;
+            try
+            {
+                value = Plugin.PluginManager.GetPropertyValue(name);
+            }
+            catch (Exception)
+            {
+            }
+
+            return value == null ? string.Empty : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string Shown(string value)
+        {
+            return string.IsNullOrEmpty(value) ? "(missing)" : value;
         }
 
         /// <summary>In the preview a random driver is on the radio, a new one every few seconds.</summary>

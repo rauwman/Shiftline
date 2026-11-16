@@ -60,7 +60,13 @@ namespace Shiftline.Plugin
         private Pen _roadPen;
         private double _roadGap;                    // distance between the two lines of the road (centre to centre)
         private Brush _stripBrush;
-        private Pen _stripPen;                      // the strip around the ring: one wide circle
+        private Pen _stripPen;                      // the strip around the ring or along the track shape
+        private Pen _pitPen;                        // the pit lane of a track shape
+        private TrackLayout _layout;                // the track of the session (or the example track of the samples)
+        private TrackShape _shape;                  // the layout fitted into the window; null = line or ring
+        private bool _shapesOn;
+        private bool _usualOrientation;
+        private int _trackSize;
         private bool _ring;
         private double _ringRadius;                 // radius of the middle of the track on the ring
         private Point _ringCentre;
@@ -162,6 +168,43 @@ namespace Shiftline.Plugin
             get { return _ring; }
         }
 
+        /// <summary>True while the map shows the real shape of a track.</summary>
+        public bool IsTrack
+        {
+            get { return _shape != null; }
+        }
+
+        /// <summary>The track shape shown, or null.</summary>
+        public TrackLayout Layout
+        {
+            get { return _shape == null ? null : _layout; }
+        }
+
+        /// <summary>The option the window edge changes: "TrackSize", "RingSize" or "Length".</summary>
+        public string SizeKey
+        {
+            get { return _shape != null ? "TrackSize" : _ring ? "RingSize" : "Length"; }
+        }
+
+        /// <summary>The size changed because another track was found (the window has to follow).</summary>
+        public event Action DesignSizeChanged;
+
+        private void SetLayout(TrackLayout layout)
+        {
+            if (ReferenceEquals(layout, _layout))
+            {
+                return;
+            }
+
+            _layout = layout;
+            Size before = _designSize;
+            ApplyOptions(_options);
+            if (before != _designSize && DesignSizeChanged != null)
+            {
+                DesignSizeChanged();
+            }
+        }
+
         /// <summary>The car whose driver is on the radio (CarIdx), -1 for nobody. Shown with waves when the option is on.</summary>
         public int TalkingCarIdx
         {
@@ -216,8 +259,13 @@ namespace Shiftline.Plugin
             _roadPen.Freeze();
             _roadGap = thickness * 2 + 2;
             _stripBrush = Frozen(alpha, colour);
-            _stripPen = new Pen(_stripBrush, _playerRadius * 2 + 8);
+            _stripPen = new Pen(_stripBrush, _playerRadius * 2 + 8) { LineJoin = PenLineJoin.Round };
             _stripPen.Freeze();
+            _pitPen = new Pen(Frozen(0x90, colour), 1.5) { DashStyle = new DashStyle(new double[] { 2, 2 }, 0), LineJoin = PenLineJoin.Round };
+            _pitPen.Freeze();
+            _shapesOn = options.TrackShapes;
+            _usualOrientation = options.Get("TrackOrientation") != "North";
+            _trackSize = options.SizeOf("TrackSize");
             _startLine = options.Get("StartLine");
             _texts.Clear();
 
@@ -253,6 +301,13 @@ namespace Shiftline.Plugin
                 _designSize = _vertical
                     ? new Size(2 * _crossCentre, _length + 2 * _alongPad)
                     : new Size(_length + 2 * _alongPad, 2 * _crossCentre);
+            }
+
+            // the real shape of the track, when there is one: then it replaces the line or the ring
+            _shape = _shapesOn && _layout != null ? TrackShape.Build(_layout, _usualOrientation, _trackSize, EdgeMargin + _reach + 4) : null;
+            if (_shape != null)
+            {
+                _designSize = _shape.Size;
             }
 
             InvalidateMeasure();
@@ -298,6 +353,7 @@ namespace Shiftline.Plugin
 
             _lastUpdate = now;
             _snapshot = snapshot ?? StandingsSnapshot.Empty;
+            SetLayout(_shapesOn ? TrackMapTracks.For(_snapshot).Layout : null);
             bool moving = false;
             HashSet<int> seen = new HashSet<int>();
             foreach (StandingsRow row in _snapshot.Rows ?? new StandingsRow[0])
@@ -427,7 +483,14 @@ namespace Shiftline.Plugin
             using (DrawingContext dc = _trackLayer.RenderOpen())
             {
                 dc.DrawRoundedRectangle(_plate, null, new Rect(0, 0, _designSize.Width, _designSize.Height), _round, _round);
-                DrawTrack(dc);
+                if (_shape != null)
+                {
+                    DrawTrackShape(dc);
+                }
+                else
+                {
+                    DrawTrack(dc);
+                }
             }
         }
 
@@ -451,7 +514,11 @@ namespace Shiftline.Plugin
 
             if (_startLine != "Off")
             {
-                if (_ring)
+                if (_shape != null)
+                {
+                    DrawStartLine(dc, 0);
+                }
+                else if (_ring)
                 {
                     DrawStartLine(dc, RingAngle(0, playerPct, centred));
                 }
@@ -573,6 +640,28 @@ namespace Shiftline.Plugin
             _waves.Clear();
         }
 
+        /// <summary>The real shape of the track in the chosen style, with the pit lane where the data has one.</summary>
+        private void DrawTrackShape(DrawingContext dc)
+        {
+            if (_shape.Pit != null)
+            {
+                dc.DrawGeometry(null, _pitPen, _shape.Pit);
+            }
+
+            if (_style == "Strip")
+            {
+                dc.DrawGeometry(null, _stripPen, _shape.Line);
+            }
+            else if (_style == "Road")
+            {
+                dc.DrawGeometry(null, _roadPen, _shape.Road(_roadGap));
+            }
+            else
+            {
+                dc.DrawGeometry(null, _linePen, _shape.Line);
+            }
+        }
+
         /// <summary>The track from fraction 0 (start/finish; left or bottom) to fraction 1: a thin line, a road or a strip.</summary>
         private void DrawTrack(DrawingContext dc)
         {
@@ -626,7 +715,12 @@ namespace Shiftline.Plugin
             double half = _reach + 2;
             Point centre;
             Vector across;
-            if (_ring)
+            if (_shape != null)
+            {
+                centre = _shape.At(at);
+                across = _shape.Across(at);
+            }
+            else if (_ring)
             {
                 centre = RingPoint(at, _ringRadius);
                 across = RingPoint(at, _ringRadius + 1) - centre;
@@ -765,7 +859,7 @@ namespace Shiftline.Plugin
             }
 
             hasPlayer = player != null && player.TrackSurface != -1 && player.LapDistPct >= 0;
-            centred = _options.Centred && hasPlayer;
+            centred = _options.Centred && hasPlayer && _shape == null;     // on a track shape: the whole map (follow view later)
             double range = _options.GetInt("Range") / 100.0;
             double playerPct = hasPlayer ? Shown(player) : 0;
             _shownPlayerPct = playerPct;
@@ -819,7 +913,12 @@ namespace Shiftline.Plugin
                 }
 
                 Point at;
-                if (_ring)
+                Point inPit;
+                if (_shape != null)
+                {
+                    at = row.OnPitRoad && _shape.PitAt(Shown(row), out inPit) ? inPit : _shape.At(Shown(row));
+                }
+                else if (_ring)
                 {
                     at = RingPoint(RingAngle(Shown(row), playerPct, centred), _ringRadius);
                 }
@@ -993,7 +1092,7 @@ namespace Shiftline.Plugin
 
         private static Pen MakeLinePen(Brush brush, double thickness)
         {
-            Pen pen = new Pen(brush, thickness) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            Pen pen = new Pen(brush, thickness) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
             pen.Freeze();
             return pen;
         }

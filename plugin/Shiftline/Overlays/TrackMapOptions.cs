@@ -65,7 +65,10 @@ namespace Shiftline.Plugin
 
         public static readonly StandingsChoice[] AllChoices =
         {
-            new StandingsChoice("Map", "Shape", "Shape", "Line", "Line", "Line", "Ring", "Ring"),
+            new StandingsChoice("Map", "TrackShapes", "Track shapes (The real shape of the track when the plugin knows it.)", "1", OnOff),
+            new StandingsChoice("Map", "TrackOrientation", "Track orientation", "Usual", "Usual", "Usual (The way the track is usually drawn.)", "North", "North up"),
+            new StandingsChoice("Map", "TrackSize", "Track size (The longer side of the track. In edit mode you can also pull the edge of the window.)", "400", RingChoices()),
+            new StandingsChoice("Map", "Shape", "Shape (Used when there is no track shape.)", "Line", "Line", "Line", "Ring", "Ring"),
             new StandingsChoice("Map", "Orientation", "Orientation", "Horizontal", "Horizontal", "Horizontal", "Vertical", "Vertical"),
             new StandingsChoice("Map", "Length", "Length (How long the line is. In edit mode you can also pull the edge of the window.)", DefaultLength.ToString(CultureInfo.InvariantCulture), LengthChoices()),
             new StandingsChoice("Map", "RingSize", "Ring size (How wide the ring is. In edit mode you can also pull the edge of the window.)", DefaultRing.ToString(CultureInfo.InvariantCulture), RingChoices()),
@@ -113,10 +116,10 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The same options with another length of the line or size of the ring (while the window edge is being pulled).</summary>
-        public TrackMapOptions WithSize(int size)
+        public TrackMapOptions WithSize(string key, int size)
         {
             Dictionary<string, string> values = new Dictionary<string, string>(_values, StringComparer.Ordinal);
-            values[Ring ? "RingSize" : "Length"] = ClampSize(size).ToString(CultureInfo.InvariantCulture);
+            values[key] = ClampSize(key, size).ToString(CultureInfo.InvariantCulture);
             return new TrackMapOptions { _values = values };
         }
 
@@ -171,15 +174,20 @@ namespace Shiftline.Plugin
             get { return ClampRing(GetInt("RingSize")); }
         }
 
-        /// <summary>The size that pulling the window edge changes: the length of the line or the size of the ring.</summary>
-        public int Size
+        public bool TrackShapes
         {
-            get { return Ring ? RingSize : Length; }
+            get { return GetBool("TrackShapes"); }
         }
 
-        public int ClampSize(int size)
+        /// <summary>The size the window edge changes ("Length", "RingSize" or "TrackSize", see TrackMapOverlay.SizeKey).</summary>
+        public int SizeOf(string key)
         {
-            return Ring ? ClampRing(size) : ClampLength(size);
+            return ClampSize(key, GetInt(key));
+        }
+
+        public static int ClampSize(string key, int size)
+        {
+            return key == "Length" ? ClampLength(size) : ClampRing(size);
         }
 
         public static int ClampRing(int size)
@@ -202,9 +210,9 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>Stores the length of the line or the size of the ring; raises Changed, so the window snaps to the new size.</summary>
-        public void SetSize(int size)
+        public static void SetSize(string key, int size)
         {
-            OverlaySettings.SetOption(Key, Ring ? "RingSize" : "Length", ClampSize(size).ToString(CultureInfo.InvariantCulture));
+            OverlaySettings.SetOption(Key, key, ClampSize(key, size).ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>Puts every choice of one group (such as "Cars") back to its default.</summary>

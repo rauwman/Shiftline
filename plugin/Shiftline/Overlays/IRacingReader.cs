@@ -169,6 +169,7 @@ namespace Shiftline.Plugin
                 TrackShort = Text(get(Session + "WeekendInfo.TrackDisplayShortName")),
                 TrackName = Text(get(Session + "WeekendInfo.TrackName")),
                 TrackConfig = Text(get(Session + "WeekendInfo.TrackConfigName")),
+                TrackLengthM = LengthInMetres(Text(get(Session + "WeekendInfo.TrackLength"))),
                 RadioCarIdx = ToInt(get(Telemetry + "RadioTransmitCarIdx"), -1),
                 TimeOfDay = ToDouble(get(Telemetry + "SessionTimeOfDay"), -1),
                 OilTemp = ToDouble(get(Telemetry + "OilTemp"), double.NaN),
@@ -252,6 +253,20 @@ namespace Shiftline.Plugin
         }
 
         // ---------------------------------------------------------------- tolerant value access (the element types are not known for sure)
+
+        /// <summary>iRacing gives the track length as text, for example "7.00 km" or "2.50 mi"; NaN when it cannot be read.</summary>
+        private static double LengthInMetres(string text)
+        {
+            string[] parts = (text ?? string.Empty).Trim().Split(' ');
+            double value;
+            if (parts.Length == 0 || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out value) || value <= 0)
+            {
+                return double.NaN;
+            }
+
+            string unit = parts.Length > 1 ? parts[1].ToLowerInvariant() : "km";
+            return unit.StartsWith("mi", StringComparison.Ordinal) ? value * 1609.344 : unit == "m" ? value : value * 1000;
+        }
 
         /// <summary>A single value for the data check, or "missing".</summary>
         private static string Value(object value)
