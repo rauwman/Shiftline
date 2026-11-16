@@ -47,7 +47,7 @@ namespace Shiftline.Plugin
 
             SetTitle("Standings", "Relatives");
             PageHint.Text = "The cars right around you on the track: the ones in front, you, and the ones behind, with the gap in seconds. Place and size it in edit mode on the General page.";
-            ResetButton.ToolTip = "Puts every design choice of the relatives back to the default: columns, cars, size, look and animation. Whether the overlay is shown, its position and its update rate stay.";
+            ResetButton.ToolTip = "Puts every design choice of the relatives back to the default: columns, cars, size, look and animation. Whether it is shown and its position stay.";
             ColumnsHint.Text = "Choose what each row shows. The gap is the time to you in seconds: minus for cars in front, plus for cars behind. White: same lap. Red: a car a lap up on you. Blue: a car you have lapped. In practice and qualifying all gaps are white.";
             SetTitle("Rows and size", "Size");
             SizeHint.Text = "How large the overlay is drawn. How many cars it shows follows from the cars in front and behind you, which you set below under Cars. In edit mode you can also pull the right or the bottom edge to change the size.";
@@ -100,7 +100,6 @@ namespace Shiftline.Plugin
             Plugin = plugin;
             Loaded += (sender, args) =>
             {
-                FillRates();
                 ShowToggle.IsChecked = OverlaySettings.IsEnabled(_overlay);
                 BuildDesignControls();
                 Start();
@@ -430,34 +429,6 @@ namespace Shiftline.Plugin
         private void ShowToggle_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             OverlaySettings.SetEnabled(_overlay, ShowToggle.IsChecked == true);
-        }
-
-        private bool _filling;
-
-        private void FillRates()
-        {
-            _filling = true;
-            RateCombo.Items.Clear();
-            RateCombo.Items.Add("Global (" + OverlaySettings.GlobalRate + " per second)");
-            foreach (int rate in OverlaySettings.Rates)
-            {
-                RateCombo.Items.Add(rate + " per second");
-            }
-
-            int own = OverlaySettings.OverrideFor(_overlay);
-            RateCombo.SelectedIndex = own == 0 ? 0 : Math.Max(0, Array.IndexOf(OverlaySettings.Rates, own) + 1);
-            _filling = false;
-        }
-
-        private void RateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            int index = RateCombo.SelectedIndex;
-            if (_filling || index < 0)
-            {
-                return;
-            }
-
-            OverlaySettings.SetOverride(_overlay, index == 0 ? 0 : OverlaySettings.Rates[index - 1]);
         }
 
         private void Start()

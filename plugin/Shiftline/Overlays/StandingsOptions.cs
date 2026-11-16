@@ -460,7 +460,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        /// <summary>Forgets every design choice of the standings overlay (switch, position and update rate stay).</summary>
+        /// <summary>Forgets every design choice of the standings overlay (switch and position stay).</summary>
         public static void Reset(string overlay = OverlayData.StandingsKey)
         {
             OverlaySettings.ClearOptions(overlay);

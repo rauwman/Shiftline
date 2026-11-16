@@ -15,7 +15,6 @@ namespace Shiftline.Plugin
         private int _animationStep;
         private DispatcherTimer _animationTimer;
         private bool _building;
-        private bool _filling;
 
         public BattleBarPage()
         {
@@ -28,7 +27,6 @@ namespace Shiftline.Plugin
             Loaded += (sender, args) =>
             {
                 ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.BattleBarKey);
-                FillRates();
                 BuildControls();
             };
             Unloaded += (sender, args) =>
@@ -286,32 +284,6 @@ namespace Shiftline.Plugin
 
             BattleBarOptions.SetScale(BattleBarOptions.ScaleChoices[ScaleCombo.SelectedIndex] / 100.0);
             RefreshPreview();
-        }
-
-        private void FillRates()
-        {
-            _filling = true;
-            RateCombo.Items.Clear();
-            RateCombo.Items.Add("Global (" + OverlaySettings.GlobalRate + " per second)");
-            foreach (int rate in OverlaySettings.Rates)
-            {
-                RateCombo.Items.Add(rate + " per second");
-            }
-
-            int own = OverlaySettings.OverrideFor(OverlayData.BattleBarKey);
-            RateCombo.SelectedIndex = own == 0 ? 0 : Math.Max(0, Array.IndexOf(OverlaySettings.Rates, own) + 1);
-            _filling = false;
-        }
-
-        private void RateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            int index = RateCombo.SelectedIndex;
-            if (_filling || index < 0)
-            {
-                return;
-            }
-
-            OverlaySettings.SetOverride(OverlayData.BattleBarKey, index == 0 ? 0 : OverlaySettings.Rates[index - 1]);
         }
     }
 }

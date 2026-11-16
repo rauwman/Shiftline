@@ -28,7 +28,6 @@ namespace Shiftline.Plugin
         private DispatcherTimer _timer;
         private bool _previewDriving;
         private bool _building;
-        private bool _filling;
 
         public TrackMapPage()
         {
@@ -41,7 +40,6 @@ namespace Shiftline.Plugin
             Loaded += (sender, args) =>
             {
                 ShowToggle.IsChecked = OverlaySettings.IsEnabled(OverlayData.TrackMapKey);
-                FillRates();
                 BuildControls();
                 if (_checkTimer == null)
                 {
@@ -570,32 +568,6 @@ namespace Shiftline.Plugin
             }
 
             BuildControls();
-        }
-
-        private void FillRates()
-        {
-            _filling = true;
-            RateCombo.Items.Clear();
-            RateCombo.Items.Add("Global (" + OverlaySettings.GlobalRate + " per second)");
-            foreach (int rate in OverlaySettings.Rates)
-            {
-                RateCombo.Items.Add(rate + " per second");
-            }
-
-            int own = OverlaySettings.OverrideFor(OverlayData.TrackMapKey);
-            RateCombo.SelectedIndex = own == 0 ? 0 : Math.Max(0, Array.IndexOf(OverlaySettings.Rates, own) + 1);
-            _filling = false;
-        }
-
-        private void RateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            int index = RateCombo.SelectedIndex;
-            if (_filling || index < 0)
-            {
-                return;
-            }
-
-            OverlaySettings.SetOverride(OverlayData.TrackMapKey, index == 0 ? 0 : OverlaySettings.Rates[index - 1]);
         }
     }
 }

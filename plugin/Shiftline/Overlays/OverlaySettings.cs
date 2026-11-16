@@ -22,16 +22,15 @@ namespace Shiftline.Plugin
 
     /// <summary>
     /// General overlay settings, kept in their own small file (Overlays.json next to the other plugin data).
-    /// The update rate (one global value, and an optional value per overlay that overrides it), which overlays are switched on,
+    /// The update rate (one value for all overlays), which overlays are switched on,
     /// and where each overlay sits. Later the switches and positions move into the presets.
     /// </summary>
     public static class OverlaySettings
     {
-        public static readonly int[] Rates = { 5, 10, 20, 30, 60 };
+        public static readonly int[] Rates = { 5, 10, 15, 20, 30 };
         public const int DefaultRate = 10;
 
         private static readonly object Gate = new object();
-        private static readonly Dictionary<string, int> Overrides = new Dictionary<string, int>();
         private static readonly Dictionary<string, OverlayPlacement> Placements = new Dictionary<string, OverlayPlacement>();
         private static readonly HashSet<string> EnabledOverlays = new HashSet<string>();
         private static readonly Dictionary<string, Dictionary<string, string>> Options = new Dictionary<string, Dictionary<string, string>>();
@@ -156,7 +155,7 @@ namespace Shiftline.Plugin
             get { return Path.Combine(ProfileStore.RootFolder, "Overlays.json"); }
         }
 
-        /// <summary>How often bars and numbers update, per second, when an overlay has no value of its own.</summary>
+        /// <summary>How often the overlays read and redraw their data, per second (one value for all overlays).</summary>
         public static int GlobalRate
         {
             get { lock (Gate) { return _globalRate; } }
@@ -164,51 +163,12 @@ namespace Shiftline.Plugin
             {
                 lock (Gate)
                 {
-                    _globalRate = Clamp(value);
+                    _globalRate = Snap(value);
                 }
 
                 Save();
                 RaiseChanged();
             }
-        }
-
-        /// <summary>The rate an overlay really uses: its own value, or the global one.</summary>
-        public static int RateFor(string overlay)
-        {
-            lock (Gate)
-            {
-                int own;
-                return Overrides.TryGetValue(overlay, out own) ? own : _globalRate;
-            }
-        }
-
-        /// <summary>The overlay's own rate, or 0 when it follows the global one.</summary>
-        public static int OverrideFor(string overlay)
-        {
-            lock (Gate)
-            {
-                int own;
-                return Overrides.TryGetValue(overlay, out own) ? own : 0;
-            }
-        }
-
-        /// <summary>Sets the overlay's own rate; 0 makes it follow the global rate again.</summary>
-        public static void SetOverride(string overlay, int rate)
-        {
-            lock (Gate)
-            {
-                if (rate <= 0)
-                {
-                    Overrides.Remove(overlay);
-                }
-                else
-                {
-                    Overrides[overlay] = Clamp(rate);
-                }
-            }
-
-            Save();
-            RaiseChanged();
         }
 
         /// <summary>A design option of one overlay (for example its columns), or the fallback when it was never set.</summary>
@@ -327,9 +287,19 @@ namespace Shiftline.Plugin
             }
         }
 
-        private static int Clamp(int rate)
+        /// <summary>The allowed rate nearest to a stored value (older versions allowed 20, 30 and 60 and a value per overlay).</summary>
+        private static int Snap(int rate)
         {
-            return Math.Max(1, Math.Min(60, rate));
+            int best = Rates[0];
+            foreach (int allowed in Rates)
+            {
+                if (Math.Abs(allowed - rate) < Math.Abs(best - rate))
+                {
+                    best = allowed;
+                }
+            }
+
+            return best;
         }
 
         private static void Load()
@@ -345,19 +315,7 @@ namespace Shiftline.Plugin
                 JToken global = json["GlobalRate"];
                 if (global != null && global.Type == JTokenType.Integer)
                 {
-                    _globalRate = Clamp((int)global);
-                }
-
-                JObject own = json["Rates"] as JObject;
-                if (own != null)
-                {
-                    foreach (JProperty property in own.Properties())
-                    {
-                        if (property.Value.Type == JTokenType.Integer)
-                        {
-                            Overrides[property.Name] = Clamp((int)property.Value);
-                        }
-                    }
+                    _globalRate = Snap((int)global);
                 }
 
                 JToken front = json["OnlyWhenGameInFront"];
@@ -459,7 +417,6 @@ namespace Shiftline.Plugin
         {
             try
             {
-                JObject own = new JObject();
                 JArray enabled = new JArray();
                 JObject placements = new JObject();
                 JObject options = new JObject();
@@ -481,11 +438,6 @@ namespace Shiftline.Plugin
                     replays = _showInReplays;
                     garage = _showInGarage;
                     alignMargin = _alignMargin;
-                    foreach (KeyValuePair<string, int> pair in Overrides)
-                    {
-                        own[pair.Key] = pair.Value;
-                    }
-
                     foreach (string name in EnabledOverlays)
                     {
                         enabled.Add(name);
@@ -514,7 +466,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Rates", own }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
+                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
                 }.ToString());
             }
             catch (Exception ex)

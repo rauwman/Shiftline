@@ -6,7 +6,7 @@ namespace Shiftline.Plugin
 {
     /// <summary>
     /// Owns the overlay windows. Everything here runs on SimHub's UI thread: a timer per overlay reads the latest data snapshot
-    /// (OverlayData.Current) at the overlay's update rate. A switched-on overlay shows when there is data, and always in edit
+    /// (OverlayData.Current) at the update rate of the main settings. A switched-on overlay shows when there is data, and always in edit
     /// mode, so it can be placed without a session.
     /// </summary>
     public static class OverlayHost
@@ -235,7 +235,7 @@ namespace Shiftline.Plugin
                 }
             }
 
-            _standingsTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.StandingsKey));
+            _standingsTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.GlobalRate);
             _standingsTimer.Start();
             TickStandings();
         }
@@ -395,7 +395,7 @@ namespace Shiftline.Plugin
                 }
             }
 
-            _battleTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.BattleBarKey));
+            _battleTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.GlobalRate);
             _battleTimer.Start();
             TickBattleBar();
         }
@@ -526,7 +526,7 @@ namespace Shiftline.Plugin
                 }
             }
 
-            _relativesTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.RelativesKey));
+            _relativesTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.GlobalRate);
             _relativesTimer.Start();
             TickRelatives();
         }
@@ -666,9 +666,9 @@ namespace Shiftline.Plugin
             }
 
             // The map looks for new data about every frame (cheap: it only reads the snapshot's number), so it sees new data as
-            // soon as it is read from the game, whatever the game's rhythm (AMS2 about every 110 ms). The update rate of the page
+            // soon as it is read from the game, whatever the game's rhythm (AMS2 about every 110 ms). The update rate of the main settings
             // sets how often the data is read; the samples of edit mode are redrawn at that rate only.
-            _trackSampleInterval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.RateFor(OverlayData.TrackMapKey));
+            _trackSampleInterval = TimeSpan.FromMilliseconds(1000.0 / OverlaySettings.GlobalRate);
             _trackTimer.Interval = TimeSpan.FromMilliseconds(16);
             _trackTimer.Start();
             TickTrackMap();

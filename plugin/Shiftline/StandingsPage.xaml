@@ -20,10 +20,8 @@
                 </StackPanel>
                 <ToggleButton x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SegmentToggle}" VerticalAlignment="Top" Click="ShowToggle_Click" />
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,14,0,0">
-                    <TextBlock Text="Update rate" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource TextPrimary}" />
-                    <ComboBox x:Name="RateCombo" Width="190" Height="34" SelectionChanged="RateCombo_SelectionChanged" />
-                    <Button x:Name="ResetButton" Style="{StaticResource GlassButton}" Margin="24,0,0,0" Content="Reset the design" Click="ResetDesign_Click"
-                            ToolTip="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether the overlay is shown, its position and its update rate stay." />
+                    <Button x:Name="ResetButton" Style="{StaticResource GlassButton}" Margin="0,0,0,0" Content="Reset the design" Click="ResetDesign_Click"
+                            ToolTip="Puts every design choice of the standings back to the default: columns, rows, size, look, classes and animation. Whether it is shown and its position stay." />
                 </StackPanel>
             </Grid>
         </Border>
@@ -127,7 +125,7 @@
         <Border x:Name="LiveCard" Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="ListOrdered" Text="Live standings" />
-                <TextBlock Style="{StaticResource CardHint}" Text="The field as the plugin reads it, ten times per second. The same values are published as the SimHub properties Shiftline.Standings.01.Name, Shiftline.Standings.01.Position and so on (30 rows)." />
+                <TextBlock Style="{StaticResource CardHint}" Text="The field as the plugin reads it, at the update rate set in General. The same values are published as the SimHub properties Shiftline.Standings.01.Name, Shiftline.Standings.01.Position and so on (30 rows)." />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0">
                     <TextBlock x:Name="TableText" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextPrimary}" />
                 </ScrollViewer>

@@ -55,19 +55,10 @@ namespace Shiftline.Plugin
         /// The columns the preview and the edit-mode sample show: everything for iRacing (and when no game is selected), what
         /// the selected game delivered the last time it ran, or the usual set of SimHub's data for a game that never ran.
         /// </summary>
-        /// <summary>The data is read as often as the fastest overlay that is switched on needs it (the standings count always).</summary>
+        /// <summary>The data is read at the update rate of the main settings (the same for every overlay).</summary>
         private static int DataRate()
         {
-            int rate = OverlaySettings.RateFor(StandingsKey);
-            foreach (string key in new[] { BattleBarKey, RelativesKey, TrackMapKey })
-            {
-                if (OverlaySettings.IsEnabled(key))
-                {
-                    rate = Math.Max(rate, OverlaySettings.RateFor(key));
-                }
-            }
-
-            return rate;
+            return OverlaySettings.GlobalRate;
         }
 
         public static StandingsFeatures PreviewFeatures()

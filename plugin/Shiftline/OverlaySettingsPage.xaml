@@ -79,7 +79,7 @@
         <Border Style="{StaticResource GlassCard}">
             <StackPanel>
                 <local:IconTitle IconKey="ThemeStudio" Text="Main settings" />
-                <TextBlock Style="{StaticResource CardHint}" Text="The look and the update rate of all overlays. An overlay takes these values while its own page says &quot;Same as in General&quot; (the update rate: &quot;Global&quot;); there you can also choose a value for that overlay alone. A lower update rate saves computing time, and more than 60 per second brings nothing." />
+                <TextBlock Style="{StaticResource CardHint}" Text="The look and the update rate of all overlays. An overlay takes the look from here while its own page says &quot;Same as in General&quot;; there you can also choose a value for that overlay alone. The update rate is the same for every overlay. A lower rate saves computing time; the Track Map moves smoothly whatever you choose." />
                 <StackPanel x:Name="MainSettingsPanel" Margin="0,14,0,0" />
             </StackPanel>
         </Border>
