@@ -10,6 +10,7 @@ namespace Shiftline.Plugin
         public const int WsExTransparent = 0x00000020;   // mouse input passes through to the window below
         public const int WsExToolWindow = 0x00000080;    // not in Alt+Tab and not in the taskbar
         public const int WsExNoActivate = 0x08000000;    // never takes the focus away from the game
+        public const int WsExLayered = 0x00080000;       // HTML overlays: see-through by DWM, drawn by the browser
 
         [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
         private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);

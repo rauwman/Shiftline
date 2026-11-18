@@ -1,13 +1,14 @@
 'use strict';
-// Shared code of the HTML overlays: messages from C#, one clock, one drawing loop, frame counting, edit mode.
-// C# computes everything; a page only draws what it gets.
+// Shared code of the HTML overlays: messages from C#, one clock, one drawing loop with the overlay frame rate, frame counting,
+// edit mode. C# computes everything; a page only draws what it gets. Every animation must run in this loop (SL.draw), not as
+// CSS transitions, so the frame rate of General holds.
 const SL = (() => {
     const handlers = {};
     const drawers = [];
     const stats = { frames: 0, gap: 0, last: 0, since: 0 };
-    let editName = '';
     let cap = 0;            // most frames per second to draw (0 = every frame the browser offers)
     let lastDrawn = 0;
+    let label = null;
 
     // seconds since 1970 (UTC), the same clock C# uses for the times it sends
     const now = () => (performance.timeOrigin + performance.now()) / 1000;
@@ -45,47 +46,65 @@ const SL = (() => {
         requestAnimationFrame(frame);
     }
 
-    function setEdit(on) {
-        document.body.classList.toggle('sl-edit', on);
+    function setEdit(message) {
+        const body = document.body;
+        body.classList.toggle('sl-edit', !!message.on);
+        body.classList.toggle('sl-selected', !!message.selected);
+        body.classList.toggle('sl-fixed', !!message.fixed);
+        if (label && message.name) {
+            label.textContent = message.name;
+        }
     }
 
     if (window.chrome && chrome.webview) {
         chrome.webview.addEventListener('message', (event) => {
             const message = event.data;
-            if (message && message.type === 'edit') {
-                setEdit(message.on);
-            } else if (message && message.type === 'cap') {
+            if (!message) {
+                return;
+            }
+            if (message.type === 'edit') {
+                setEdit(message);
+            } else if (message.type === 'cap') {
                 cap = message.fps || 0;
-            } else if (message && handlers[message.type]) {
+            } else if (handlers[message.type]) {
                 handlers[message.type](message);
             }
         });
     }
 
-    // Fallback for edit mode: if the CSS drag area does not reach the window, ask C# to start the move.
-    window.addEventListener('pointerdown', () => {
-        if (document.body.classList.contains('sl-edit')) {
-            send({ type: 'drag' });
+    // Edit mode: tell C# where the mouse was pressed; C# follows the cursor on screen until the button is released.
+    window.addEventListener('pointerdown', (event) => {
+        if (!document.body.classList.contains('sl-edit') || event.button !== 0) {
+            return;
+        }
+        const grip = event.target.closest('.sl-grip');
+        const part = !grip ? 'body' : grip.classList.contains('sl-grip-side') ? 'side' : 'grip';
+        send({ type: 'press', part });
+        event.preventDefault();
+    });
+
+    // Edit mode: the arrow keys move the selected overlay (Shift: 10 steps).
+    window.addEventListener('keydown', (event) => {
+        if (document.body.classList.contains('sl-edit') && event.key.startsWith('Arrow')) {
+            send({ type: 'key', key: event.key, shift: event.shiftKey });
+            event.preventDefault();
         }
     });
 
-    function setName(name) {
-        editName = name;
-        const label = document.querySelector('.sl-edit-label');
-        if (label) {
-            label.textContent = name;
-        }
-    }
-
     window.addEventListener('DOMContentLoaded', () => {
-        const frameBox = document.createElement('div');
-        frameBox.className = 'sl-edit-frame';
-        const label = document.createElement('div');
-        label.className = 'sl-edit-label';
-        label.textContent = editName;
-        document.body.append(frameBox, label);
+        const add = (className) => {
+            const element = document.createElement('div');
+            element.className = className;
+            document.body.appendChild(element);
+            return element;
+        };
+        add('sl-edit-frame');
+        label = add('sl-edit-label');
+        add('sl-grip sl-grip-corner');
+        add('sl-grip sl-grip-bottom');
+        add('sl-grip sl-grip-side');
         requestAnimationFrame(frame);
     });
 
-    return { now, on, draw, send, setName };
+    return { now, on, draw, send };
 })();

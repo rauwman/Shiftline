@@ -6,13 +6,19 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
+using System.Windows.Shell;
+using System.Windows.Threading;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
+using Newtonsoft.Json.Linq;
 using Forms = System.Windows.Forms;
 
 namespace Shiftline.Plugin
 {
     /// <summary>
-    /// A borderless, transparent window that floats above the game. In run mode it lets every mouse click through and never takes
+    /// A borderless, transparent window that floats above the game, drawn by WPF or (HTML mode) by the browser engine. In run mode it lets every mouse click through and never takes
     /// the focus. In edit mode it shows a frame and its name, can be dragged, and resized at the corner. Its position is saved as
     /// parts of the screen it is on, so it lands in the same spot when the resolution changes.
     /// </summary>
@@ -47,13 +53,26 @@ namespace Shiftline.Plugin
         private OverlayAlignBar _alignBar;
 
         public OverlayWindow(string key, string title, UIElement content, Size defaultSize)
+            : this(key, title, content, defaultSize, null)
+        {
+        }
+
+        /// <summary>An overlay drawn by the browser engine (WebView2); <paramref name="page"/> is a file in Overlays/Html/web.</summary>
+        public OverlayWindow(string key, string title, string page, Size defaultSize)
+            : this(key, title, new WebView2 { DefaultBackgroundColor = System.Drawing.Color.Transparent }, defaultSize, page)
+        {
+        }
+
+        private OverlayWindow(string key, string title, UIElement content, Size defaultSize, string page)
         {
             _key = key;
+            _page = page;
+            _browser = page == null ? null : content as WebView2;
             _defaultSize = defaultSize;
 
             Title = "Shiftline " + title;
             WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
+            AllowsTransparency = page == null;     // WebView2 cannot show in a WPF window with AllowsTransparency (airspace)
             Background = Brushes.Transparent;
             ResizeMode = ResizeMode.NoResize;
             Topmost = true;
@@ -61,6 +80,20 @@ namespace Shiftline.Plugin
             ShowActivated = false;
             Width = defaultSize.Width;
             Height = defaultSize.Height;
+            if (page != null)
+            {
+                // see-through by DWM instead (set up in SetUpGlass)
+                WindowChrome.SetWindowChrome(this, new WindowChrome
+                {
+                    GlassFrameThickness = new Thickness(-1),
+                    CaptionHeight = 0,
+                    ResizeBorderThickness = new Thickness(0),
+                    CornerRadius = new CornerRadius(0),
+                    UseAeroCaptionButtons = false,
+                });
+                PageStatus = "starting";
+                Loaded += (sender, args) => StartPage();
+            }
 
             _frame = new Border { BorderBrush = FrameBrush, BorderThickness = new Thickness(2), Visibility = Visibility.Collapsed, IsHitTestVisible = false };
             _label = new Border
@@ -85,57 +118,9 @@ namespace Shiftline.Plugin
             };
             // The grip moves with the window while it is dragged, so its own deltas feed back into each other and the window
             // flickers. Instead the size is computed from where the mouse is on screen, against where the drag started.
-            _grip.DragStarted += (sender, args) =>
-            {
-                _dragStartMouse = MouseOnScreen();
-                _dragStartSize = new Size(Width, Height);
-            };
-            _grip.DragDelta += (sender, args) =>
-            {
-                Point mouse = MouseOnScreen();
-                if (_fixedWidth)
-                {
-                    // Only the length changes: the owner turns the height into whole rows and sets the size itself.
-                    double pulled = Math.Max(MinSize, _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y));
-                    Action<double> dragging = HeightDragging;
-                    if (dragging != null)
-                    {
-                        dragging(pulled);
-                    }
-
-                    return;
-                }
-
-                double width = _dragStartSize.Width + (mouse.X - _dragStartMouse.X);
-                double height = _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y);
-                if (_aspect > 0)
-                {
-                    // The content keeps its proportions, so the window does too: the larger of both moves decides the size.
-                    width = Math.Max(width, height * _aspect);
-                    height = width / _aspect;
-                }
-
-                width = Math.Max(MinSize, width);
-                height = Math.Max(MinSize, height);
-                if (Math.Abs(width - Width) >= 1 || Math.Abs(height - Height) >= 1)
-                {
-                    Width = width;
-                    Height = height;
-                }
-            };
-            _grip.DragCompleted += (sender, args) =>
-            {
-                if (_fixedWidth)
-                {
-                    Action<double> dragged = HeightDragged;
-                    if (dragged != null)
-                    {
-                        dragged(Height);
-                    }
-                }
-
-                SavePlacement();
-            };
+            _grip.DragStarted += (sender, args) => BeginResize();
+            _grip.DragDelta += (sender, args) => ResizeCorner(MouseOnScreen());
+            _grip.DragCompleted += (sender, args) => EndResizeCorner();
 
             // In fixed-size mode the right edge changes the size of the content (the owner turns the width into a scale).
             _sideGrip = new Thumb
@@ -148,35 +133,21 @@ namespace Shiftline.Plugin
                 Opacity = 0.8,
                 Visibility = Visibility.Collapsed
             };
-            _sideGrip.DragStarted += (sender, args) =>
-            {
-                _dragStartMouse = MouseOnScreen();
-                _dragStartSize = new Size(Width, Height);
-            };
-            _sideGrip.DragDelta += (sender, args) =>
-            {
-                double pulled = Math.Max(MinSize, _dragStartSize.Width + (MouseOnScreen().X - _dragStartMouse.X));
-                Action<double> dragging = WidthDragging;
-                if (dragging != null)
-                {
-                    dragging(pulled / _dragStartSize.Width);
-                }
-            };
-            _sideGrip.DragCompleted += (sender, args) =>
-            {
-                Action dragged = WidthDragged;
-                if (dragged != null)
-                {
-                    dragged();
-                }
-            };
+            _sideGrip.DragStarted += (sender, args) => BeginResize();
+            _sideGrip.DragDelta += (sender, args) => ResizeSide(MouseOnScreen());
+            _sideGrip.DragCompleted += (sender, args) => EndResizeSide();
 
             Grid root = new Grid { Background = Brushes.Transparent };
             root.Children.Add(content);
-            root.Children.Add(_frame);
-            root.Children.Add(_label);
-            root.Children.Add(_grip);
-            root.Children.Add(_sideGrip);
+            if (page == null)
+            {
+                // in HTML mode nothing of WPF can show above the browser: the page draws frame, name and grips itself
+                root.Children.Add(_frame);
+                root.Children.Add(_label);
+                root.Children.Add(_grip);
+                root.Children.Add(_sideGrip);
+            }
+
             Content = root;
 
             // Edit mode: a click selects the overlay (frame, align bar, arrow keys); dragging moves it and snaps it to the screen
@@ -188,34 +159,16 @@ namespace Shiftline.Plugin
                     return;
                 }
 
-                Select(this);
-                _moving = true;
-                _moveStartMouse = MouseOnScreen();
-                _moveStartPosition = new Point(Left, Top);
+                BeginMove();
                 CaptureMouse();
                 args.Handled = true;
             };
             MouseMove += (sender, args) =>
             {
-                if (!_moving)
+                if (_moving)
                 {
-                    return;
+                    MoveStep(MouseOnScreen(), (Keyboard.Modifiers & ModifierKeys.Alt) != 0);
                 }
-
-                Point mouse = MouseOnScreen();
-                double left = _moveStartPosition.X + mouse.X - _moveStartMouse.X;
-                double top = _moveStartPosition.Y + mouse.Y - _moveStartMouse.Y;
-                bool free = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
-                double? guideX = null;
-                double? guideY = null;
-                if (!free)
-                {
-                    Snap(ref left, ref top, out guideX, out guideY);
-                }
-
-                Left = left;
-                Top = top;
-                OverlayGuides.Show(this, guideX, guideY);
             };
             MouseLeftButtonUp += (sender, args) =>
             {
@@ -224,39 +177,15 @@ namespace Shiftline.Plugin
                     return;
                 }
 
-                _moving = false;
                 ReleaseMouseCapture();
-                OverlayGuides.Hide();
-                SavePlacement();
+                EndMove();
             };
             KeyDown += (sender, args) =>
             {
-                if (!_edit || !ReferenceEquals(_selected, this))
+                if (MoveByKey(args.Key, (Keyboard.Modifiers & ModifierKeys.Shift) != 0))
                 {
-                    return;
+                    args.Handled = true;
                 }
-
-                double step = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 10 : 1;
-                switch (args.Key)
-                {
-                    case System.Windows.Input.Key.Left:
-                        Left -= step;
-                        break;
-                    case System.Windows.Input.Key.Right:
-                        Left += step;
-                        break;
-                    case System.Windows.Input.Key.Up:
-                        Top -= step;
-                        break;
-                    case System.Windows.Input.Key.Down:
-                        Top += step;
-                        break;
-                    default:
-                        return;
-                }
-
-                args.Handled = true;
-                SavePlacement();
             };
             LocationChanged += (sender, args) => FollowBar();
             SizeChanged += (sender, args) => FollowBar();
@@ -275,12 +204,31 @@ namespace Shiftline.Plugin
                     _alignBar.Close();
                     _alignBar = null;
                 }
+
+                if (_browser != null)
+                {
+                    try
+                    {
+                        _browser.Dispose();
+                    }
+                    catch (Exception)
+                    {
+                        // the browser is already gone
+                    }
+                }
             };
 
             SourceInitialized += (sender, args) =>
             {
                 _hwnd = new WindowInteropHelper(this).Handle;
                 ApplyStyles();
+                if (_page != null)
+                {
+                    SetUpGlass();
+                    // the browser may render before WPF reports ContentRendered: place the window as soon as it exists
+                    _placed = true;
+                    RestorePlacement();
+                }
             };
 
             // The DPI is known only once the window exists, so the saved position is applied when it is shown for the first time.
@@ -292,6 +240,142 @@ namespace Shiftline.Plugin
                     RestorePlacement();
                 }
             };
+        }
+
+        // ---------------------------------------------------------------- moving and resizing (WPF mouse or HTML page)
+
+        private void BeginResize()
+        {
+            _dragStartMouse = MouseOnScreen();
+            _dragStartSize = new Size(Width, Height);
+        }
+
+        private void ResizeCorner(Point mouse)
+        {
+            if (_fixedWidth)
+            {
+                // Only the length changes: the owner turns the height into whole rows and sets the size itself.
+                double pulled = Math.Max(MinSize, _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y));
+                Action<double> dragging = HeightDragging;
+                if (dragging != null)
+                {
+                    dragging(pulled);
+                }
+
+                return;
+            }
+
+            double width = _dragStartSize.Width + (mouse.X - _dragStartMouse.X);
+            double height = _dragStartSize.Height + (mouse.Y - _dragStartMouse.Y);
+            if (_aspect > 0)
+            {
+                // The content keeps its proportions, so the window does too: the larger of both moves decides the size.
+                width = Math.Max(width, height * _aspect);
+                height = width / _aspect;
+            }
+
+            width = Math.Max(MinSize, width);
+            height = Math.Max(MinSize, height);
+            if (Math.Abs(width - Width) >= 1 || Math.Abs(height - Height) >= 1)
+            {
+                Width = width;
+                Height = height;
+            }
+        }
+
+        private void EndResizeCorner()
+        {
+            if (_fixedWidth)
+            {
+                Action<double> dragged = HeightDragged;
+                if (dragged != null)
+                {
+                    dragged(Height);
+                }
+            }
+
+            SavePlacement();
+        }
+
+        private void ResizeSide(Point mouse)
+        {
+            double pulled = Math.Max(MinSize, _dragStartSize.Width + (mouse.X - _dragStartMouse.X));
+            Action<double> dragging = WidthDragging;
+            if (dragging != null)
+            {
+                dragging(pulled / _dragStartSize.Width);
+            }
+        }
+
+        private void EndResizeSide()
+        {
+            Action dragged = WidthDragged;
+            if (dragged != null)
+            {
+                dragged();
+            }
+        }
+
+        private void BeginMove()
+        {
+            Select(this);
+            _moving = true;
+            _moveStartMouse = MouseOnScreen();
+            _moveStartPosition = new Point(Left, Top);
+        }
+
+        private void MoveStep(Point mouse, bool free)
+        {
+            double left = _moveStartPosition.X + mouse.X - _moveStartMouse.X;
+            double top = _moveStartPosition.Y + mouse.Y - _moveStartMouse.Y;
+            double? guideX = null;
+            double? guideY = null;
+            if (!free)
+            {
+                Snap(ref left, ref top, out guideX, out guideY);
+            }
+
+            Left = left;
+            Top = top;
+            OverlayGuides.Show(this, guideX, guideY);
+        }
+
+        private void EndMove()
+        {
+            _moving = false;
+            OverlayGuides.Hide();
+            SavePlacement();
+        }
+
+        /// <summary>Arrow keys move the selected overlay by 1 (Shift: 10). Returns whether the key was used.</summary>
+        private bool MoveByKey(System.Windows.Input.Key key, bool shift)
+        {
+            if (!_edit || !ReferenceEquals(_selected, this))
+            {
+                return false;
+            }
+
+            double step = shift ? 10 : 1;
+            switch (key)
+            {
+                case System.Windows.Input.Key.Left:
+                    Left -= step;
+                    break;
+                case System.Windows.Input.Key.Right:
+                    Left += step;
+                    break;
+                case System.Windows.Input.Key.Up:
+                    Top -= step;
+                    break;
+                case System.Windows.Input.Key.Down:
+                    Top += step;
+                    break;
+                default:
+                    return false;
+            }
+
+            SavePlacement();
+            return true;
         }
 
         /// <summary>While the bottom edge is pulled in fixed-width mode: the new window height.</summary>
@@ -322,6 +406,7 @@ namespace Shiftline.Plugin
                 _grip.Opacity = 0.8;
                 _grip.Margin = new Thickness(0, 0, 8, 0);
                 _sideGrip.Visibility = _edit ? Visibility.Visible : Visibility.Collapsed;
+                SendEditState();
             }
 
             Width = size.Width;
@@ -363,6 +448,7 @@ namespace Shiftline.Plugin
             _grip.Visibility = shown;
             _sideGrip.Visibility = edit && _fixedWidth ? Visibility.Visible : Visibility.Collapsed;
             ApplyStyles();
+            SendEditState();
         }
 
         private void ApplyStyles()
@@ -373,11 +459,21 @@ namespace Shiftline.Plugin
             }
 
             // In edit mode the window may take the keyboard (for the arrow keys); in run mode it never takes the focus from the game.
-            int style = NativeMethods.GetExStyle(_hwnd) | NativeMethods.WsExToolWindow;
-            style = _edit
+            NativeMethods.SetExStyle(_hwnd, Wanted(NativeMethods.GetExStyle(_hwnd)));
+        }
+
+        /// <summary>The extended style the window should have now (edit mode or run mode, HTML mode keeps it layered).</summary>
+        private int Wanted(int style)
+        {
+            style |= NativeMethods.WsExToolWindow;
+            if (_page != null)
+            {
+                style |= NativeMethods.WsExLayered;
+            }
+
+            return _edit
                 ? style & ~NativeMethods.WsExTransparent & ~NativeMethods.WsExNoActivate
                 : style | NativeMethods.WsExTransparent | NativeMethods.WsExNoActivate;
-            NativeMethods.SetExStyle(_hwnd, style);
         }
 
         // ---------------------------------------------------------------- selection, align bar, snapping
@@ -395,11 +491,13 @@ namespace Shiftline.Plugin
             if (before != null)
             {
                 before._frame.BorderThickness = new Thickness(2);
+                before.SendEditState();
             }
 
             if (window != null)
             {
                 window._frame.BorderThickness = new Thickness(3);
+                window.SendEditState();
                 window.Activate();
                 window.Focus();
             }
@@ -660,6 +758,297 @@ namespace Shiftline.Plugin
         {
             return Math.Max(0, Math.Min(0.98, value));
         }
+
+        // ---------------------------------------------------------------- HTML mode
+
+        private const int WmStyleChanging = 0x007C;
+        private const uint LwaAlpha = 0x2;
+        private const int DwmCornerPreference = 33;
+        private const int DwmBorderColor = 34;
+        private const int DoNotRound = 1;
+        private const int ColorNone = unchecked((int)0xFFFFFFFE);
+        private const int VkLeftButton = 0x01;
+        private const int VkAlt = 0x12;
+
+        private readonly string _page;
+        private readonly WebView2 _browser;
+        private bool _pressing;
+        private string _pressPart;
+
+        /// <summary>Every message of the page that is not about moving or resizing (JSON text), on the UI thread.</summary>
+        public event Action<string> PageMessage;
+
+        /// <summary>HTML mode: "starting", "running", or why the page could not start.</summary>
+        public string PageStatus { get; private set; }
+
+        public bool IsHtml
+        {
+            get { return _page != null; }
+        }
+
+        public bool IsPageReady
+        {
+            get { return _browser != null && _browser.CoreWebView2 != null; }
+        }
+
+        /// <summary>Sends JSON to the page (HTML mode, UI thread); ignored until the page runs.</summary>
+        public void Post(string json)
+        {
+            if (!IsPageReady)
+            {
+                return;
+            }
+
+            try
+            {
+                _browser.CoreWebView2.PostWebMessageAsJson(json);
+            }
+            catch (Exception)
+            {
+                // the browser is closing
+            }
+        }
+
+        /// <summary>Tells every HTML overlay the overlay frame rate of General (call on the UI thread when it changes).</summary>
+        public static void SendFrameRateToAll()
+        {
+            foreach (OverlayWindow window in Open.ToArray())
+            {
+                window.SendFrameRate();
+            }
+        }
+
+        private void SendFrameRate()
+        {
+            if (IsHtml)
+            {
+                Post("{\"type\":\"cap\",\"fps\":" + OverlaySettings.FrameRate + "}");
+            }
+        }
+
+        /// <summary>Edit mode, selection and grip layout for the page, which draws frame, name and grips itself.</summary>
+        private void SendEditState()
+        {
+            if (!IsHtml)
+            {
+                return;
+            }
+
+            JObject state = new JObject
+            {
+                { "type", "edit" },
+                { "on", _edit },
+                { "selected", ReferenceEquals(_selected, this) },
+                { "fixed", _fixedWidth },
+                { "name", Title.StartsWith("Shiftline ", StringComparison.Ordinal) ? Title.Substring(10) : Title },
+            };
+            Post(state.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        private async void StartPage()
+        {
+            try
+            {
+                await HtmlHost.Load(_browser, _page, OnPageMessage);
+                _browser.CoreWebView2.NavigationCompleted += (sender, args) =>
+                {
+                    SendFrameRate();
+                    SendEditState();
+                };
+                PageStatus = "running";
+            }
+            catch (WebView2RuntimeNotFoundException)
+            {
+                PageStatus = "WebView2 runtime not found on this PC";
+                PluginLog.Info(Title + ": " + PageStatus);
+            }
+            catch (Exception ex)
+            {
+                PageStatus = "failed: " + ex.GetType().Name + ": " + ex.Message;
+                PluginLog.Info(Title + ": " + PageStatus);
+            }
+        }
+
+        private void OnPageMessage(string json)
+        {
+            JObject message;
+            try
+            {
+                message = JObject.Parse(json);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            string type = (string)message["type"];
+            if (type == "press")
+            {
+                StartPress((string)message["part"]);
+                return;
+            }
+
+            if (type == "key")
+            {
+                MoveByKey(KeyOf((string)message["key"]), (bool?)message["shift"] == true);
+                return;
+            }
+
+            Action<string> handler = PageMessage;
+            if (handler != null)
+            {
+                handler(json);
+            }
+        }
+
+        private static System.Windows.Input.Key KeyOf(string name)
+        {
+            switch (name)
+            {
+                case "ArrowLeft":
+                    return System.Windows.Input.Key.Left;
+                case "ArrowRight":
+                    return System.Windows.Input.Key.Right;
+                case "ArrowUp":
+                    return System.Windows.Input.Key.Up;
+                case "ArrowDown":
+                    return System.Windows.Input.Key.Down;
+                default:
+                    return System.Windows.Input.Key.None;
+            }
+        }
+
+        /// <summary>
+        /// The page reports a mouse press on the body, the grip or the side edge. The mouse itself stays with the browser, so
+        /// from here on the window follows the cursor on screen, every screen frame, until the button is released (same moving, snapping and
+        /// resizing as in WPF mode).
+        /// </summary>
+        private void StartPress(string part)
+        {
+            if (!_edit || _pressing)
+            {
+                return;
+            }
+
+            _pressPart = part == "grip" || part == "side" ? part : "body";
+            if (_pressPart == "body")
+            {
+                BeginMove();
+            }
+            else
+            {
+                Select(this);
+                BeginResize();
+            }
+
+            // follow the cursor once per screen frame (a timer runs only every 15-31 ms and looks jerky)
+            _pressing = true;
+            CompositionTarget.Rendering += PressTick;
+        }
+
+        private void PressTick(object sender, EventArgs e)
+        {
+            bool down = (GetAsyncKeyState(VkLeftButton) & 0x8000) != 0;
+            if (down)
+            {
+                Point mouse = MouseOnScreen();
+                switch (_pressPart)
+                {
+                    case "body":
+                        MoveStep(mouse, (GetAsyncKeyState(VkAlt) & 0x8000) != 0);
+                        break;
+                    case "side":
+                        ResizeSide(mouse);
+                        break;
+                    default:
+                        ResizeCorner(mouse);
+                        break;
+                }
+
+                return;
+            }
+
+            _pressing = false;
+            CompositionTarget.Rendering -= PressTick;
+            switch (_pressPart)
+            {
+                case "body":
+                    EndMove();
+                    break;
+                case "side":
+                    EndResizeSide();
+                    break;
+                default:
+                    EndResizeCorner();
+                    break;
+            }
+        }
+
+        /// <summary>HTML mode: a normal window made see-through by DWM; it keeps its layered and click-through bits.</summary>
+        private void SetUpGlass()
+        {
+            HwndSource source = HwndSource.FromHwnd(_hwnd);
+            if (source == null)
+            {
+                return;
+            }
+
+            source.CompositionTarget.BackgroundColor = Colors.Transparent;
+            Margins glass = new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+            DwmExtendFrameIntoClientArea(_hwnd, ref glass);
+            int corner = DoNotRound;
+            DwmSetWindowAttribute(_hwnd, DwmCornerPreference, ref corner, sizeof(int));
+            int border = ColorNone;
+            DwmSetWindowAttribute(_hwnd, DwmBorderColor, ref border, sizeof(int));
+            source.AddHook(KeepStyle);
+            ApplyStyles();
+            SetLayeredWindowAttributes(_hwnd, 0, 255, LwaAlpha);
+        }
+
+        /// <summary>WPF resets the extended style now and then; keep what the mode needs.</summary>
+        private IntPtr KeepStyle(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WmStyleChanging && wParam.ToInt64() == NativeMethods.GwlExStyle)
+            {
+                StyleStruct style = Marshal.PtrToStructure<StyleStruct>(lParam);
+                int wanted = Wanted(style.StyleNew);
+                if (wanted != style.StyleNew)
+                {
+                    style.StyleNew = wanted;
+                    Marshal.StructureToPtr(style, lParam, false);
+                }
+            }
+
+            return IntPtr.Zero;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Margins
+        {
+            public int Left;
+            public int Right;
+            public int Top;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct StyleStruct
+        {
+            public int StyleOld;
+            public int StyleNew;
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins margins);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint key, byte alpha, uint flags);
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int key);
 
         private static Brush Frozen(Color color)
         {

@@ -18,9 +18,15 @@ html, body {
     cursor: default;
 }
 
-/* Edit mode: a frame and the name; the whole page is a drag area for the window. */
-.sl-edit-frame, .sl-edit-label { display: none; position: fixed; pointer-events: none; z-index: 1000; }
-.sl-edit-frame { inset: 0; border: 2px solid #3fa9f5; }
-.sl-edit-label { left: 0; top: 0; padding: 2px 6px; background: rgba(63, 169, 245, 0.88); font: 12px "Inter", sans-serif; }
-body.sl-edit { app-region: drag; -webkit-app-region: drag; cursor: move; }
+/* Edit mode, as the WPF overlays show it: a frame (thicker when selected), the name, and the grips. C# moves and sizes the
+   window; the page only reports where the mouse was pressed. */
+.sl-edit-frame, .sl-edit-label, .sl-grip { display: none; position: fixed; z-index: 1000; }
+.sl-edit-frame { inset: 0; border: 2px solid #3fa9f5; pointer-events: none; }
+.sl-edit-label { left: 0; top: 0; padding: 2px 6px; background: rgba(63, 169, 245, 0.88); font: 12px "Inter", sans-serif; pointer-events: none; }
+.sl-grip { background: #3fa9f5; z-index: 1001; }
+body.sl-edit { cursor: move; }
 body.sl-edit .sl-edit-frame, body.sl-edit .sl-edit-label { display: block; }
+body.sl-edit.sl-selected .sl-edit-frame { border-width: 3px; }
+body.sl-edit:not(.sl-fixed) .sl-grip-corner { display: block; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; }
+body.sl-edit.sl-fixed .sl-grip-bottom { display: block; left: 0; right: 8px; bottom: 0; height: 8px; opacity: 0.8; cursor: ns-resize; }
+body.sl-edit.sl-fixed .sl-grip-side { display: block; top: 0; bottom: 0; right: 0; width: 8px; opacity: 0.8; cursor: ew-resize; }

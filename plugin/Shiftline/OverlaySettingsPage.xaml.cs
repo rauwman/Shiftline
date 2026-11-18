@@ -140,7 +140,26 @@ namespace Shiftline.Plugin
                 AddMainRow(choice.Label, combo);
             }
 
+            System.Windows.Controls.Button reset = new System.Windows.Controls.Button
+            {
+                Style = (Style)FindResource("GlassButton"),
+                Content = "Reset main settings",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                Margin = new Thickness(0, 8, 0, 0),
+                ToolTip = "Puts the update rate, frame rate, GPU priority and the look of General back to the defaults. Overlays with a value of their own keep it."
+            };
+            reset.Click += (sender, args) => ResetMainSettings();
+            MainSettingsPanel.Children.Add(reset);
             _filling = false;
+        }
+
+        private void ResetMainSettings()
+        {
+            OverlaySettings.ClearOptions(LookSettings.GeneralKey);
+            OverlaySettings.GlobalRate = OverlaySettings.DefaultRate;
+            OverlaySettings.FrameRate = OverlaySettings.DefaultFrameRate;
+            OverlaySettings.GpuRealtime = false;
+            FillMainSettings();
         }
 
         private void AddMainRow(string label, System.Windows.Controls.ComboBox combo, string hint = null)

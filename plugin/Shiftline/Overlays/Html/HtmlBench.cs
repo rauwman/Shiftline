@@ -53,8 +53,7 @@ namespace Shiftline.Plugin
                 _mouse = value;
                 foreach (Slot slot in Slots)
                 {
-                    slot.Window.ClickThrough = !value;
-                    slot.Window.Post("{\"type\":\"edit\",\"on\":" + (value ? "true" : "false") + "}");
+                    slot.Window.SetEditMode(value);
                 }
             }
         }
@@ -133,15 +132,13 @@ namespace Shiftline.Plugin
 
                 foreach (Slot slot in Slots)
                 {
-                    text.AppendLine(slot.Name.PadRight(20) + (slot.Window.Status == "running" ? slot.Stats : slot.Window.Status));
+                    text.AppendLine(slot.Name.PadRight(20) + (slot.Window.PageStatus == "running" ? slot.Stats : slot.Window.PageStatus));
                 }
 
                 text.AppendLine("Browser memory".PadRight(20) + (_memory > 0 ? (_memory / 1048576) + " MB (all Shiftline browser processes)" : "-"));
-                int drags = Slots.Sum(s => s.Window.DragsByMessage);
                 text.AppendLine("Windows".PadRight(20) + Slots.Count);
                 text.AppendLine("Frame rate".PadRight(20) + (OverlaySettings.FrameRate == 0 ? "unlimited" : OverlaySettings.FrameRate + " per second") + " (General)");
                 text.AppendLine("GPU priority".PadRight(20) + (OverlaySettings.GpuRealtime ? "realtime" : "normal") + " (General)" + (string.IsNullOrEmpty(GpuPriority.Problem) ? string.Empty : ", " + GpuPriority.Problem));
-                text.AppendLine("Drag fallback".PadRight(20) + drags + " times (0 = the page's drag area worked, or nobody dragged)");
                 text.Append("Log".PadRight(20) + _logFile);
                 return text.ToString();
             }
@@ -150,8 +147,22 @@ namespace Shiftline.Plugin
         private static void Open(string kind, string name, Rect bounds, int rows)
         {
             Slot slot = new Slot { Kind = kind, Name = name, Rows = rows, Stats = "waiting for the page" };
-            slot.Window = new HtmlOverlayWindow(name, "test.html?kind=" + kind + "&name=" + Uri.EscapeDataString(name), bounds);
-            slot.Window.MessageReceived += json => OnMessage(slot, json);
+            // the real overlay window in HTML mode (moving, snapping, align bar as in WPF); a first place when it has none saved
+            string key = "HtmlTest." + name.Replace(" ", string.Empty);
+            if (OverlaySettings.GetPlacement(key) == null)
+            {
+                OverlaySettings.SetPlacement(key, new OverlayPlacement
+                {
+                    Screen = System.Windows.Forms.Screen.PrimaryScreen.DeviceName,
+                    X = bounds.Left / SystemParameters.PrimaryScreenWidth,
+                    Y = bounds.Top / SystemParameters.PrimaryScreenHeight,
+                    W = bounds.Width / SystemParameters.PrimaryScreenWidth,
+                    H = bounds.Height / SystemParameters.PrimaryScreenHeight,
+                });
+            }
+
+            slot.Window = new OverlayWindow(key, name, "test.html?kind=" + kind + "&name=" + Uri.EscapeDataString(name), bounds.Size);
+            slot.Window.PageMessage += json => OnMessage(slot, json);
             slot.Window.Closed += (sender, args) => Slots.Remove(slot);
             Slots.Add(slot);
             slot.Window.Show();
@@ -205,7 +216,7 @@ namespace Shiftline.Plugin
             double now = Now();
             foreach (Slot slot in Slots)
             {
-                if (slot.Kind == "map" || !slot.Window.IsReady)
+                if (slot.Kind == "map" || !slot.Window.IsPageReady)
                 {
                     continue;
                 }
@@ -252,7 +263,7 @@ namespace Shiftline.Plugin
             string text = json.ToString();
             foreach (Slot slot in Slots)
             {
-                if (slot.Kind == "map" && slot.Window.IsReady)
+                if (slot.Kind == "map" && slot.Window.IsPageReady)
                 {
                     slot.Window.Post(text);
                 }
@@ -356,7 +367,7 @@ namespace Shiftline.Plugin
             public string Kind;
             public string Name;
             public int Rows;
-            public HtmlOverlayWindow Window;
+            public OverlayWindow Window;
             public string Stats;
             public double Fps;
             public double Gap;

@@ -8,7 +8,6 @@
     const name = query.get('name') || 'Test';
     document.body.classList.add('kind-' + kind);
     document.getElementById('title').textContent = name;
-    SL.setName(name);
 
     const rowHeight = 23;
     const rowsBox = document.getElementById('rows');

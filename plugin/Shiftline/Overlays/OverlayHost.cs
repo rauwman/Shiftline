@@ -57,7 +57,7 @@ namespace Shiftline.Plugin
                 OverlaySettings.Changed += () => OnUi(() =>
                 {
                     GpuPriority.Apply();
-                    HtmlOverlayWindow.SendFrameRateToAll();
+                    OverlayWindow.SendFrameRateToAll();
                 });
                 GpuPriority.Apply();
                 _standingsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);

@@ -4,7 +4,7 @@ using System.Linq;
 namespace Shiftline.Plugin
 {
     /// <summary>
-    /// The look settings that are set once for all overlays (page "General"): the opacity of the rows and of the header and footer,
+    /// The look settings that are set once for all overlays (page "General"): the opacity of the card, of the rows and of the header and footer, the space between rows,
     /// the font, its weight and the shape of the boxes. Every overlay page offers the same entries with "Same as in General" in
     /// front; an overlay that has it chosen takes the value from General, otherwise it uses its own. The values of General live
     /// in Overlays.json like the options of an overlay, under the name "General".
@@ -31,8 +31,11 @@ namespace Shiftline.Plugin
         /// <summary>The choices as General offers them, with the value every overlay gets while it follows General.</summary>
         public static readonly StandingsChoice[] General =
         {
-            new StandingsChoice("Look", "Opacity", "Background opacity of the rows and cards", "60", OpacityValues),
-            new StandingsChoice("Look", "HfOpacity", "Background opacity of the header and footer", "0", OpacityValues),
+            new StandingsChoice("Look", "Opacity", "Card background opacity", "0", OpacityValues),
+            new StandingsChoice("Look", "RowOpacity", "Row background opacity", "80", OpacityValues),
+            new StandingsChoice("Look", "HfOpacity", "Background opacity of the header and footer", "70", OpacityValues),
+            new StandingsChoice("Look", "RowGap", "Space between rows (standings and relatives)", "1",
+                "0", "None (one panel)", "1", "1 px", "2", "2 px", "3", "3 px", "4", "4 px"),
             new StandingsChoice("Look", "Font", "Font", "Segoe UI", FontValues),
             new StandingsChoice("Look", "Weight", "Font weight", "Normal", WeightValues),
             new StandingsChoice("Look", "Corners", "Background boxes", "Rounded", CornerValues)

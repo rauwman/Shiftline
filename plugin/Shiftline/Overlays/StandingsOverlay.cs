@@ -29,7 +29,6 @@ namespace Shiftline.Plugin
         private static readonly Brush TextBrush = Frozen(0xFF, 0xE8, 0xEC, 0xF1);
         private static readonly Brush MutedBrush = Frozen(0xFF, 0x8E, 0x98, 0xA6);
         private static readonly Brush PanelBrush = Frozen(0xE6, 0x0E, 0x12, 0x19);
-        private static readonly Brush OddRowBrush = Frozen(0x14, 0xFF, 0xFF, 0xFF);
         private static readonly Brush PlayerRowBrush = Frozen(0x55, 0x3F, 0xA9, 0xF5);
         private static readonly Brush PurpleBrush = Frozen(0xFF, 0xC0, 0x7C, 0xFF);
         private static readonly Brush GreenBrush = Frozen(0xFF, 0x5E, 0xE0, 0x7A);
@@ -38,8 +37,6 @@ namespace Shiftline.Plugin
         private static readonly Brush NumberBoxBrush = Frozen(0xFF, 0x05, 0x06, 0x08);
         private static readonly Brush DarkText = Frozen(0xFF, 0x10, 0x12, 0x16);
         private static readonly Brush WetBrush = Frozen(0xFF, 0x3F, 0xA9, 0xF5);
-        private static readonly Brush SubtleFill = Frozen(0x1E, 0xFF, 0xFF, 0xFF);
-        private static readonly Brush LightFill = Frozen(0x3A, 0xFF, 0xFF, 0xFF);
         private static readonly Brush WhiteFill = Frozen(0xFF, 0xF9, 0xF9, 0xF9);
         // Best lap and average lap get their own text colours so they read apart from the lap time. Both are light enough to stay
         // readable on the grey backgrounds; on the white background they turn dark like every other value.
@@ -93,6 +90,9 @@ namespace Shiftline.Plugin
         private double _changeWidth = 16;
         private Brush _rowBrush;
         private Brush _oddRowBrush;
+        private Brush _playerRowBrush = PlayerRowBrush;
+        private Brush _plainRowBrush;      // a row with only the titles: a plain bar, so it stays readable without a card
+        private double _cardOpacity = 0.6; // the card behind the class tab, 0..1
         private Brush _headerBrush;        // header and footer, with an opacity of their own
         private double _rowPitch = RowHeight;
         private Dictionary<int, int> _lastSlots = new Dictionary<int, int>();
@@ -164,9 +164,38 @@ namespace Shiftline.Plugin
             // and the space between them stays see-through.
             byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
             _headerBrush = Frozen(hfAlpha, 0x16, 0x1C, 0x26);
-            Brush panelBrush = gap > 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19);
-            _rowBrush = gap > 0 ? Frozen(alpha, 0x0E, 0x12, 0x19) : null;
-            _oddRowBrush = gap > 0 ? Frozen(alpha, 0x1A, 0x20, 0x2A) : OddRowBrush;
+            // Three backgrounds with their own opacity: the card behind everything, the bar of each row, header and footer.
+            Brush panelBrush = alpha == 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19);
+            byte rowAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("RowOpacity"))) / 100.0);
+            Brush dark = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x0E, 0x12, 0x19);
+            Brush light = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x22, 0x29, 0x36);
+            _plainRowBrush = options.Get("RowStyle") == "Mine" ? null : dark;
+            _cardOpacity = alpha / 255.0;
+            switch (options.Get("RowStyle"))
+            {
+                case "Solid":
+                    _oddRowBrush = dark;
+                    _rowBrush = dark;
+                    break;
+                case "Reversed":
+                    _oddRowBrush = dark;
+                    _rowBrush = light;
+                    break;
+                case "Mine":
+                    _oddRowBrush = null;
+                    _rowBrush = null;
+                    break;
+                default:
+                    _oddRowBrush = light;        // the first car is the lighter one
+                    _rowBrush = dark;
+                    break;
+            }
+
+            // your row: the row bar tinted blue, at least as strong as the other rows (alone it keeps the old see-through blue)
+            _playerRowBrush = rowAlpha == 0 ? PlayerRowBrush : Frozen(Math.Max(rowAlpha, (byte)0x55), 0x1F, 0x4E, 0x70);
+            // column colours: lighter steps of the row bar with its opacity, so they always go with the rows
+            Brush subtleColumn = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x2A, 0x32, 0x40);
+            Brush lightColumn = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x42, 0x4B, 0x5A);
 
             Grid grid = new Grid();
             _designWidth = 0;
@@ -200,7 +229,11 @@ namespace Shiftline.Plugin
             for (int c = 0; c < columns.Count; c++)
             {
                 string fill = options.Get(columns[c].Key + ".Bg");
-                _columnFills[c] = fill == "White" ? WhiteFill : fill == "Light" ? LightFill : fill == "Subtle" ? SubtleFill : null;
+                // white stays solid: the dark text on it needs it
+                _columnFills[c] = fill == "White" ? WhiteFill
+                    : fill == "Light" ? lightColumn
+                    : fill == "Subtle" ? subtleColumn
+                    : null;
                 _columnLight[c] = fill == "White";
             }
 
@@ -452,13 +485,15 @@ namespace Shiftline.Plugin
                 }
 
                 // A class tab: shown in this row instead of the cells when a new class block starts (classes split).
+                // Style "Line": across the whole row, under the cells (the titles stay on top), the class colour only as a line.
+                bool lineTab = options.Get("Tab.Style") == "Line";
                 TextBlock tabText = new TextBlock { FontSize = 12, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
                 Border tab = new Border
                 {
-                    CornerRadius = new CornerRadius(4 * _round, 4 * _round, 0, 0),
+                    CornerRadius = lineTab ? new CornerRadius(3 * _round, 3 * _round, 0, 0) : new CornerRadius(4 * _round, 4 * _round, 0, 0),
                     Padding = new Thickness(8, 0, 8, 0),
-                    Margin = new Thickness(2, 4, 0, gap),
-                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Margin = new Thickness(lineTab ? 0 : 2, 4, 0, gap),
+                    HorizontalAlignment = lineTab ? HorizontalAlignment.Stretch : HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Stretch,
                     Visibility = Visibility.Collapsed,
                     IsHitTestVisible = false,
@@ -469,7 +504,7 @@ namespace Shiftline.Plugin
                 _rowParts[r].Add(tab);
                 Grid.SetRow(tab, firstRow + r);
                 Grid.SetColumnSpan(tab, span);
-                Panel.SetZIndex(tab, 5);
+                Panel.SetZIndex(tab, lineTab ? -1 : 5);
                 grid.Children.Add(tab);
                 _tabs[r] = tab;
                 _tabTexts[r] = tabText;
@@ -517,20 +552,6 @@ namespace Shiftline.Plugin
             }
 
             // Fixed size: the scale comes from the "Size" choice, not from the window. A longer window only adds rows.
-            if (gap > 0)
-            {
-                Brush bar = Frozen(alpha, 0x16, 0x1C, 0x26);
-                if (_headerBox != null)
-                {
-                    _headerBox.Background = bar;
-                }
-
-                if (_footerBox != null)
-                {
-                    _footerBox.Background = bar;
-                }
-            }
-
             Border panel = new Border
             {
                 Background = panelBrush,
@@ -681,7 +702,7 @@ namespace Shiftline.Plugin
             return image;
         }
 
-        private void FillFlag(int r, StandingsRow row)
+        private void ApplyFlag(int r, StandingsCell cell)
         {
             Image image = _flagImages[r];
             if (image == null)
@@ -689,7 +710,7 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            ImageSource source = row == null ? null : FlagImages.For(row.Flair);
+            ImageSource source = cell.Flair == null ? null : FlagImages.For(cell.Flair);
             if (!ReferenceEquals(image.Source, source))
             {
                 image.Source = source;
@@ -725,7 +746,7 @@ namespace Shiftline.Plugin
             inner.Children.Add(number);
             inner.Children.Add(right);
             Grid glossed = WithGloss(inner, 4 * _round);
-            glossed.Children[1].Visibility = Visibility.Collapsed;      // shown by FillLicence once the row has a licence
+            glossed.Children[1].Visibility = Visibility.Collapsed;      // shown by ApplyLicence once the row has a licence
             Border pill = new Border { CornerRadius = new CornerRadius(4 * _round), Child = glossed, HorizontalAlignment = withNumber ? HorizontalAlignment.Stretch : HorizontalAlignment.Center };
             _licNumberBoxes[r] = pill;
             _licLetterBoxes[r] = right;
@@ -734,21 +755,17 @@ namespace Shiftline.Plugin
             return pill;
         }
 
-        private void FillLicence(int r, StandingsRow row)
+        private void ApplyLicence(int r, StandingsCell cell)
         {
             if (_licNumbers[r] == null)
             {
                 return;
             }
 
-            string[] parts = (row == null ? string.Empty : row.License ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            double rating = 0;
-            bool hasRating = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out rating);
-            Brush colour = row == null ? null : LicenceBrush(row.LicenseColor);
-            SetText(_licLetters[r], parts.Length > 0 ? parts[0] : string.Empty);
-            SetText(_licNumbers[r], hasRating ? (Math.Floor(rating * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture) : string.Empty);
-            Brush shade = colour == null ? null : Shade(colour);
-            Brush soft = colour == null ? null : Soften(colour);
+            SetText(_licLetters[r], cell.LicenceLetter);
+            SetText(_licNumbers[r], cell.LicenceNumber);
+            Brush shade = cell.LicenceShade;
+            Brush soft = cell.LicenceSoft;
             if (!ReferenceEquals(_licLetterBoxes[r].Background, soft))
             {
                 _licLetterBoxes[r].Background = soft;
@@ -1069,7 +1086,9 @@ namespace Shiftline.Plugin
                 Entry entry = r < shown.Count ? shown[r] : null;
                 StandingsRow row = entry == null ? null : entry.Row;
                 ShowTab(r, entry == null ? null : entry.Tab, snapshot.Features);
-                Brush rowBrush = row == null ? null : row.IsPlayer ? PlayerRowBrush : (stripe % 2 == 0 ? _oddRowBrush : _rowBrush);
+                Brush rowBrush = row == null
+                    ? (entry != null && entry.Titles && entry.Tab == null ? _plainRowBrush : null)
+                    : row.IsPlayer ? _playerRowBrush : (stripe % 2 == 0 ? _oddRowBrush : _rowBrush);
                 if (row != null)
                 {
                     stripe++;
@@ -1266,6 +1285,22 @@ namespace Shiftline.Plugin
 
         private static readonly Dictionary<Brush, Brush> SoftBrushes = new Dictionary<Brush, Brush>();
 
+        private static readonly Dictionary<byte, Brush> DarkBoxes = new Dictionary<byte, Brush>();
+
+        /// <summary>The dark of the overlay with the opacity that makes card and box together cover about 90 %.</summary>
+        private static Brush DarkBox(double card)
+        {
+            byte alpha = card >= 0.9 ? (byte)0 : (byte)Math.Round(255 * (1 - 0.1 / (1 - card)));
+            Brush box;
+            if (!DarkBoxes.TryGetValue(alpha, out box))
+            {
+                box = alpha == 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19);
+                DarkBoxes[alpha] = box;
+            }
+
+            return box;
+        }
+
         private static Brush SoftBrush(Brush colour)
         {
             Brush soft;
@@ -1353,19 +1388,42 @@ namespace Shiftline.Plugin
 
             SetText(_tabTexts[r], text);
             Brush colour = ClassBrush(first.ClassColor);
+            if (_options.Get("Tab.Style") == "Line")
+            {
+                // a dark bar that gets more solid as the card gets lighter (together about 90 %), the name in the class colour,
+                // a line in the class colour on the left (it meets the class stripe of the rows) and along the bottom
+                Brush box = DarkBox(_cardOpacity);
+                if (!ReferenceEquals(tab.Background, box) || !ReferenceEquals(tab.BorderBrush, colour))
+                {
+                    tab.Background = box;
+                    tab.BorderBrush = colour;
+                    tab.BorderThickness = new Thickness(2, 0, 0, 2);
+                    _tabTexts[r].Foreground = colour;
+                }
+
+                return;
+            }
+
             if (_options.Get("Tab.Style") == "Subtle")
             {
-                // see-through class colour with a solid edge on the left, light text: quieter than the solid tab
-                Brush soft = SoftBrush(colour);
-                if (!ReferenceEquals(tab.Background, soft))
+                // see-through class colour with a solid edge on the left, light text: quieter than the solid tab. Without a strong
+                // card behind it that would be unreadable, so then it shows like the solid tab (full class colour).
+                if (_cardOpacity >= 0.9)
                 {
-                    tab.Background = soft;
-                    tab.BorderBrush = colour;
-                    tab.BorderThickness = new Thickness(3, 0, 0, 0);
-                    _tabTexts[r].Foreground = TextBrush;
+                    Brush soft = SoftBrush(colour);
+                    if (!ReferenceEquals(tab.Background, soft))
+                    {
+                        tab.Background = soft;
+                        tab.BorderBrush = colour;
+                        tab.BorderThickness = new Thickness(3, 0, 0, 0);
+                        _tabTexts[r].Foreground = TextBrush;
+                    }
+
+                    return;
                 }
             }
-            else if (!ReferenceEquals(tab.Background, colour))
+
+            if (!ReferenceEquals(tab.Background, colour))
             {
                 tab.Background = colour;
                 tab.BorderThickness = new Thickness(0);
@@ -1552,213 +1610,63 @@ namespace Shiftline.Plugin
             }
         }
 
+        /// <summary>Draws one cell: the content comes from CellOf (shared with the HTML overlays), this only sets the WPF elements.</summary>
         private void Fill(int r, int c, string column, Entry entry, Context context)
         {
             StandingsRow row = entry == null ? null : entry.Row;
-            Border box = _cellBoxes[r, c];
-            TextBlock text = _cells[r, c];
-            StandingsOptions options = context.Options;
-            Brush background = _interactive ? Brushes.Transparent : null;
-            Brush foreground = TextBrush;
-            string value = string.Empty;
-            if (column == "Tyre")
-            {
-                FillTyre(r, row, options);
-            }
-
+            StandingsCell cell = CellOf(column, entry, context, _relative, _columnLight[c], _columnFills[c], ShowGain);
             if (column == "Delta")
             {
-                FillDelta(r, row, context);
+                ApplyDeltas(r, cell);
                 return;
             }
 
-            if (column == "iR" && row == null)
+            if (column == "Tyre")
             {
-                FillIRatingChange(r, null, false, false);
-            }
-
-            if (column == "Lic" && row == null)
-            {
-                FillLicence(r, null);
+                ApplyTyre(r, cell);
             }
 
             if (column == "Flag")
             {
-                FillFlag(r, row);
+                ApplyFlag(r, cell);
             }
 
-            if (row != null)
+            if (column == "iR")
             {
-                switch (column)
+                ApplyRating(r, cell);
+            }
+
+            if (column == "Lic" && (row == null || context.Options.Get("Lic.Mode") == "Split"))
+            {
+                ApplyLicence(r, cell);
+            }
+
+            if (column == "Pit" && row != null)
+            {
+                SetText(_pitValues[r], cell.PitDetail);
+                if (!ReferenceEquals(_pitValues[r].Foreground, cell.MarkBrush))
                 {
-                    case "Pos":
-                        value = entry.Position > 0 ? entry.Position.ToString(CultureInfo.InvariantCulture) : "-";
-                        foreground = MutedBrush;
-                        break;
-                    case "Class":
-                        background = ClassBrush(row.ClassColor);
-                        break;
-                    case "Gain":
-                        if (entry.StartPosition > 0 && entry.Position > 0 && entry.StartPosition != entry.Position)
-                        {
-                            int gained = entry.StartPosition - entry.Position;
-                            value = Math.Abs(gained).ToString(CultureInfo.InvariantCulture);
-                            foreground = gained > 0 ? GreenBrush : LossBrush;
-                        }
-
-                        break;
-                    case "Num":
-                        value = row.Number ?? string.Empty;
-                        if (options.GetInt("Num.Style") >= 4)
-                        {
-                            background = NumberBoxBrush;
-                        }
-
-                        break;
-                    case "Name":
-                        value = FormatName(row.Name, options.Get("Name.Format"));
-                        if (options.Get("Name.Case") == "Upper")
-                        {
-                            value = value.ToUpperInvariant();
-                        }
-
-                        break;
-                    case "Make":
-                        value = row.Make ?? string.Empty;
-                        foreground = MutedBrush;
-                        break;
-                    case "Lic":
-                        if (options.Get("Lic.Mode") == "Split")
-                        {
-                            FillLicence(r, row);
-                            break;
-                        }
-
-                        FormatLicence(row, options.Get("Lic.Mode"), out value, out background, out foreground);
-                        break;
-                    case "iR":
-                        value = FormatIRating(row.IRating, options.Get("iR.Mode"));
-                        foreground = MutedBrush;
-                        FillIRatingChange(r, row, ShowGain, _columnLight[c]);
-                        break;
-                    case "Lap":
-                        value = row.LapDistPct >= 0 ? (row.LapsCompleted + 1).ToString(CultureInfo.InvariantCulture) : string.Empty;
-                        foreground = MutedBrush;
-                        break;
-                    case "Gap":
-                    case "Int":
-                        if (_relative)
-                        {
-                            // the cars around you: the gap to you, coloured by the lap the car is on
-                            value = entry.GapText ?? string.Empty;
-                            foreground = entry.GapBrush ?? TextBrush;
-                            break;
-                        }
-
-                        if (options.GetBool(column + ".Show" + context.Mode))
-                        {
-                            StandingsRow reference = column == "Gap" ? entry.Leader : entry.Ahead;
-                            if (reference == null)
-                            {
-                                value = column.ToUpperInvariant();      // the leader of a block shows what the column means
-                                foreground = MutedBrush;
-                            }
-                            else
-                            {
-                                value = Gap(row, context, reference, options.GetInt(column + ".Dec" + context.Mode));
-                            }
-                        }
-
-                        break;
-                    case "Last":
-                        value = Lap(row.LastLap, options.GetInt("Last.Dec" + context.Mode));
-                        if (row.LastLap > 0 && Math.Abs(row.LastLap - context.SessionBest) < 0.0005)
-                        {
-                            foreground = PurpleBrush;
-                        }
-                        else if (row.LastLap > 0 && Math.Abs(row.LastLap - row.BestLap) < 0.0005)
-                        {
-                            foreground = GreenBrush;
-                        }
-
-                        break;
-                    case "Best":
-                        value = Lap(row.BestLap, options.GetInt("Last.Dec" + context.Mode));
-                        foreground = BestLapBrush;
-                        if (row.BestLap > 0 && Math.Abs(row.BestLap - context.SessionBest) < 0.0005)
-                        {
-                            foreground = PurpleBrush;
-                        }
-
-                        break;
-                    case "Avg":
-                        // green only for the fastest average in the field; no colour for the others
-                        double average = Context.AverageOf(row, context.AverageLaps);
-                        value = average > 0 ? Lap(average, options.GetInt("Last.Dec" + context.Mode)) : "-";
-                        foreground = AverageBrush;
-                        if (average > 0 && Math.Abs(average - context.BestAverage) < 0.0005)
-                        {
-                            foreground = GreenBrush;
-                        }
-
-                        break;
-                    case "Tyre":
-                        value = options.GetBool("Tyre.Laps") && !string.IsNullOrEmpty(row.TireType) ? row.StintLaps.ToString(CultureInfo.InvariantCulture) : string.Empty;
-                        foreground = MutedBrush;
-                        break;
-                    case "Stint":
-                        value = row.StintLaps > 0 ? row.StintLaps.ToString(CultureInfo.InvariantCulture) : string.Empty;
-                        foreground = MutedBrush;
-                        break;
-                    case "Pit":
-                        string detail;
-                        Brush pitBackground;
-                        FormatPit(row, options.Get("Pit.Mode") != "Plain", out value, out detail, out pitBackground, out foreground);
-                        if (pitBackground != null)
-                        {
-                            background = pitBackground;
-                        }
-
-                        SetText(_pitValues[r], detail);
-                        if (!ReferenceEquals(_pitValues[r].Foreground, foreground))
-                        {
-                            _pitValues[r].Foreground = foreground;
-                        }
-
-                        break;
+                    _pitValues[r].Foreground = cell.MarkBrush;
                 }
             }
 
             if (column == "Gain")
             {
-                SetArrow(_gainArrows[r], entry, foreground);
+                SetArrow(_gainArrows[r], cell.Gain, cell.MarkBrush);
             }
 
-            // The column's own background (for example behind the position), unless the cell has a coloured one already.
-            if (background == null || ReferenceEquals(background, Brushes.Transparent))
-            {
-                bool inner = column == "iR" || column == "Tyre";                // these two draw their background themselves
-                Brush fill = inner || row == null ? null : _columnFills[c];
-                background = fill ?? background;
-                if (row != null && _columnLight[c] && (fill != null || inner))
-                {
-                    // Dark text on the white background; green and red get darker so they stay readable.
-                    foreground = ReferenceEquals(foreground, GreenBrush) ? DarkGreenBrush
-                        : ReferenceEquals(foreground, LossBrush) ? DarkRedBrush
-                        : ReferenceEquals(foreground, PurpleBrush) ? foreground
-                        : DarkText;
-                }
-            }
-
+            Brush background = cell.Background;
             if (_interactive && background == null)
             {
                 background = Brushes.Transparent;       // keeps the whole cell clickable in the preview
             }
 
-            SetText(text, value);
-            if (column != "Tyre" && !ReferenceEquals(text.Foreground, foreground))
+            TextBlock text = _cells[r, c];
+            Border box = _cellBoxes[r, c];
+            SetText(text, cell.Text);
+            if (column != "Tyre" && !ReferenceEquals(text.Foreground, cell.Foreground))
             {
-                text.Foreground = foreground;
+                text.Foreground = cell.Foreground;
             }
 
             if (!ReferenceEquals(box.Background, background))
@@ -1767,19 +1675,14 @@ namespace Shiftline.Plugin
             }
         }
 
-        private static void SetArrow(Path arrow, Entry entry, Brush brush)
+        private static void SetArrow(Path arrow, int gain, Brush brush)
         {
             if (arrow == null)
             {
                 return;
             }
 
-            Geometry shape = null;
-            if (entry != null && entry.StartPosition > 0 && entry.Position > 0 && entry.StartPosition != entry.Position)
-            {
-                shape = entry.StartPosition > entry.Position ? ChevronUp : ChevronDown;
-            }
-
+            Geometry shape = gain > 0 ? ChevronUp : gain < 0 ? ChevronDown : null;
             if (!ReferenceEquals(arrow.Data, shape))
             {
                 arrow.Data = shape;
@@ -1791,7 +1694,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private void FillTyre(int r, StandingsRow row, StandingsOptions options)
+        private void ApplyTyre(int r, StandingsCell cell)
         {
             Ellipse ring = _tyreRings[r];
             Path letter = _tyreLetters[r];
@@ -1800,31 +1703,27 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            string type = row == null ? string.Empty : row.TireType ?? string.Empty;
-            Visibility visible = type.Length > 0 ? Visibility.Visible : Visibility.Hidden;
+            Visibility visible = cell.TyreCode != null ? Visibility.Visible : Visibility.Hidden;
             UIElement pill = ((FrameworkElement)((FrameworkElement)ring.Parent).Parent).Parent as UIElement;   // ring > icon > grid > pill
             if (pill != null && pill.Visibility != visible)
             {
                 pill.Visibility = visible;
             }
 
-            if (type.Length == 0)
+            if (cell.TyreCode == null)
             {
                 return;
             }
 
-            string code;
-            Brush colour;
-            TyreLook(type, out code, out colour);
-            Geometry shape = LetterShape(code);
+            Geometry shape = LetterShape(cell.TyreCode);
             if (!ReferenceEquals(letter.Data, shape))
             {
                 letter.Data = shape;
             }
 
-            if (!ReferenceEquals(ring.Stroke, colour))
+            if (!ReferenceEquals(ring.Stroke, cell.TyreColour))
             {
-                ring.Stroke = colour;
+                ring.Stroke = cell.TyreColour;
             }
         }
 
@@ -1864,12 +1763,9 @@ namespace Shiftline.Plugin
             }
         }
 
-        /// <summary>Time gained (green) or lost (red) against the player, per recent lap, newest first.</summary>
-        private void FillDelta(int r, StandingsRow row, Context context)
+        private void ApplyDeltas(int r, StandingsCell cell)
         {
-            int count = Math.Max(1, Math.Min(MaxDelta, _options.GetInt("Delta.Count")));
-            StandingsRow player = context.Player;
-            for (int k = 0; k < count; k++)
+            for (int k = 0; k < cell.Deltas.Length; k++)
             {
                 TextBlock text = _deltas[r, k];
                 if (text == null)
@@ -1884,20 +1780,10 @@ namespace Shiftline.Plugin
                     text.Width = _deltaWidth;
                 }
 
-                string value = string.Empty;
-                Brush brush = MutedBrush;
-                if (row != null && player != null && !row.IsPlayer && row.RecentLaps != null && player.RecentLaps != null
-                    && k < row.RecentLaps.Length && k < player.RecentLaps.Length)
+                SetText(text, cell.Deltas[k]);
+                if (!ReferenceEquals(text.Foreground, cell.DeltaBrushes[k]))
                 {
-                    double delta = row.RecentLaps[k] - player.RecentLaps[k];   // positive: the other car was slower, you gained
-                    value = Math.Abs(delta).ToString("0.0", CultureInfo.InvariantCulture);
-                    brush = delta > 0.05 ? GreenBrush : delta < -0.05 ? LossBrush : MutedBrush;
-                }
-
-                SetText(text, value);
-                if (!ReferenceEquals(text.Foreground, brush))
-                {
-                    text.Foreground = brush;
+                    text.Foreground = cell.DeltaBrushes[k];
                 }
             }
         }
@@ -2006,7 +1892,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private void FillIRatingChange(int r, StandingsRow row, bool show, bool onLight)
+        private void ApplyRating(int r, StandingsCell cell)
         {
             TextBlock change = _irChanges[r];
             Path arrow = _irArrows[r];
@@ -2016,22 +1902,22 @@ namespace Shiftline.Plugin
             }
 
             UIElement pill = _irPills[r];
-            Visibility pillVisible = row != null && row.IRating > 0 ? Visibility.Visible : Visibility.Hidden;
+            Visibility pillVisible = cell.HasRating ? Visibility.Visible : Visibility.Hidden;
             if (pill != null && pill.Visibility != pillVisible)
             {
                 pill.Visibility = pillVisible;
             }
 
-            bool has = show && row != null && row.HasIRatingChange && row.IRatingChange != 0;
-            Brush brush = has && row.IRatingChange > 0 ? (onLight ? DarkGreenBrush : GreenBrush) : (onLight ? DarkRedBrush : LossBrush);
-            SetText(change, has ? Math.Abs(row.IRatingChange).ToString(CultureInfo.InvariantCulture) : string.Empty);
-            Geometry shape = has ? (row.IRatingChange > 0 ? ChevronUp : ChevronDown) : null;
+            bool has = cell.RatingChange != 0;
+            SetText(change, has ? Math.Abs(cell.RatingChange).ToString(CultureInfo.InvariantCulture) : string.Empty);
+            Geometry shape = has ? (cell.RatingChange > 0 ? ChevronUp : ChevronDown) : null;
             if (!ReferenceEquals(arrow.Data, shape))
             {
                 arrow.Data = shape;
             }
 
-            arrow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            arrow.Visibility = cell.ShowRatingChange ? Visibility.Visible : Visibility.Collapsed;
+            Brush brush = cell.RatingChangeBrush;
             if (!ReferenceEquals(change.Foreground, brush))
             {
                 change.Foreground = brush;
