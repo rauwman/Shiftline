@@ -1090,12 +1090,14 @@ namespace Shiftline.Plugin
                         {
                             // a short grow with a little overshoot at the new place
                             DoubleAnimation pop = new DoubleAnimation(0.82, 1, TimeSpan.FromSeconds(animation * 1.3)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.8 } };
+                            OverlayFrameCap.Limit(pop);
                             _rowScales[r].BeginAnimation(ScaleTransform.ScaleXProperty, pop);
                             _rowScales[r].BeginAnimation(ScaleTransform.ScaleYProperty, pop);
                         }
                         else
                         {
                             DoubleAnimation fade = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(animation * 4)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+                            OverlayFrameCap.Limit(fade);
                             foreach (UIElement part in _rowParts[r])
                             {
                                 part.BeginAnimation(UIElement.OpacityProperty, fade);
@@ -1109,6 +1111,7 @@ namespace Shiftline.Plugin
                             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                         };
                         slide.From = (previous - r) * _rowPitch;
+                        OverlayFrameCap.Limit(slide);
                         _rowShifts[r].BeginAnimation(TranslateTransform.YProperty, slide);
                     }
                 }

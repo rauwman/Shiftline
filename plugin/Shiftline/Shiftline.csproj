@@ -68,6 +68,16 @@
       <HintPath>$(SIMHUB_INSTALL_PATH)SimHub.Plugins.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SIMHUB_INSTALL_PATH)Microsoft.Web.WebView2.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Wpf">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SIMHUB_INSTALL_PATH)Microsoft.Web.WebView2.Wpf.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
@@ -127,6 +137,11 @@
     <Compile Include="Overlays\IRatingEstimate.cs" />
     <Compile Include="Overlays\NativeMethods.cs" />
     <Compile Include="Overlays\OverlayFonts.cs" />
+    <Compile Include="Overlays\Html\HtmlHost.cs" />
+    <Compile Include="Overlays\Html\HtmlOverlayWindow.cs" />
+    <Compile Include="Overlays\Html\HtmlBench.cs" />
+    <Compile Include="Overlays\OverlayFrameCap.cs" />
+    <Compile Include="Overlays\GpuPriority.cs" />
     <Compile Include="Overlays\OverlayAlignBar.cs" />
     <Compile Include="Overlays\OverlayGuides.cs" />
     <Compile Include="Overlays\OverlayHost.cs" />
@@ -187,6 +202,10 @@
     <Resource Include="Assets\Fonts\SairaSemiCondensed-Bold.ttf" />
     <None Include="Assets\Fonts\OFL-Inter.txt" />
     <None Include="Assets\Fonts\OFL-SairaSemiCondensed.txt" />
+    <!-- the pages, scripts and styles of the HTML overlays (served by HtmlHost) -->
+    <EmbeddedResource Include="Overlays\Html\web\*.*">
+      <LogicalName>Shiftline.web.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
     <!-- the LED script, embedded so the plugin can hand it to the loader profile -->
     <EmbeddedResource Include="..\..\tools\Shiftline.plugin.js">
       <LogicalName>Shiftline.plugin.js</LogicalName>

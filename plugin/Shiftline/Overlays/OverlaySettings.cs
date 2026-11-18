@@ -30,6 +30,10 @@ namespace Shiftline.Plugin
         public static readonly int[] Rates = { 5, 10, 15, 20, 30 };
         public const int DefaultRate = 10;
 
+        /// <summary>The choices of the overlay frame rate: most frames per second the overlays draw (0 = unlimited).</summary>
+        public static readonly int[] FrameRates = { 30, 60, 0 };
+        public const int DefaultFrameRate = 60;
+
         private static readonly object Gate = new object();
         private static readonly Dictionary<string, OverlayPlacement> Placements = new Dictionary<string, OverlayPlacement>();
         private static readonly HashSet<string> EnabledOverlays = new HashSet<string>();
@@ -38,11 +42,45 @@ namespace Shiftline.Plugin
         private static bool _onlyWhenGameInFront = true;
         private static bool _showInReplays;
         private static bool _showInGarage;
+        private static int _frameRate = DefaultFrameRate;
+        private static bool _gpuRealtime;
         private static int _alignMargin = 5;
 
         /// <summary>The largest distance for the align buttons of edit mode, in pixels (chosen in steps of 5).</summary>
         public const int MaxAlignMargin = 50;
         private static readonly Dictionary<string, int> GameFeatures = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>How often the overlays draw at most, per second (0 = as often as the screen allows). Default 60.</summary>
+        public static int FrameRate
+        {
+            get { lock (Gate) { return _frameRate; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _frameRate = Array.IndexOf(FrameRates, value) >= 0 ? value : DefaultFrameRate;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
+
+        /// <summary>GPU priority realtime for the overlays (SimHub and the browser of the HTML overlays). Default off (normal).</summary>
+        public static bool GpuRealtime
+        {
+            get { lock (Gate) { return _gpuRealtime; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _gpuRealtime = value;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
 
         /// <summary>Overlays show only while the game window is in front (edit mode shows them anyway). Default on.</summary>
         public static bool OnlyWhenGameInFront
@@ -318,6 +356,18 @@ namespace Shiftline.Plugin
                     _globalRate = Snap((int)global);
                 }
 
+                JToken frameRate = json["FrameRate"];
+                if (frameRate != null && frameRate.Type == JTokenType.Integer && Array.IndexOf(FrameRates, (int)frameRate) >= 0)
+                {
+                    _frameRate = (int)frameRate;
+                }
+
+                JToken gpu = json["GpuPriority"];
+                if (gpu != null && gpu.Type == JTokenType.String)
+                {
+                    _gpuRealtime = (string)gpu == "Realtime";
+                }
+
                 JToken front = json["OnlyWhenGameInFront"];
                 if (front != null && front.Type == JTokenType.Boolean)
                 {
@@ -426,8 +476,12 @@ namespace Shiftline.Plugin
                 bool replays;
                 bool garage;
                 int alignMargin;
+                int frameRate;
+                bool gpuRealtime;
                 lock (Gate)
                 {
+                    frameRate = _frameRate;
+                    gpuRealtime = _gpuRealtime;
                     global = _globalRate;
                     front = _onlyWhenGameInFront;
                     foreach (KeyValuePair<string, int> pair in GameFeatures)
@@ -466,7 +520,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
+                    { "GlobalRate", global }, { "FrameRate", frameRate }, { "GpuPriority", gpuRealtime ? "Realtime" : "Normal" }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
                 }.ToString());
             }
             catch (Exception ex)

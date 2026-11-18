@@ -620,8 +620,15 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>One frame of the screen: draw the cars where they are now; stop once they have reached the last update.</summary>
+        private long _capLast;                      // test: WPF frame cap (OverlayFrameCap)
+
         private void OnFrame(object sender, EventArgs e)
         {
+            if (OverlayFrameCap.Skip(ref _capLast))
+            {
+                return;
+            }
+
             long started = Stopwatch.GetTimestamp();
             DrawCarLayer();
             AddWork(started);
@@ -777,13 +784,14 @@ namespace Shiftline.Plugin
                     TimeSpan begin = TimeSpan.FromSeconds(k * WaveSeconds / waves.Length);
                     Duration duration = new Duration(TimeSpan.FromSeconds(WaveSeconds));
                     SolidColorBrush brush = new SolidColorBrush(colour) { Opacity = 0 };
-                    brush.BeginAnimation(Brush.OpacityProperty, new DoubleAnimation(0.85, 0, duration) { BeginTime = begin, RepeatBehavior = RepeatBehavior.Forever });
+                    brush.BeginAnimation(Brush.OpacityProperty, OverlayFrameCap.Limit(new DoubleAnimation(0.85, 0, duration) { BeginTime = begin, RepeatBehavior = RepeatBehavior.Forever }));
                     DoubleAnimation grow = new DoubleAnimation(r, r * (1 + WaveReach), duration)
                     {
                         BeginTime = begin,
                         RepeatBehavior = RepeatBehavior.Forever,
                         EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                     };
+                    OverlayFrameCap.Limit(grow);
                     waves[k] = new Wave { Radius = grow.CreateClock(), Brush = brush, Pen = new Pen(brush, WaveWidth) };
                 }
 
@@ -994,7 +1002,7 @@ namespace Shiftline.Plugin
 
             TranslateTransform move = new TranslateTransform();
             brush.Transform = move;
-            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, length, TimeSpan.FromSeconds(FlowSeconds)) { RepeatBehavior = RepeatBehavior.Forever });
+            move.BeginAnimation(TranslateTransform.YProperty, OverlayFrameCap.Limit(new DoubleAnimation(0, length, TimeSpan.FromSeconds(FlowSeconds)) { RepeatBehavior = RepeatBehavior.Forever }));
             _flowPen = new Pen(brush, StartLineWidth) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
             _flowLength = length;
             return _flowPen;

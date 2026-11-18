@@ -853,13 +853,14 @@ namespace Shiftline.Plugin
                     {
                         // the new card comes up from slightly smaller and springs a little past its size before it settles
                         DoubleAnimation grow = new DoubleAnimation(0.9, 1, TimeSpan.FromSeconds(duration)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.6 } };
+                        OverlayFrameCap.Limit(grow);
                         slot.Grow.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
                         slot.Grow.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
-                        slot.Box.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromSeconds(duration * 0.6)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
+                        slot.Box.BeginAnimation(OpacityProperty, OverlayFrameCap.Limit(new DoubleAnimation(0, 1, TimeSpan.FromSeconds(duration * 0.6)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } }));
                     }
                     else
                     {
-                        slot.Box.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromSeconds(duration)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+                        slot.Box.BeginAnimation(OpacityProperty, OverlayFrameCap.Limit(new DoubleAnimation(0, 1, TimeSpan.FromSeconds(duration)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } }));
                     }
                 }
 
@@ -871,7 +872,7 @@ namespace Shiftline.Plugin
                     {
                         // slide from where the car was drawn before to its new place
                         double from = _slots[before].X - slot.X;
-                        slot.Shift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(from, 0, TimeSpan.FromSeconds(seconds)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut } });
+                        slot.Shift.BeginAnimation(TranslateTransform.XProperty, OverlayFrameCap.Limit(new DoubleAnimation(from, 0, TimeSpan.FromSeconds(seconds)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut } }));
                     }
                 }
             }
@@ -1094,7 +1095,7 @@ namespace Shiftline.Plugin
 
             RotateTransform turn = new RotateTransform(0, 0.5, 0.5);
             brush.RelativeTransform = turn;
-            turn.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(4)) { RepeatBehavior = RepeatBehavior.Forever });
+            turn.BeginAnimation(RotateTransform.AngleProperty, OverlayFrameCap.Limit(new DoubleAnimation(0, 360, TimeSpan.FromSeconds(4)) { RepeatBehavior = RepeatBehavior.Forever }));
             _flows[key] = brush;
             return brush;
         }
@@ -1223,9 +1224,11 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>Moves the running ticker on every frame; it stops for a moment when the player is in the middle.</summary>
+        private long _capLast;
+
         private void OnRendering(object sender, EventArgs e)
         {
-            if (_scrollView == null || _scrollHalfWidth <= 0)
+            if (_scrollView == null || _scrollHalfWidth <= 0 || OverlayFrameCap.Skip(ref _capLast))
             {
                 return;
             }
@@ -1447,7 +1450,7 @@ namespace Shiftline.Plugin
                     Slot slot = _slots[index];
                     slot.Flash.Background = position < _lastPlayerPosition ? GreenBrush : LossBrush;
                     DoubleAnimation fade = new DoubleAnimation(0.55, 0, TimeSpan.FromSeconds(1.4)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-                    slot.Flash.BeginAnimation(OpacityProperty, fade);
+                    slot.Flash.BeginAnimation(OpacityProperty, OverlayFrameCap.Limit(fade));
                 }
             }
 
@@ -1499,7 +1502,7 @@ namespace Shiftline.Plugin
             parent.Children.Add(ghost);
             DoubleAnimation fade = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(seconds)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
             fade.Completed += (sender, args) => parent.Children.Remove(ghost);
-            ghost.BeginAnimation(OpacityProperty, fade);
+            ghost.BeginAnimation(OpacityProperty, OverlayFrameCap.Limit(fade));
         }
 
         private double AnimationSeconds(bool replay)

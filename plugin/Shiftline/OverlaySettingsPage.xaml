@@ -19,7 +19,7 @@
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel>
+    <StackPanel x:Name="Cards">
         <Border Style="{StaticResource GlassCard}">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

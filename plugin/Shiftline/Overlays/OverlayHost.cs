@@ -54,6 +54,12 @@ namespace Shiftline.Plugin
             _dispatcher.BeginInvoke(new Action(() =>
             {
                 OverlaySettings.Changed += () => OnUi(Sync);
+                OverlaySettings.Changed += () => OnUi(() =>
+                {
+                    GpuPriority.Apply();
+                    HtmlOverlayWindow.SendFrameRateToAll();
+                });
+                GpuPriority.Apply();
                 _standingsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _standingsTimer.Tick += (sender, args) => TickStandings();
                 _battleTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
@@ -69,6 +75,7 @@ namespace Shiftline.Plugin
         /// <summary>Called from End: closes the windows.</summary>
         public static void Stop()
         {
+            GpuPriority.Reset();
             if (_dispatcher == null)
             {
                 return;
