@@ -29,7 +29,7 @@ Shiftline aims to be one free plugin for everything around SimHub: LED devices, 
 - **Backups, settings profiles, a system log and a test mode** (manual sliders or an automatic scenario loop) on the Settings page
 - **Updates:** the plugin looks for a newer release on GitHub and can install it
 
-Untested so far: ERS mode and the safety car delta (F1 games), the update installer.
+Untested so far: ERS mode and the safety car delta (F1 games).
 
 ### Overlays (new)
 
@@ -48,12 +48,13 @@ Untested so far: ERS mode and the safety car delta (F1 games), the update instal
 - **Standings:** position, class colour, places gained, car number, country flag (iRacing), name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
 - **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
 - **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows, country flags and a battle frame
+- **Track Map:** the track as its real shape for iRacing and many tracks in other SimHub games (about 400 layouts built in), or as a ring or a line when no shape is known. Cars with lap rings, the fastest lap, the pit lane and an animated start/finish line
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
 - **Main settings** on the General page: update rate, background opacity of the rows and of the header and footer, font, weight and corners for all overlays at once. Each overlay page follows them ("Same as in General") or has its own values
 - Classes on their own, grouped or mixed; animated position changes
 - **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
 - Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
-- More overlays are planned: track map, fuel calculator, pit helper, pedals, inputs graph and spotter
+- More overlays are planned: fuel calculator, pit helper, pedals, inputs graph and spotter
 
 <img src="docs/images/standings-settings.png" width="830" alt="The Standings page of Shiftline">
 
@@ -116,3 +117,5 @@ GNU GPL v3 or later with an additional permission for SimHub, see `LICENSE.txt`.
 The overlays include the fonts Inter and Saira SemiCondensed under the SIL Open Font License 1.1, see `plugin/Shiftline/Assets/Fonts`.
 
 The country flags are from the [flag-icons](https://github.com/lipis/flag-icons) project (MIT licence), see `plugin/Shiftline/Assets/Flags/LICENSE-flag-icons.txt`.
+
+The track shapes in `data/tracks` come from [SIMRacingApps](https://github.com/SIMRacingApps/SIMRacingAppsServer) (Apache License 2.0) and from OpenStreetMap (© OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright)), see `data/tracks/LICENSES`.
