@@ -53,6 +53,42 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>
+        /// For the HTML overlays: the label (a short word) or the icon (SVG path data, 12 x 12) of a kind, and its longest
+        /// plausible value. False for "Off" and an unknown kind.
+        /// </summary>
+        internal static bool Describe(string kind, Func<string, string> option, out string label, out string icon, out string sample)
+        {
+            label = null;
+            icon = null;
+            switch (kind)
+            {
+                case "Clock": icon = ClockPath; sample = "00:00 pm"; return true;
+                case "Sim": icon = SunPath; sample = "00:00 pm"; return true;
+                case "Oil": label = "OIL"; sample = Temperature(100, option); return true;
+                case "Water": label = "WATER"; sample = Temperature(100, option); return true;
+                case "Air": label = "AIR"; sample = Temperature(100, option); return true;
+                case "Humidity": label = "HUM"; sample = "100 %"; return true;
+                case "Temp": icon = ThermoPath; sample = Temperature(100, option); return true;
+                case "Sof": label = "SOF"; sample = "0.0k"; return true;
+                case "Laps": icon = FlagPath; sample = "000/000"; return true;
+                case "Time": icon = HourglassPath; sample = "0:00:00"; return true;
+                case "Elapsed": icon = ClockPath; sample = "0:00:00 / 0:00:00"; return true;
+                case "Session": sample = "R"; return true;
+                case "Track": sample = "Interlagos"; return true;
+                case "Car": sample = "Porsche 911 GT3"; return true;
+                case "Inc": label = "INC"; sample = "00/00"; return true;
+                default: sample = null; return false;
+            }
+        }
+
+        internal const string ClockPath = "M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2";
+        internal const string ThermoPath = "M 4.6,7.2 L 4.6,2.4 A 1.4,1.4 0 0 1 7.4,2.4 L 7.4,7.2 A 2.6,2.6 0 1 1 4.6,7.2 Z M 6,5 L 6,8.4";
+        internal const string FlagPath = "M 2.5,10.5 L 2.5,1.5 M 2.5,2 L 10,2 L 8.2,4.9 L 10,7.8 L 2.5,7.8";
+        internal const string HourglassPath = "M 2.5,1 L 9.5,1 M 2.5,11 L 9.5,11 M 3,1 L 3,3 L 6,6 L 3,9 L 3,11 M 9,1 L 9,3 L 6,6 L 9,9 L 9,11";
+        internal const string SunPath = "M 0.8,9.5 L 11.2,9.5 M 3,9.5 A 3,3 0 0 1 9,9.5 M 6,2 L 6,3.6 M 1.6,4.4 L 2.8,5.5 M 10.4,4.4 L 9.2,5.5";
+        internal const string MoonPath = "M 6.5,1.2 A 4.8,4.8 0 1 0 10.8,8.2 A 3.8,3.8 0 0 1 6.5,1.2 Z M 9.2,1.6 L 9.2,3.8 M 8.1,2.7 L 10.3,2.7";
+
+        /// <summary>
         /// Builds one item: the icon or the label (a short word in a narrow font, as a run of the value so both sit on one
         /// baseline), then the value. Null for "Off" and for an unknown kind.
         /// </summary>
@@ -163,7 +199,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private static string ValueOf(string kind, StandingsSnapshot snapshot, Func<string, string> option, bool sofInThousands, StandingsRow lapRow)
+        internal static string ValueOf(string kind, StandingsSnapshot snapshot, Func<string, string> option, bool sofInThousands, StandingsRow lapRow)
         {
             switch (kind)
             {

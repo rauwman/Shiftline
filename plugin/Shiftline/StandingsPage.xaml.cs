@@ -107,6 +107,7 @@ namespace Shiftline.Plugin
             Unloaded += (sender, args) =>
             {
                 Stop();
+                ClosePreview();
                 if (_animationTimer != null)
                 {
                     _animationTimer.Stop();
@@ -118,7 +119,8 @@ namespace Shiftline.Plugin
 
         // ---------------------------------------------------------------- design and preview
 
-        private StandingsOverlay _preview;
+        private IStandingsView _preview;                    // WPF (StandingsOverlay) or HTML (StandingsHtmlView), as chosen in General
+        private System.Windows.FrameworkElement _previewElement;
         private bool _previewRace = true;
         private bool _building;
 
@@ -200,11 +202,34 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
+            bool html = OverlaySettings.UseHtml;
+            if (_preview != null && (_preview is StandingsHtmlView) != html)
+            {
+                ClosePreview();
+            }
+
             if (_preview == null)
             {
-                _preview = new StandingsOverlay(true, _overlay);
-                _preview.ColumnClicked += ShowColumnOptions;
-                PreviewHost.Child = _preview;
+                if (html)
+                {
+                    // the shared preview (already loaded, see HtmlPreview): the overlay page in preview mode, where a click on
+                    // a cell opens the options of its column
+                    HtmlPreview host = HtmlPreview.Shared;
+                    host.PageMessage += OnPreviewMessage;
+                    StandingsHtmlView view = new StandingsHtmlView(_overlay);
+                    view.Attach(host);
+                    host.MoveTo(PreviewHost);
+                    _preview = view;
+                    _previewElement = host;
+                }
+                else
+                {
+                    StandingsOverlay wpf = new StandingsOverlay(true, _overlay);
+                    wpf.ColumnClicked += ShowColumnOptions;
+                    _preview = wpf;
+                    _previewElement = wpf;
+                    PreviewHost.Child = wpf;
+                }
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();
@@ -213,9 +238,44 @@ namespace Shiftline.Plugin
             ShowPreviewGame(features);
 
             System.Windows.Size size = _preview.DesignSize;
-            _preview.Width = size.Width;
-            _preview.Height = size.Height;
+            _previewElement.Width = size.Width;
+            _previewElement.Height = size.Height;
             _preview.Update(PreviewSample(PreviewData()));
+        }
+
+        private void OnPreviewMessage(string json)
+        {
+            try
+            {
+                Newtonsoft.Json.Linq.JObject message = Newtonsoft.Json.Linq.JObject.Parse(json);
+                if ((string)message["type"] == "column")
+                {
+                    ShowColumnOptions((string)message["key"]);
+                }
+            }
+            catch (Exception)
+            {
+                // not a message of ours
+            }
+        }
+
+        private void ClosePreview()
+        {
+            HtmlPreview html = _previewElement as HtmlPreview;
+            if (html != null)
+            {
+                // the shared preview is kept: it goes back to its hidden spot, unless another page has taken it already
+                ((StandingsHtmlView)_preview).Detach();
+                html.PageMessage -= OnPreviewMessage;
+                html.Release(PreviewHost);
+            }
+            else
+            {
+                PreviewHost.Child = null;
+            }
+
+            _preview = null;
+            _previewElement = null;
         }
 
         /// <summary>The invented data of the preview: the field for the standings, cars spread around the lap for the relatives.</summary>

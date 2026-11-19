@@ -24,6 +24,7 @@ namespace Shiftline.Plugin
             + " --disable-backgrounding-occluded-windows";
 
         private const string WebResourcePrefix = "Shiftline.web.";
+        private static readonly Uri FlagFolder = new Uri("pack://application:,,,/Shiftline.Plugin;component/Assets/Flags/");
         private static readonly Uri FontFolder = new Uri("pack://application:,,,/Shiftline.Plugin;component/Assets/Fonts/");
         private static readonly Dictionary<string, byte[]> Files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         private static Task<CoreWebView2Environment> _environment;
@@ -73,21 +74,78 @@ namespace Shiftline.Plugin
             }
         }
 
+        private static System.Windows.Interop.HwndSource _warmWindow;
+        private static CoreWebView2Controller _warm;
+        private static bool _warming;
+
         /// <summary>
-        /// Starts the browser in <paramref name="view"/> and opens <paramref name="page"/> (a file name in Overlays/Html/web).
-        /// <paramref name="onMessage"/> gets every message of the page as JSON text, on the UI thread.
+        /// Starts the browser in the background when HTML is chosen (at SimHub start and when the setting changes), so the first
+        /// overlay or preview does not wait about a second for it. A hidden, empty browser view keeps the browser running.
+        /// </summary>
+        public static async void Prewarm()
+        {
+            if (_warming || _warm != null || !OverlaySettings.UseHtml || RuntimeVersion() == null)
+            {
+                return;
+            }
+
+            _warming = true;
+            try
+            {
+                CoreWebView2Environment environment = await Environment();
+                if (_warmWindow == null)
+                {
+                    // an invisible window of its own, never shown
+                    _warmWindow = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("Shiftline browser")
+                    {
+                        Width = 1,
+                        Height = 1,
+                        WindowStyle = unchecked((int)0x80000000)    // WS_POPUP, not WS_VISIBLE
+                    });
+                }
+
+                if (_warm == null)
+                {
+                    _warm = await environment.CreateCoreWebView2ControllerAsync(_warmWindow.Handle);
+                    _warm.IsVisible = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Info("Browser start: " + ex.Message);
+            }
+            finally
+            {
+                _warming = false;
+            }
+        }
+
+        /// <summary>
+        /// Starts the browser in <paramref name="view"/> and opens <paramref name="page"/> (a file in Overlays/Html/web, with an
+        /// optional query). <paramref name="onMessage"/> gets every message of the page as JSON text, on the UI thread.
         /// </summary>
         public static async Task Load(WebView2 view, string page, Action<string> onMessage)
         {
             CoreWebView2Environment environment = await Environment();
             await view.EnsureCoreWebView2Async(environment);
-            CoreWebView2 core = view.CoreWebView2;
+            Open(view.CoreWebView2, environment, page, onMessage);
+        }
+
+        /// <summary>The same for a browser inside a normal WPF page (drawn into the page, so it scrolls and clips like WPF).</summary>
+        public static async Task Load(WebView2CompositionControl view, string page, Action<string> onMessage)
+        {
+            CoreWebView2Environment environment = await Environment();
+            await view.EnsureCoreWebView2Async(environment);
+            Open(view.CoreWebView2, environment, page, onMessage);
+        }
+
+        private static void Open(CoreWebView2 core, CoreWebView2Environment environment, string page, Action<string> onMessage)
+        {
             CoreWebView2Settings settings = core.Settings;
             settings.AreDefaultContextMenusEnabled = false;
             settings.AreDevToolsEnabled = false;
             settings.IsStatusBarEnabled = false;
             settings.IsZoomControlEnabled = false;
-            settings.IsNonClientRegionSupportEnabled = true;     // lets the page mark a drag area with CSS app-region (edit mode)
             core.AddWebResourceRequestedFilter(Origin + "*", CoreWebView2WebResourceContext.All);
             core.WebResourceRequested += (sender, args) => Serve(environment, args);
             if (onMessage != null)
@@ -157,6 +215,11 @@ namespace Shiftline.Plugin
                     if (path.StartsWith("fonts/", StringComparison.OrdinalIgnoreCase))
                     {
                         System.Windows.Resources.StreamResourceInfo info = Application.GetResourceStream(new Uri(FontFolder, path.Substring(6)));
+                        stream = info == null ? null : info.Stream;
+                    }
+                    else if (path.StartsWith("flags/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        System.Windows.Resources.StreamResourceInfo info = Application.GetResourceStream(new Uri(FlagFolder, path.Substring(6)));
                         stream = info == null ? null : info.Stream;
                     }
                     else if (path.IndexOf('/') < 0)

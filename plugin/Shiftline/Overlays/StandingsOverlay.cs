@@ -17,7 +17,7 @@ namespace Shiftline.Plugin
     /// Standings page. The visual tree is built once per option change; an update only changes texts and colours. The content
     /// scales with the window size and keeps its proportions.
     /// </summary>
-    internal sealed partial class StandingsOverlay : Border
+    internal sealed partial class StandingsOverlay : Border, IStandingsView
     {
         private const double RowHeight = 24;
         private const double HeaderHeight = 26;
@@ -157,45 +157,18 @@ namespace Shiftline.Plugin
             bool smallCaps = options.Get("Name.Case") == "SmallCaps";
             int span = Math.Max(1, columns.Count);
             int gap = Math.Max(0, options.GetInt("RowGap"));
-            byte alpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("Opacity"))) / 100.0);
             _rowPitch = RowHeight + gap;
 
-            // Without a gap the rows sit on one panel and every second row is lighter. With a gap every row is its own dark bar
-            // and the space between them stays see-through.
-            byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
-            _headerBrush = Frozen(hfAlpha, 0x16, 0x1C, 0x26);
-            // Three backgrounds with their own opacity: the card behind everything, the bar of each row, header and footer.
-            Brush panelBrush = alpha == 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19);
-            byte rowAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("RowOpacity"))) / 100.0);
-            Brush dark = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x0E, 0x12, 0x19);
-            Brush light = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x22, 0x29, 0x36);
-            _plainRowBrush = options.Get("RowStyle") == "Mine" ? null : dark;
-            _cardOpacity = alpha / 255.0;
-            switch (options.Get("RowStyle"))
-            {
-                case "Solid":
-                    _oddRowBrush = dark;
-                    _rowBrush = dark;
-                    break;
-                case "Reversed":
-                    _oddRowBrush = dark;
-                    _rowBrush = light;
-                    break;
-                case "Mine":
-                    _oddRowBrush = null;
-                    _rowBrush = null;
-                    break;
-                default:
-                    _oddRowBrush = light;        // the first car is the lighter one
-                    _rowBrush = dark;
-                    break;
-            }
-
-            // your row: the row bar tinted blue, at least as strong as the other rows (alone it keeps the old see-through blue)
-            _playerRowBrush = rowAlpha == 0 ? PlayerRowBrush : Frozen(Math.Max(rowAlpha, (byte)0x55), 0x1F, 0x4E, 0x70);
-            // column colours: lighter steps of the row bar with its opacity, so they always go with the rows
-            Brush subtleColumn = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x2A, 0x32, 0x40);
-            Brush lightColumn = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x42, 0x4B, 0x5A);
+            RowLook look = LookOf(options);
+            _headerBrush = look.HeaderFooter;
+            Brush panelBrush = look.Card;
+            _rowBrush = look.Row;
+            _oddRowBrush = look.Odd;
+            _plainRowBrush = look.Plain;
+            _playerRowBrush = look.Player;
+            _cardOpacity = look.CardOpacity;
+            Brush subtleColumn = look.Subtle;
+            Brush lightColumn = look.Light;
 
             Grid grid = new Grid();
             _designWidth = 0;
@@ -965,6 +938,16 @@ namespace Shiftline.Plugin
         /// </summary>
         private double Required(string column, StandingsOptions options, FontFamily family, FontWeight weight)
         {
+            return RequiredWidth(column, options, family, weight, InRace, ref _ratingWidth, ref _changeWidth, ref _deltaWidth);
+        }
+
+        /// <summary>
+        /// The width a column needs for its longest plausible value in this font. The iRating and delta columns also give the
+        /// width of their parts (rating, change, one delta).
+        /// </summary>
+        internal static double RequiredWidth(string column, StandingsOptions options, FontFamily family, FontWeight weight, bool inRace,
+            ref double ratingWidth, ref double changeWidth, ref double deltaWidth)
+        {
             const double Cell = 10;                         // margin and padding around every cell
             int decimals = Math.Max(options.GetInt("Last.DecRace"), options.GetInt("Last.DecPQ"));
             int gapDecimals = Math.Max(options.GetInt(column + ".DecRace"), options.GetInt(column + ".DecPQ"));
@@ -987,11 +970,11 @@ namespace Shiftline.Plugin
                 case "iR":
                     // normal values: below 10k and a change of at most two digits (the pill grows for the rare larger one)
                     string longest = options.Get("iR.Mode") == "K1" ? "0.0k" : options.Get("iR.Mode") == "K0" ? "0k" : "0000";
-                    _ratingWidth = Math.Ceiling(Measure(longest, family, weight)) + 2;
-                    _changeWidth = Math.Ceiling(Measure("00", family, weight)) + 2;
-                    return options.GetBool("iR.Gain") && InRace
-                        ? _ratingWidth + 12 + _changeWidth + 6 + Cell
-                        : _ratingWidth + 6 + Cell;
+                    ratingWidth = Math.Ceiling(Measure(longest, family, weight)) + 2;
+                    changeWidth = Math.Ceiling(Measure("00", family, weight)) + 2;
+                    return options.GetBool("iR.Gain") && inRace
+                        ? ratingWidth + 12 + changeWidth + 6 + Cell
+                        : ratingWidth + 6 + Cell;
                 case "Lap":
                     return Measure("000", family, weight) + Cell;
                 case "Gap":
@@ -1017,8 +1000,8 @@ namespace Shiftline.Plugin
                 case "Stint":
                     return Measure("000", family, weight) + Cell;
                 case "Delta":
-                    _deltaWidth = Math.Max(28, Measure("00.0", family, weight) + 6);
-                    return _deltaWidth * Math.Max(1, options.GetInt("Delta.Count")) + Cell;
+                    deltaWidth = Math.Max(28, Measure("00.0", family, weight) + 6);
+                    return deltaWidth * Math.Max(1, options.GetInt("Delta.Count")) + Cell;
                 default:
                     return 0;
             }
@@ -1251,7 +1234,12 @@ namespace Shiftline.Plugin
 
         private double AnimationSeconds(bool replay)
         {
-            switch (_options.Get(replay ? "Anim.Replay" : "Anim.Car"))
+            return AnimationSeconds(_options, replay);
+        }
+
+        internal static double AnimationSeconds(StandingsOptions options, bool replay)
+        {
+            switch (options.Get(replay ? "Anim.Replay" : "Anim.Car"))
             {
                 case "Fast":
                     return 0.25;
@@ -1301,6 +1289,69 @@ namespace Shiftline.Plugin
             return box;
         }
 
+        /// <summary>The backgrounds of card, rows and columns for these options (shared by WPF and HTML).</summary>
+        internal sealed class RowLook
+        {
+            public Brush Card;          // behind header, table and footer
+            public Brush Row;           // the darker rows
+            public Brush Odd;           // the first car and every second one
+            public Brush Plain;         // a row with only the titles
+            public Brush Player;        // your row
+            public Brush Subtle;        // column colour "Subtle"
+            public Brush Light;         // column colour "Light"
+            public Brush HeaderFooter;
+            public double CardOpacity;
+        }
+
+        internal static RowLook LookOf(StandingsOptions options)
+        {
+            // Three backgrounds with their own opacity: the card behind everything, the bar of each row, header and footer.
+            byte alpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("Opacity"))) / 100.0);
+            byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
+            byte rowAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("RowOpacity"))) / 100.0);
+            Brush dark = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x0E, 0x12, 0x19);
+            Brush light = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x22, 0x29, 0x36);
+            RowLook look = new RowLook
+            {
+                Card = alpha == 0 ? null : Frozen(alpha, 0x0E, 0x12, 0x19),
+                Plain = options.Get("RowStyle") == "Mine" ? null : dark,
+                CardOpacity = alpha / 255.0,
+                HeaderFooter = Frozen(hfAlpha, 0x16, 0x1C, 0x26),
+                // your row: the row bar tinted blue, at least as strong as the other rows (alone it keeps the old see-through blue)
+                Player = rowAlpha == 0 ? PlayerRowBrush : Frozen(Math.Max(rowAlpha, (byte)0x55), 0x1F, 0x4E, 0x70),
+                // column colours: lighter steps of the row bar with its opacity, so they always go with the rows
+                Subtle = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x2A, 0x32, 0x40),
+                Light = rowAlpha == 0 ? null : Frozen(rowAlpha, 0x42, 0x4B, 0x5A),
+            };
+            switch (options.Get("RowStyle"))
+            {
+                case "Solid":
+                    look.Odd = dark;
+                    look.Row = dark;
+                    break;
+                case "Reversed":
+                    look.Odd = dark;
+                    look.Row = light;
+                    break;
+                case "Mine":
+                    look.Odd = null;
+                    look.Row = null;
+                    break;
+                default:
+                    look.Odd = light;        // the first car is the lighter one
+                    look.Row = dark;
+                    break;
+            }
+
+            return look;
+        }
+
+        /// <summary>The fill of a column for its "Bg" option.</summary>
+        internal static Brush ColumnFill(string fill, RowLook look)
+        {
+            return fill == "White" ? WhiteFill : fill == "Light" ? look.Light : fill == "Subtle" ? look.Subtle : null;
+        }
+
         private static Brush SoftBrush(Brush colour)
         {
             Brush soft;
@@ -1333,24 +1384,30 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>In a tab row the room right of the tab names the lap time columns, so they can be told apart.</summary>
+        /// <summary>The title over a lap time column (LAST, BEST, AVG 5), or null for other columns.</summary>
+        internal static string TimeTitle(string column, StandingsOptions options)
+        {
+            switch (column)
+            {
+                case "Last":
+                    return "LAST";
+                case "Best":
+                    return "BEST";
+                case "Avg":
+                    return "AVG " + (options.GetInt("Avg.Laps") == 3 ? "3" : "5");
+                default:
+                    return null;
+            }
+        }
+
         private void ShowTimeTitles(int r, List<StandingsColumn> columns)
         {
             for (int c = 0; c < columns.Count; c++)
             {
-                string title;
-                switch (columns[c].Key)
+                string title = TimeTitle(columns[c].Key, _options);
+                if (title == null)
                 {
-                    case "Last":
-                        title = "LAST";
-                        break;
-                    case "Best":
-                        title = "BEST";
-                        break;
-                    case "Avg":
-                        title = "AVG " + (_options.GetInt("Avg.Laps") == 3 ? "3" : "5");
-                        break;
-                    default:
-                        continue;
+                    continue;
                 }
 
                 SetText(_cells[r, c], title);
@@ -1359,6 +1416,25 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The class tab of a row: class name in the class colour, optionally the number of cars and the class SOF.</summary>
+        /// <summary>The text of a class tab: the class name, optionally the number of cars and the strength of field.</summary>
+        internal static string TabText(StandingsRow[] cars, StandingsFeatures features, StandingsOptions options)
+        {
+            StandingsRow first = cars[0];
+            string text = string.IsNullOrEmpty(first.ClassName) ? "Class" : first.ClassName;
+            if (options.GetBool("Tab.Count"))
+            {
+                text += "  \u00B7  " + cars.Length.ToString(CultureInfo.InvariantCulture);
+            }
+
+            int sof = (features & StandingsFeatures.IRating) != 0 ? SessionTracker.StrengthOfField(cars) : 0;
+            if (options.GetBool("Tab.Sof") && sof > 0)
+            {
+                text += "  \u00B7  " + (sof / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + "k";
+            }
+
+            return text;
+        }
+
         private void ShowTab(int r, StandingsRow[] cars, StandingsFeatures features)
         {
             Border tab = _tabs[r];
@@ -1374,19 +1450,7 @@ namespace Shiftline.Plugin
             }
 
             StandingsRow first = cars[0];
-            string text = string.IsNullOrEmpty(first.ClassName) ? "Class" : first.ClassName;
-            if (_options.GetBool("Tab.Count"))
-            {
-                text += "  \u00B7  " + cars.Length.ToString(CultureInfo.InvariantCulture);
-            }
-
-            int sof = (features & StandingsFeatures.IRating) != 0 ? SessionTracker.StrengthOfField(cars) : 0;
-            if (_options.GetBool("Tab.Sof") && sof > 0)
-            {
-                text += "  \u00B7  " + (sof / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + "k";
-            }
-
-            SetText(_tabTexts[r], text);
+            SetText(_tabTexts[r], TabText(cars, features, _options));
             Brush colour = ClassBrush(first.ClassColor);
             if (_options.Get("Tab.Style") == "Line")
             {

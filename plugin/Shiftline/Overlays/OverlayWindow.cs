@@ -22,7 +22,7 @@ namespace Shiftline.Plugin
     /// the focus. In edit mode it shows a frame and its name, can be dragged, and resized at the corner. Its position is saved as
     /// parts of the screen it is on, so it lands in the same spot when the resolution changes.
     /// </summary>
-    internal sealed class OverlayWindow : Window
+    internal sealed class OverlayWindow : Window, IHtmlSurface
     {
         private const double MinSize = 60;
 
@@ -778,6 +778,9 @@ namespace Shiftline.Plugin
         /// <summary>Every message of the page that is not about moving or resizing (JSON text), on the UI thread.</summary>
         public event Action<string> PageMessage;
 
+        /// <summary>HTML mode: the page has (re)loaded and can take messages (send its layout again here).</summary>
+        public event Action PageReady;
+
         /// <summary>HTML mode: "starting", "running", or why the page could not start.</summary>
         public string PageStatus { get; private set; }
 
@@ -854,6 +857,11 @@ namespace Shiftline.Plugin
                 {
                     SendFrameRate();
                     SendEditState();
+                    Action ready = PageReady;
+                    if (ready != null)
+                    {
+                        ready();
+                    }
                 };
                 PageStatus = "running";
             }

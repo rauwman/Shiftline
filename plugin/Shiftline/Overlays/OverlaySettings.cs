@@ -44,6 +44,7 @@ namespace Shiftline.Plugin
         private static bool _showInGarage;
         private static int _frameRate = DefaultFrameRate;
         private static bool _gpuRealtime;
+        private static bool _useHtml;
         private static int _alignMargin = 5;
 
         /// <summary>The largest distance for the align buttons of edit mode, in pixels (chosen in steps of 5).</summary>
@@ -75,6 +76,22 @@ namespace Shiftline.Plugin
                 lock (Gate)
                 {
                     _gpuRealtime = value;
+                }
+
+                Save();
+                RaiseChanged();
+            }
+        }
+
+        /// <summary>Drawn with the browser engine (HTML, WebView2) instead of WPF, for the overlays that have an HTML version. Default off.</summary>
+        public static bool UseHtml
+        {
+            get { lock (Gate) { return _useHtml; } }
+            set
+            {
+                lock (Gate)
+                {
+                    _useHtml = value;
                 }
 
                 Save();
@@ -362,6 +379,12 @@ namespace Shiftline.Plugin
                     _frameRate = (int)frameRate;
                 }
 
+                JToken renderer = json["Renderer"];
+                if (renderer != null && renderer.Type == JTokenType.String)
+                {
+                    _useHtml = (string)renderer == "HTML";
+                }
+
                 JToken gpu = json["GpuPriority"];
                 if (gpu != null && gpu.Type == JTokenType.String)
                 {
@@ -478,8 +501,10 @@ namespace Shiftline.Plugin
                 int alignMargin;
                 int frameRate;
                 bool gpuRealtime;
+                bool useHtml;
                 lock (Gate)
                 {
+                    useHtml = _useHtml;
                     frameRate = _frameRate;
                     gpuRealtime = _gpuRealtime;
                     global = _globalRate;
@@ -520,7 +545,7 @@ namespace Shiftline.Plugin
                 Directory.CreateDirectory(ProfileStore.RootFolder);
                 File.WriteAllText(FilePath, new JObject
                 {
-                    { "GlobalRate", global }, { "FrameRate", frameRate }, { "GpuPriority", gpuRealtime ? "Realtime" : "Normal" }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
+                    { "GlobalRate", global }, { "FrameRate", frameRate }, { "GpuPriority", gpuRealtime ? "Realtime" : "Normal" }, { "Renderer", useHtml ? "HTML" : "WPF" }, { "OnlyWhenGameInFront", front }, { "ShowInReplays", replays }, { "ShowInGarage", garage }, { "AlignMargin", alignMargin }, { "Enabled", enabled }, { "Options", options }, { "Placements", placements }, { "GameFeatures", games }
                 }.ToString());
             }
             catch (Exception ex)

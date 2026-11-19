@@ -13,14 +13,14 @@ namespace Shiftline.Plugin
     {
         private static Dispatcher _dispatcher;
         private static OverlayWindow _standingsWindow;
-        private static StandingsOverlay _standingsView;
+        private static IStandingsView _standingsView;         // WPF (StandingsOverlay) or HTML (StandingsHtmlView)
         private static DispatcherTimer _standingsTimer;
         private static OverlayWindow _battleWindow;
         private static BattleBarOverlay _battleView;
         private static DispatcherTimer _battleTimer;
         private static StandingsFeatures _battleFeatures = StandingsFeatures.All;
         private static OverlayWindow _relativesWindow;
-        private static StandingsOverlay _relativesView;
+        private static IStandingsView _relativesView;         // WPF or HTML, as for the standings
         private static DispatcherTimer _relativesTimer;
         private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
         private static bool _relativesRace = true;         // whether the relatives are laid out for a race (the iRating change needs room only there)
@@ -58,8 +58,10 @@ namespace Shiftline.Plugin
                 {
                     GpuPriority.Apply();
                     OverlayWindow.SendFrameRateToAll();
+                    HtmlHost.Prewarm();
                 });
                 GpuPriority.Apply();
+                HtmlHost.Prewarm();         // HTML chosen: start the browser now, not on the first overlay or preview
                 _standingsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _standingsTimer.Tick += (sender, args) => TickStandings();
                 _battleTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
@@ -221,6 +223,14 @@ namespace Shiftline.Plugin
             SyncRelatives();
             SyncTrackMap();
 
+            if (_standingsWindow != null && _standingsWindow.IsHtml != OverlaySettings.UseHtml)
+            {
+                // drawn with the other engine now: the next tick opens a new window
+                _standingsWindow.Close();
+                _standingsWindow = null;
+                _standingsView = null;
+            }
+
             bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
             if (!enabled)
             {
@@ -270,8 +280,21 @@ namespace Shiftline.Plugin
 
                 if (_standingsWindow == null)
                 {
-                    _standingsView = new StandingsOverlay();
-                    _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", _standingsView, _standingsView.DesignSize);
+                    if (OverlaySettings.UseHtml)
+                    {
+                        StandingsHtmlView html = new StandingsHtmlView { InRace = _standingsRace };
+                        html.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
+                        _standingsView = html;
+                        _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", StandingsHtmlView.Page, html.DesignSize);
+                        html.Attach(_standingsWindow);
+                    }
+                    else
+                    {
+                        StandingsOverlay wpf = new StandingsOverlay();
+                        _standingsView = wpf;
+                        _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", wpf, wpf.DesignSize);
+                    }
+
                     _standingsWindow.SetEditMode(_edit);
                     _standingsWindow.SetFixedSize(_standingsView.DesignSize);
                     _standingsWindow.HeightDragging += StandingsHeightDragging;
@@ -513,6 +536,14 @@ namespace Shiftline.Plugin
 
         private static void SyncRelatives()
         {
+            if (_relativesWindow != null && _relativesWindow.IsHtml != OverlaySettings.UseHtml)
+            {
+                // drawn with the other engine now: the next tick opens a new window
+                _relativesWindow.Close();
+                _relativesWindow = null;
+                _relativesView = null;
+            }
+
             if (!OverlaySettings.IsEnabled(OverlayData.RelativesKey))
             {
                 _relativesTimer.Stop();
@@ -567,8 +598,21 @@ namespace Shiftline.Plugin
 
                 if (_relativesWindow == null)
                 {
-                    _relativesView = new StandingsOverlay(false, OverlayData.RelativesKey);
-                    _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", _relativesView, _relativesView.DesignSize);
+                    if (OverlaySettings.UseHtml)
+                    {
+                        StandingsHtmlView html = new StandingsHtmlView(OverlayData.RelativesKey) { InRace = _relativesRace };
+                        html.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
+                        _relativesView = html;
+                        _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", StandingsHtmlView.Page, html.DesignSize);
+                        html.Attach(_relativesWindow);
+                    }
+                    else
+                    {
+                        StandingsOverlay wpf = new StandingsOverlay(false, OverlayData.RelativesKey);
+                        _relativesView = wpf;
+                        _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", wpf, wpf.DesignSize);
+                    }
+
                     _relativesWindow.SetEditMode(_edit);
                     _relativesWindow.SetFixedSize(_relativesView.DesignSize);
                     // the number of rows follows from the cars in front and behind: both edges change the size

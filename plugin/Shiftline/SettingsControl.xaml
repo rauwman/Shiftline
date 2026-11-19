@@ -264,6 +264,7 @@
                              DisplayMemberPath="Display" SelectionChanged="SearchResults_SelectionChanged" />
                 </Border>
             </Grid>
+            <local:HtmlPreviewParking Grid.Column="1" />
         </Grid>
     </Border>
 </UserControl>

@@ -117,6 +117,19 @@ namespace Shiftline.Plugin
                     OverlaySettings.GpuRealtime = gpu.SelectedIndex == 1;
                 }
             };
+            System.Windows.Controls.ComboBox drawn = new System.Windows.Controls.ComboBox { Width = 320, Height = 34 };
+            drawn.Items.Add("WPF");
+            drawn.Items.Add("HTML");
+            drawn.SelectedIndex = OverlaySettings.UseHtml ? 1 : 0;
+            drawn.SelectionChanged += (sender, args) =>
+            {
+                if (!_filling && drawn.SelectedIndex >= 0)
+                {
+                    OverlaySettings.UseHtml = drawn.SelectedIndex == 1;
+                }
+            };
+            AddMainRow("Drawn with", drawn, "HTML uses the browser engine of Windows (WebView2), more memory.");
+
             AddMainRow("GPU priority", gpu, "Realtime if overlays stutter in games like AMS2. Costs game fps; use it with a frame rate of 30 or 60.");
 
             foreach (StandingsChoice choice in LookSettings.General)
@@ -146,7 +159,7 @@ namespace Shiftline.Plugin
                 Content = "Reset main settings",
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Margin = new Thickness(0, 8, 0, 0),
-                ToolTip = "Puts the update rate, frame rate, GPU priority and the look of General back to the defaults. Overlays with a value of their own keep it."
+                ToolTip = "Puts the update rate, frame rate, drawing, GPU priority and the look of General back to the defaults. Overlays with a value of their own keep it."
             };
             reset.Click += (sender, args) => ResetMainSettings();
             MainSettingsPanel.Children.Add(reset);
@@ -159,6 +172,7 @@ namespace Shiftline.Plugin
             OverlaySettings.GlobalRate = OverlaySettings.DefaultRate;
             OverlaySettings.FrameRate = OverlaySettings.DefaultFrameRate;
             OverlaySettings.GpuRealtime = false;
+            OverlaySettings.UseHtml = false;
             FillMainSettings();
         }
 

@@ -16,7 +16,7 @@ namespace Shiftline.Plugin
         /// The rows of the relatives: the cars in front (the farthest on top), you, the cars behind. A missing car leaves a
         /// blank row, so you always stay in the same row and the window does not change its size.
         /// </summary>
-        private List<Entry> BuildRelative(StandingsRow[] all, Context context)
+        private static List<Entry> BuildRelative(StandingsRow[] all, Context context)
         {
             List<Entry> shown = new List<Entry>();
             StandingsRow me = context.Player;
@@ -25,9 +25,9 @@ namespace Shiftline.Plugin
                 return shown;
             }
 
-            int aheadCount = Math.Max(1, _options.GetInt("Rel.Ahead"));
-            int behindCount = Math.Max(1, _options.GetInt("Rel.Behind"));
-            int decimals = _options.GetInt("Rel.Dec");
+            int aheadCount = Math.Max(1, context.Options.GetInt("Rel.Ahead"));
+            int behindCount = Math.Max(1, context.Options.GetInt("Rel.Behind"));
+            int decimals = context.Options.GetInt("Rel.Dec");
             double lapTime = me.BestLap > 0 ? me.BestLap : me.LastLap > 0 ? me.LastLap : 90;
             bool multiClass = all.Select(r => r.ClassId).Distinct().Count() > 1;
 
