@@ -140,7 +140,7 @@
     <Compile Include="Overlays\OverlayFonts.cs" />
     <Compile Include="Overlays\Html\HtmlHost.cs" />
     <Compile Include="Overlays\Html\HtmlPreview.cs" />
-    <Compile Include="Overlays\Html\HtmlBench.cs" />
+    <Compile Include="Overlays\Html\HtmlCapture.cs" />
     <Compile Include="Overlays\OverlayFrameCap.cs" />
     <Compile Include="Overlays\GpuPriority.cs" />
     <Compile Include="Overlays\OverlayAlignBar.cs" />

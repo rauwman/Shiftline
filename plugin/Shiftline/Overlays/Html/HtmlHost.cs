@@ -139,7 +139,7 @@ namespace Shiftline.Plugin
             Open(view.CoreWebView2, environment, page, onMessage);
         }
 
-        private static void Open(CoreWebView2 core, CoreWebView2Environment environment, string page, Action<string> onMessage)
+        internal static void Open(CoreWebView2 core, CoreWebView2Environment environment, string page, Action<string> onMessage)
         {
             CoreWebView2Settings settings = core.Settings;
             settings.AreDefaultContextMenusEnabled = false;
