@@ -13,19 +13,19 @@ namespace Shiftline.Plugin
     {
         private static Dispatcher _dispatcher;
         private static OverlayWindow _standingsWindow;
-        private static IStandingsView _standingsView;         // WPF (StandingsOverlay) or HTML (StandingsHtmlView)
+        private static IStandingsView _standingsView;
         private static DispatcherTimer _standingsTimer;
         private static OverlayWindow _battleWindow;
-        private static IBattleBarView _battleView;           // WPF (BattleBarOverlay) or HTML (BattleBarHtmlView)
+        private static IBattleBarView _battleView;
         private static DispatcherTimer _battleTimer;
         private static StandingsFeatures _battleFeatures = StandingsFeatures.All;
         private static OverlayWindow _relativesWindow;
-        private static IStandingsView _relativesView;         // WPF or HTML, as for the standings
+        private static IStandingsView _relativesView;
         private static DispatcherTimer _relativesTimer;
         private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
         private static bool _relativesRace = true;         // whether the relatives are laid out for a race (the iRating change needs room only there)
         private static OverlayWindow _trackWindow;
-        private static ITrackMapView _trackView;             // WPF (TrackMapOverlay) or HTML (TrackMapHtmlView)
+        private static ITrackMapView _trackView;
         private static DispatcherTimer _trackTimer;
         private static TimeSpan _trackSampleInterval = TimeSpan.FromMilliseconds(100);
         private static long _trackSeenSequence = -1;
@@ -428,7 +428,7 @@ namespace Shiftline.Plugin
                     && (!OverlaySettings.OnlyWhenGameInFront || GameFocus.IsGameInFront(snapshot.Game))
                     && (OverlaySettings.ShowInReplays || !snapshot.IsReplay)
                     && (OverlaySettings.ShowInGarage || !snapshot.IsInGarage)
-                    && BattleBarOverlay.ShowsIn(BattleBarOptions.Load(), snapshot);
+                    && BattleBarModel.ShowsIn(BattleBarOptions.Load(), snapshot);
                 if (!enabled || !(_edit || inGame))
                 {
                     if (_battleWindow != null && _battleWindow.IsVisible)

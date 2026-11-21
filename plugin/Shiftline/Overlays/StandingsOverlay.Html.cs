@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Shiftline.Plugin
 {
-    /// <summary>What the overlay host needs from the standings, whether WPF or the HTML page draws them.</summary>
+    /// <summary>What the overlay host needs from the standings.</summary>
     internal interface IStandingsView
     {
         Size DesignSize { get; }
@@ -25,10 +25,10 @@ namespace Shiftline.Plugin
 
     /// <summary>
     /// The standings for the HTML page: the layout (sizes, columns, looks) and one frame per update (rows and cells), both as
-    /// JSON. Everything is computed here with the same rules as the WPF overlay (CellOf, BuildEntries, LookOf, RequiredWidth);
+    /// JSON. Everything is computed here (CellOf, BuildEntries, LookOf, RequiredWidth);
     /// the page only draws.
     /// </summary>
-    internal sealed partial class StandingsOverlay
+    internal static partial class StandingsOverlay
     {
         internal sealed class HtmlLayout
         {
@@ -87,7 +87,7 @@ namespace Shiftline.Plugin
             JArray header = new JArray();
             if (options.Header)
             {
-                // the header must fit its longest possible content; otherwise the Name column grows (as in WPF)
+                // the header must fit its longest possible content; otherwise the Name column grows
                 double needed = 16;
                 foreach (string slot in new[] { "H.Left", "H.C1", "H.C2", "H.C3", "H.Right" })
                 {
@@ -351,7 +351,7 @@ namespace Shiftline.Plugin
         private static readonly Dictionary<string, JObject> LetterSvgs = new Dictionary<string, JObject>();
 
         /// <summary>
-        /// The tyre letter as the WPF overlays draw it (the outline of the glyph, LetterShape) for an SVG: path data "p" and
+        /// The tyre letter as an outline (the outline of the glyph, LetterShape) for an SVG: path data "p" and
         /// the box of the outline "x", "y", "w", "h". The page sizes the SVG to the outline, so the letter is
         /// centred by its ink, not by the font's line height.
         /// </summary>

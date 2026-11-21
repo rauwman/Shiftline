@@ -9,7 +9,7 @@ namespace Shiftline.Plugin
     /// <summary>The settings of the Battle Bar: what it shows, how it looks, and a live preview with invented data.</summary>
     public partial class BattleBarPage : UserControl
     {
-        private IBattleBarView _preview;                    // WPF (BattleBarOverlay) or HTML (BattleBarHtmlView), as chosen in General
+        private BattleBarHtmlView _preview;
         private System.Windows.FrameworkElement _previewElement;
         private bool _previewRace = true;
         private bool _previewAnimation;

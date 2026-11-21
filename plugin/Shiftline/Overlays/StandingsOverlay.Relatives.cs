@@ -7,7 +7,7 @@ using System.Windows.Media;
 namespace Shiftline.Plugin
 {
     /// <summary>The relatives: the cars right around you on the track, in the layout of the standings.</summary>
-    internal sealed partial class StandingsOverlay
+    internal static partial class StandingsOverlay
     {
         private static readonly Brush LappingBrush = Frozen(0xFF, 0xF0, 0x40, 0x3E);     // a lap up on you
         private static readonly Brush LappedBrush = Frozen(0xFF, 0x7F, 0xB2, 0xE0);      // a lap down, you lapped it

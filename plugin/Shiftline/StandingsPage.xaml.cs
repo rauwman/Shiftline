@@ -119,7 +119,7 @@ namespace Shiftline.Plugin
 
         // ---------------------------------------------------------------- design and preview
 
-        private IStandingsView _preview;                    // WPF (StandingsOverlay) or HTML (StandingsHtmlView), as chosen in General
+        private StandingsHtmlView _preview;
         private System.Windows.FrameworkElement _previewElement;
         private bool _previewRace = true;
         private bool _building;

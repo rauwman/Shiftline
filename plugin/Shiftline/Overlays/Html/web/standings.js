@@ -264,6 +264,9 @@
                 cell.lic.style.borderRadius = 4 * l.round + 'px';
                 cell.num = el('span', 'num', cell.lic);
                 cell.let = el('span', 'let', cell.lic);
+                // the texts sit in spans of their own, so they can be centred by their figures (see standings.css)
+                cell.numText = el('span', 't', cell.num);
+                cell.letText = el('span', 't', cell.let);
                 setShown(cell.num, l.licNumber);
                 break;
             case 'Num':
@@ -427,10 +430,10 @@
                     setShown(cell.text, false);
                     setShown(cell.lic, !!d.ls);
                     setShown(cell.box, true);
-                    setText(cell.let, d.ll);
+                    setText(cell.letText, d.ll);
                     setStyle(cell.let, 'background', d.ls);
                     setStyle(cell.let, 'color', d.lt);
-                    setText(cell.num, d.ln);
+                    setText(cell.numText, d.ln);
                     setStyle(cell.num, 'background', layout.licNumber ? d.lh : '');
                 } else {
                     setShown(cell.lic, false);

@@ -12,7 +12,7 @@ namespace Shiftline.Plugin
     {
         private readonly Dictionary<string, Grid> _rows = new Dictionary<string, Grid>();
         private readonly Stopwatch _driving = new Stopwatch();
-        private ITrackMapView _preview;                     // WPF (TrackMapOverlay) or HTML (TrackMapHtmlView), as chosen in General
+        private TrackMapHtmlView _preview;
         private System.Windows.FrameworkElement _previewElement;
         private DispatcherTimer _radioTimer;
         private DispatcherTimer _checkTimer;
@@ -58,7 +58,7 @@ namespace Shiftline.Plugin
                         long feed = OverlayData.Positions.Sequence;
                         _feedRate = feed >= _feedSeen ? feed - _feedSeen : 0;
                         _feedSeen = feed;
-                        long frames = TrackMapOverlay.FramesDrawn;
+                        long frames = TrackMapModel.FramesDrawn;
                         _frameRate = frames - _framesSeen;
                         _framesSeen = frames;
                         ShowTrackCheck();
@@ -359,7 +359,7 @@ namespace Shiftline.Plugin
                 : (me.LapDistPct * 100).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " % of the lap, changes " + _pctRate + " times per second"));
             text.AppendLine("Position feed".PadRight(24) + _feedRate + " updates per second");
             text.AppendLine("Map drawn".PadRight(24) + _frameRate + " times per second, "
-                + (TrackMapOverlay.ShownDelay * 1000).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms behind the data");
+                + (TrackMapModel.ShownDelay * 1000).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms behind the data");
             AppendTrackShape(text);
             TrackCheckText.Text = text.ToString().TrimEnd();
         }

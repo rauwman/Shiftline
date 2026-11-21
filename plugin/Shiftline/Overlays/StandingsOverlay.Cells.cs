@@ -37,7 +37,7 @@ namespace Shiftline.Plugin
         public Brush[] DeltaBrushes;
     }
 
-    internal sealed partial class StandingsOverlay
+    internal static partial class StandingsOverlay
     {
         /// <summary>
         /// The content of one cell, without any WPF element. <paramref name="light"/> and <paramref name="fill"/> are the

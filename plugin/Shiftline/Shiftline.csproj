@@ -120,7 +120,7 @@
       <DependentUpon>TrackMapPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Overlays\BattleBarOptions.cs" />
-    <Compile Include="Overlays\BattleBarOverlay.cs" />
+    <Compile Include="Overlays\BattleBarModel.cs" />
     <Compile Include="Overlays\CarPositions.cs" />
     <Compile Include="Overlays\TrackAlignment.cs" />
     <Compile Include="Overlays\TrackLibrary.cs" />
@@ -129,8 +129,8 @@
     <Compile Include="Overlays\TrackPositionLog.cs" />
     <Compile Include="Overlays\TrackMapGeometry.cs" />
     <Compile Include="Overlays\TrackMapOptions.cs" />
-    <Compile Include="Overlays\TrackMapOverlay.cs" />
-    <Compile Include="Overlays\TrackMapOverlay.Html.cs" />
+    <Compile Include="Overlays\TrackMapModel.cs" />
+    <Compile Include="Overlays\TrackMapHtml.cs" />
     <Compile Include="Overlays\TrackMapSample.cs" />
     <Compile Include="Overlays\CarMakes.cs" />
     <Compile Include="Overlays\GameFocus.cs" />
@@ -141,7 +141,6 @@
     <Compile Include="Overlays\Html\HtmlHost.cs" />
     <Compile Include="Overlays\Html\HtmlPreview.cs" />
     <Compile Include="Overlays\Html\HtmlCapture.cs" />
-    <Compile Include="Overlays\OverlayFrameCap.cs" />
     <Compile Include="Overlays\GpuPriority.cs" />
     <Compile Include="Overlays\OverlayAlignBar.cs" />
     <Compile Include="Overlays\OverlayGuides.cs" />
@@ -152,7 +151,7 @@
     <Compile Include="Overlays\StandingsOverlay.Relatives.cs" />
     <Compile Include="Overlays\StandingsOverlay.Cells.cs" />
     <Compile Include="Overlays\StandingsOverlay.Html.cs" />
-    <Compile Include="Overlays\BattleBarOverlay.Html.cs" />
+    <Compile Include="Overlays\BattleBarHtml.cs" />
     <Compile Include="Overlays\HeaderItems.cs" />
     <Compile Include="Overlays\FlagImages.cs" />
     <Compile Include="Overlays\LookSettings.cs" />

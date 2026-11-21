@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Shiftline.Plugin
 {
-    /// <summary>What the overlay host and the settings page need from the Battle Bar, whether WPF or the HTML page draws it.</summary>
+    /// <summary>What the overlay host and the settings page need from the Battle Bar.</summary>
     internal interface IBattleBarView
     {
         Size DesignSize { get; }
@@ -22,12 +22,11 @@ namespace Shiftline.Plugin
 
     /// <summary>
     /// The Battle Bar for the HTML page: the layout (sizes, items, looks) and one frame per update (the cards with their
-    /// values and colours), both as JSON. The rules are the same as in the WPF bar (ChooseCards, GapText, TrendOf, FrameKind,
-    /// SideValue ...); the page only draws and animates.
+    /// values and colours), both as JSON, from the rules of BattleBarModel; the page only draws and animates.
     /// </summary>
-    internal sealed partial class BattleBarOverlay
+    internal static partial class BattleBarModel
     {
-        // ---------------------------------------------------------------- sizes (shared with the WPF bar)
+        // ---------------------------------------------------------------- sizes
 
         internal static bool OnItem(BattleBarOptions options, string key)
         {
@@ -160,7 +159,7 @@ namespace Shiftline.Plugin
             double headerWidth = 0;
             if (options.Header)
             {
-                // measured with the same WPF items as the WPF bar, so both get the same width
+                // measured with the WPF text engine, as the page lays the items out the same way
                 StackPanel measure = new StackPanel { Orientation = Orientation.Horizontal };
                 System.Windows.Documents.TextElement.SetFontFamily(measure, OverlayFonts.Get(options.Get("Font")));
                 foreach (string slot in new[] { "H.S1", "H.S2", "H.S3", "H.S4", "H.S5", "H.S6", "H.S7", "H.S8" })
@@ -397,7 +396,7 @@ namespace Shiftline.Plugin
             return frame.ToString(Formatting.None);
         }
 
-        /// <summary>One card: every value and colour as the WPF bar shows it (FillCard).</summary>
+        /// <summary>One card: every value and colour it shows.</summary>
         private static JObject CardJson(HtmlLayout layout, StandingsRow row, Field field)
         {
             BattleBarOptions options = layout.Options;
@@ -495,7 +494,7 @@ namespace Shiftline.Plugin
     internal sealed class BattleBarHtmlView : IBattleBarView
     {
         public const string Page = "battlebar.html";
-        private BattleBarOverlay.HtmlLayout _layout;
+        private BattleBarModel.HtmlLayout _layout;
         private IHtmlSurface _window;
         private string _lastFrame;                          // sent again after a (re)load, so a still preview is not left empty
 
@@ -529,14 +528,14 @@ namespace Shiftline.Plugin
 
         public void ApplyOptions(BattleBarOptions options)
         {
-            _layout = BattleBarOverlay.HtmlLayoutOf(options);
+            _layout = BattleBarModel.HtmlLayoutOf(options);
             _lastFrame = null;
             SendLayout();
         }
 
         public void Update(StandingsSnapshot snapshot)
         {
-            _lastFrame = BattleBarOverlay.HtmlFrame(_layout, snapshot);
+            _lastFrame = BattleBarModel.HtmlFrame(_layout, snapshot);
             if (_window != null)
             {
                 _window.Post(_lastFrame);

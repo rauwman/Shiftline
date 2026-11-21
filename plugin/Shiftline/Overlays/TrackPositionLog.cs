@@ -88,7 +88,7 @@ namespace Shiftline.Plugin
             Clock.Restart();
             _timer.Start();
             _renders = 0;
-            TrackMapOverlay.TakeWorkMs();
+            TrackMapModel.TakeWorkMs();
             CompositionTarget.Rendering += OnRender;
             Dispatcher ui = Dispatcher.CurrentDispatcher;
             _probing = true;
@@ -137,7 +137,7 @@ namespace Shiftline.Plugin
                         string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,
                         maxLag.ToString("0.0", CultureInfo.InvariantCulture),
                         renders.ToString(CultureInfo.InvariantCulture),
-                        TrackMapOverlay.TakeWorkMs().ToString("0.0", CultureInfo.InvariantCulture)
+                        TrackMapModel.TakeWorkMs().ToString("0.0", CultureInfo.InvariantCulture)
                     }));
                     maxLag = 0;
                     window.Restart();

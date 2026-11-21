@@ -183,7 +183,7 @@ namespace Shiftline.Plugin
             get { return GetBool("TrackShapes"); }
         }
 
-        /// <summary>The size the window edge changes ("Length", "RingSize" or "TrackSize", see TrackMapOverlay.SizeKey).</summary>
+        /// <summary>The size the window edge changes ("Length", "RingSize" or "TrackSize", see ITrackMapView.SizeKey).</summary>
         public int SizeOf(string key)
         {
             return ClampSize(key, GetInt(key));
