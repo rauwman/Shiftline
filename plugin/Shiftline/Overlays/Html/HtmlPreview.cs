@@ -65,11 +65,11 @@ namespace Shiftline.Plugin
         /// <summary>The page has loaded and takes messages.</summary>
         public bool IsReady { get; private set; }
 
-        /// <summary>Sets the hidden spot where the preview waits; it is parked there right away when HTML is chosen.</summary>
+        /// <summary>Sets the hidden spot where the preview waits; it is parked there right away.</summary>
         public static void SetParking(Decorator parking)
         {
             _parking = parking;
-            if (OverlaySettings.UseHtml && (_shared == null || _shared.Parent == null))
+            if (HtmlHost.RuntimeVersion() != null && (_shared == null || _shared.Parent == null))
             {
                 Shared.MoveTo(parking);
             }

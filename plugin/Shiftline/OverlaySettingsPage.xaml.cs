@@ -70,6 +70,19 @@ namespace Shiftline.Plugin
         {
             _filling = true;
             MainSettingsPanel.Children.Clear();
+            if (HtmlHost.RuntimeVersion() == null)
+            {
+                // the overlays are drawn by the browser engine of Windows; without it they cannot show
+                TextBlock missing = new TextBlock
+                {
+                    Text = "The overlays need Microsoft's WebView2 Runtime, which is not installed on this PC. Install it from microsoft.com (search for \"WebView2 Runtime\") and restart SimHub.",
+                    Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary"),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 12)
+                };
+                MainSettingsPanel.Children.Add(missing);
+            }
+
 
             System.Windows.Controls.ComboBox rate = new System.Windows.Controls.ComboBox { Width = 320, Height = 34 };
             foreach (int value in OverlaySettings.Rates)
@@ -114,19 +127,6 @@ namespace Shiftline.Plugin
                     OverlaySettings.GpuRealtime = gpu.SelectedIndex == 1;
                 }
             };
-            System.Windows.Controls.ComboBox drawn = new System.Windows.Controls.ComboBox { Width = 320, Height = 34 };
-            drawn.Items.Add("WPF");
-            drawn.Items.Add("HTML");
-            drawn.SelectedIndex = OverlaySettings.UseHtml ? 1 : 0;
-            drawn.SelectionChanged += (sender, args) =>
-            {
-                if (!_filling && drawn.SelectedIndex >= 0)
-                {
-                    OverlaySettings.UseHtml = drawn.SelectedIndex == 1;
-                }
-            };
-            AddMainRow("Drawn with", drawn, "HTML uses the browser engine of Windows (WebView2), more memory.");
-
             AddMainRow("GPU priority", gpu, "Realtime if overlays stutter in games like AMS2. Costs game fps; use it with a frame rate of 30 or 60.");
 
             foreach (StandingsChoice choice in LookSettings.General)
@@ -169,7 +169,6 @@ namespace Shiftline.Plugin
             OverlaySettings.GlobalRate = OverlaySettings.DefaultRate;
             OverlaySettings.FrameRate = OverlaySettings.DefaultFrameRate;
             OverlaySettings.GpuRealtime = false;
-            OverlaySettings.UseHtml = false;
             FillMainSettings();
         }
 

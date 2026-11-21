@@ -58,10 +58,9 @@ namespace Shiftline.Plugin
                 {
                     GpuPriority.Apply();
                     OverlayWindow.SendFrameRateToAll();
-                    HtmlHost.Prewarm();
                 });
                 GpuPriority.Apply();
-                HtmlHost.Prewarm();         // HTML chosen: start the browser now, not on the first overlay or preview
+                HtmlHost.Prewarm();         // start the browser now, not on the first overlay or preview
                 _standingsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
                 _standingsTimer.Tick += (sender, args) => TickStandings();
                 _battleTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher);
@@ -223,14 +222,6 @@ namespace Shiftline.Plugin
             SyncRelatives();
             SyncTrackMap();
 
-            if (_standingsWindow != null && _standingsWindow.IsHtml != OverlaySettings.UseHtml)
-            {
-                // drawn with the other engine now: the next tick opens a new window
-                _standingsWindow.Close();
-                _standingsWindow = null;
-                _standingsView = null;
-            }
-
             bool enabled = OverlaySettings.IsEnabled(OverlayData.StandingsKey);
             if (!enabled)
             {
@@ -280,20 +271,11 @@ namespace Shiftline.Plugin
 
                 if (_standingsWindow == null)
                 {
-                    if (OverlaySettings.UseHtml)
-                    {
-                        StandingsHtmlView html = new StandingsHtmlView { InRace = _standingsRace };
-                        html.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
-                        _standingsView = html;
-                        _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", StandingsHtmlView.Page, html.DesignSize);
-                        html.Attach(_standingsWindow);
-                    }
-                    else
-                    {
-                        StandingsOverlay wpf = new StandingsOverlay();
-                        _standingsView = wpf;
-                        _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", wpf, wpf.DesignSize);
-                    }
+                    StandingsHtmlView html = new StandingsHtmlView { InRace = _standingsRace };
+                    html.ApplyOptions(StandingsOptions.Load().ForFeatures(_standingsFeatures));
+                    _standingsView = html;
+                    _standingsWindow = new OverlayWindow(OverlayData.StandingsKey, "Standings", StandingsHtmlView.Page, html.DesignSize);
+                    html.Attach(_standingsWindow);
 
                     _standingsWindow.SetEditMode(_edit);
                     _standingsWindow.SetFixedSize(_standingsView.DesignSize);
@@ -405,14 +387,6 @@ namespace Shiftline.Plugin
 
         private static void SyncBattleBar()
         {
-            if (_battleWindow != null && _battleWindow.IsHtml != OverlaySettings.UseHtml)
-            {
-                // drawn with the other engine now: the next tick opens a new window
-                _battleWindow.Close();
-                _battleWindow = null;
-                _battleView = null;
-            }
-
             if (!OverlaySettings.IsEnabled(OverlayData.BattleBarKey))
             {
                 _battleTimer.Stop();
@@ -467,20 +441,11 @@ namespace Shiftline.Plugin
 
                 if (_battleWindow == null)
                 {
-                    if (OverlaySettings.UseHtml)
-                    {
-                        BattleBarHtmlView html = new BattleBarHtmlView();
-                        html.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures));
-                        _battleView = html;
-                        _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", BattleBarHtmlView.Page, html.DesignSize);
-                        html.Attach(_battleWindow);
-                    }
-                    else
-                    {
-                        BattleBarOverlay wpf = new BattleBarOverlay();
-                        _battleView = wpf;
-                        _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", wpf, wpf.DesignSize);
-                    }
+                    BattleBarHtmlView html = new BattleBarHtmlView();
+                    html.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures));
+                    _battleView = html;
+                    _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", BattleBarHtmlView.Page, html.DesignSize);
+                    html.Attach(_battleWindow);
 
                     _battleWindow.SetEditMode(_edit);
                     _battleWindow.SetFixedSize(_battleView.DesignSize);
@@ -557,14 +522,6 @@ namespace Shiftline.Plugin
 
         private static void SyncRelatives()
         {
-            if (_relativesWindow != null && _relativesWindow.IsHtml != OverlaySettings.UseHtml)
-            {
-                // drawn with the other engine now: the next tick opens a new window
-                _relativesWindow.Close();
-                _relativesWindow = null;
-                _relativesView = null;
-            }
-
             if (!OverlaySettings.IsEnabled(OverlayData.RelativesKey))
             {
                 _relativesTimer.Stop();
@@ -619,20 +576,11 @@ namespace Shiftline.Plugin
 
                 if (_relativesWindow == null)
                 {
-                    if (OverlaySettings.UseHtml)
-                    {
-                        StandingsHtmlView html = new StandingsHtmlView(OverlayData.RelativesKey) { InRace = _relativesRace };
-                        html.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
-                        _relativesView = html;
-                        _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", StandingsHtmlView.Page, html.DesignSize);
-                        html.Attach(_relativesWindow);
-                    }
-                    else
-                    {
-                        StandingsOverlay wpf = new StandingsOverlay(false, OverlayData.RelativesKey);
-                        _relativesView = wpf;
-                        _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", wpf, wpf.DesignSize);
-                    }
+                    StandingsHtmlView html = new StandingsHtmlView(OverlayData.RelativesKey) { InRace = _relativesRace };
+                    html.ApplyOptions(StandingsOptions.Load(OverlayData.RelativesKey).ForFeatures(_relativesFeatures));
+                    _relativesView = html;
+                    _relativesWindow = new OverlayWindow(OverlayData.RelativesKey, "Relatives", StandingsHtmlView.Page, html.DesignSize);
+                    html.Attach(_relativesWindow);
 
                     _relativesWindow.SetEditMode(_edit);
                     _relativesWindow.SetFixedSize(_relativesView.DesignSize);
@@ -717,14 +665,6 @@ namespace Shiftline.Plugin
 
         private static void SyncTrackMap()
         {
-            if (_trackWindow != null && _trackWindow.IsHtml != OverlaySettings.UseHtml)
-            {
-                // drawn with the other engine now: the next tick opens a new window
-                _trackWindow.Close();
-                _trackWindow = null;
-                _trackView = null;
-            }
-
             if (!OverlaySettings.IsEnabled(OverlayData.TrackMapKey))
             {
                 _trackTimer.Stop();
@@ -783,19 +723,10 @@ namespace Shiftline.Plugin
 
                 if (_trackWindow == null)
                 {
-                    if (OverlaySettings.UseHtml)
-                    {
-                        TrackMapHtmlView html = new TrackMapHtmlView();
-                        _trackView = html;
-                        _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", TrackMapHtmlView.Page, html.DesignSize);
-                        html.Attach(_trackWindow);
-                    }
-                    else
-                    {
-                        TrackMapOverlay wpf = new TrackMapOverlay();
-                        _trackView = wpf;
-                        _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", wpf, wpf.DesignSize);
-                    }
+                    TrackMapHtmlView html = new TrackMapHtmlView();
+                    _trackView = html;
+                    _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", TrackMapHtmlView.Page, html.DesignSize);
+                    html.Attach(_trackWindow);
 
                     _trackWindow.SetEditMode(_edit);
                     _trackWindow.SetFixedSize(_trackView.DesignSize);

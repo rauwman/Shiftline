@@ -202,34 +202,17 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
-            bool html = OverlaySettings.UseHtml;
-            if (_preview != null && (_preview is StandingsHtmlView) != html)
-            {
-                ClosePreview();
-            }
-
             if (_preview == null)
             {
-                if (html)
-                {
-                    // the shared preview (already loaded, see HtmlPreview): the overlay page in preview mode, where a click on
-                    // a cell opens the options of its column
-                    HtmlPreview host = HtmlPreview.Shared;
-                    host.PageMessage += OnPreviewMessage;
-                    StandingsHtmlView view = new StandingsHtmlView(_overlay);
-                    view.Attach(host);
-                    host.MoveTo(PreviewHost);
-                    _preview = view;
-                    _previewElement = host;
-                }
-                else
-                {
-                    StandingsOverlay wpf = new StandingsOverlay(true, _overlay);
-                    wpf.ColumnClicked += ShowColumnOptions;
-                    _preview = wpf;
-                    _previewElement = wpf;
-                    PreviewHost.Child = wpf;
-                }
+                // the shared preview (already loaded, see HtmlPreview): the overlay page in preview mode, where a click on
+                // a cell opens the options of its column
+                HtmlPreview host = HtmlPreview.Shared;
+                host.PageMessage += OnPreviewMessage;
+                StandingsHtmlView view = new StandingsHtmlView(_overlay);
+                view.Attach(host);
+                host.MoveTo(PreviewHost);
+                _preview = view;
+                _previewElement = host;
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();

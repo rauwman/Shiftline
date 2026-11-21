@@ -167,31 +167,15 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
-            bool html = OverlaySettings.UseHtml;
-            if (_preview != null && (_preview is BattleBarHtmlView) != html)
-            {
-                ClosePreview();
-            }
-
             if (_preview == null)
             {
-                if (html)
-                {
-                    // the shared preview (already loaded, see HtmlPreview) switches to the Battle Bar with its layout
-                    HtmlPreview host = HtmlPreview.Shared;
-                    BattleBarHtmlView view = new BattleBarHtmlView();
-                    view.Attach(host);
-                    host.MoveTo(PreviewHost);
-                    _preview = view;
-                    _previewElement = host;
-                }
-                else
-                {
-                    BattleBarOverlay wpf = new BattleBarOverlay(true);
-                    _preview = wpf;
-                    _previewElement = wpf;
-                    PreviewHost.Child = wpf;
-                }
+                // the shared preview (already loaded, see HtmlPreview) switches to the Battle Bar with its layout
+                HtmlPreview host = HtmlPreview.Shared;
+                BattleBarHtmlView view = new BattleBarHtmlView();
+                view.Attach(host);
+                host.MoveTo(PreviewHost);
+                _preview = view;
+                _previewElement = host;
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();

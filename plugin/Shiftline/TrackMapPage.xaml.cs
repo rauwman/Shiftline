@@ -193,31 +193,15 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
-            bool html = OverlaySettings.UseHtml;
-            if (_preview != null && (_preview is TrackMapHtmlView) != html)
-            {
-                ClosePreview();
-            }
-
             if (_preview == null)
             {
-                if (html)
-                {
-                    // the shared preview (already loaded, see HtmlPreview) switches to the Track Map with its layout
-                    HtmlPreview host = HtmlPreview.Shared;
-                    TrackMapHtmlView view = new TrackMapHtmlView();
-                    view.Attach(host);
-                    host.MoveTo(PreviewHost);
-                    _preview = view;
-                    _previewElement = host;
-                }
-                else
-                {
-                    TrackMapOverlay wpf = new TrackMapOverlay();
-                    _preview = wpf;
-                    _previewElement = wpf;
-                    PreviewHost.Child = wpf;
-                }
+                // the shared preview (already loaded, see HtmlPreview) switches to the Track Map with its layout
+                HtmlPreview host = HtmlPreview.Shared;
+                TrackMapHtmlView view = new TrackMapHtmlView();
+                view.Attach(host);
+                host.MoveTo(PreviewHost);
+                _preview = view;
+                _previewElement = host;
 
                 _preview.DesignSizeChanged += SizePreview;
             }

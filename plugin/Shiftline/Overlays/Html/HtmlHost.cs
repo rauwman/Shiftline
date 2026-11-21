@@ -79,12 +79,12 @@ namespace Shiftline.Plugin
         private static bool _warming;
 
         /// <summary>
-        /// Starts the browser in the background when HTML is chosen (at SimHub start and when the setting changes), so the first
+        /// Starts the browser in the background at SimHub start, so the first
         /// overlay or preview does not wait about a second for it. A hidden, empty browser view keeps the browser running.
         /// </summary>
         public static async void Prewarm()
         {
-            if (_warming || _warm != null || !OverlaySettings.UseHtml || RuntimeVersion() == null)
+            if (_warming || _warm != null || RuntimeVersion() == null)
             {
                 return;
             }
