@@ -3,9 +3,9 @@
 Shiftline aims to be one free plugin for everything around SimHub: LED devices, on-screen overlays, and later dashboards and control devices.
 
 - **LEDs:** rev lights, brake and pedal bars, fuel, flags and effects for any SimHub LED device, with presets per game and car.
-- **Overlays:** standings, relatives and a battle bar, more are on the way.
+- **Overlays:** standings, relatives, a battle bar and a track map, more are on the way.
 
-> **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.3, mainly iRacing). The overlays are new: the standings, relatives and battle bar were tested in iRacing only, other games use SimHub's opponent data and are untested. Please report what you find.
+> **Shiftline is still in beta.** The LED part has been tested by one person on one device (an Arduino with a WS2812B strip, 5 | 16 | 5 LEDs, SimHub 9.13.7, mainly iRacing). The overlays are new: the standings, relatives, battle bar and track map were tested in iRacing, the track map also in Assetto Corsa and Automobilista 2; other games use SimHub's opponent data and are untested. Please report what you find.
 
 <img src="docs/images/dash-panel.png" width="830" alt="The Dash Panel page of Shiftline">
 
@@ -45,12 +45,16 @@ Untested so far: ERS mode and the safety car delta (F1 games).
 
 *Battle Bar: you in the middle, the cars around you with gaps, trend arrows and a battle frame (invented data)*
 
+<img src="docs/images/track-map.png" width="495" alt="The Track Map">
+
+*Track Map: the real track shape with the cars, lap rings and the pit lane (invented data)*
+
 - **Standings:** position, class colour, places gained, car number, country flag (iRacing), name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
 - **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
 - **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows, country flags and a battle frame
 - **Track Map:** the track as its real shape for iRacing and many tracks in other SimHub games (about 400 layouts built in), or as a ring or a line when no shape is known. Cars with lap rings, the fastest lap, the pit lane and an animated start/finish line
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
-- **Main settings** on the General page: update rate, background opacity of the rows and of the header and footer, font, weight and corners for all overlays at once. Each overlay page follows them ("Same as in General") or has its own values
+- **Main settings** on the General page: update rate and frame rate, overlay, table and header opacity, row spacing, font, weight and corners for all overlays at once. Each overlay page follows them ("Same as in General") or has its own values
 - Classes on their own, grouped or mixed; animated position changes
 - **Edit mode** to drag and size the overlays, also on a second monitor. They show only while the game is in front, and hide in replays and the garage unless you switch that on
 - Other games (Assetto Corsa, Automobilista, rFactor and more) use SimHub's data. Columns a game does not provide are hidden
@@ -80,9 +84,10 @@ Without the installer, copy `Shiftline.Plugin.dll` from a release into the SimHu
 
 ## Known limits
 
-- Tested with SimHub 9.13.3 on Windows with one Arduino strip. Please open an issue with your SimHub version, game and the system log (Shiftline > Settings) when something does not work.
+- Tested with SimHub 9.13.7 on Windows with one Arduino strip. Please open an issue with your SimHub version, game and the system log (Shiftline > Settings) when something does not work.
 - ERS mode and the safety car delta use SimHub property names found by research, not confirmed in a real F1 game.
 - Overlays need the game in windowed or borderless mode.
+- The overlays are drawn with Microsoft's WebView2 Runtime (part of Windows 10 and 11). If it is missing, the General page says so.
 
 ## Build from source
 

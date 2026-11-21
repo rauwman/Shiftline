@@ -26,6 +26,8 @@ powershell -ExecutionPolicy Bypass -File tools\make-release.ps1
 
 The script builds the Release DLL, creates the checksum of that DLL, compiles the installer and puts all three files into `release\<version>\` (the folder opens when it is done). It checks that the checksum file matches the DLL it copied. It needs Visual Studio, Inno Setup 6 and `SIMHUB_INSTALL_PATH`. With `-SkipBuild` it packages the DLL that is already in `plugin\Shiftline\bin\Release`.
 
+Before it builds, the script compares the SimHub version named in `README.md` ("SimHub x.y.z") with the installed `SimHubWPF.exe` and stops when they differ. Run it once with `-UpdateReadme`: it writes the installed version into the README; commit that and run the script again.
+
 Always upload the files from that folder. The order matters: the checksum has to be created after the **last** build of the DLL, and the installer after that. Doing it by hand: build Release in Visual Studio, `(Get-FileHash .\Shiftline.Plugin.dll -Algorithm SHA256).Hash | Set-Content -NoNewline Shiftline.Plugin.dll.sha256`, then compile `installer\Shiftline.iss` with Inno Setup 6 (`ISCC.exe /DAppVersion=0.2.1 installer\Shiftline.iss`).
 
 The installer:

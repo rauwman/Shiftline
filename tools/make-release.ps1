@@ -8,11 +8,15 @@
   Usage (from the repository folder):
     powershell -ExecutionPolicy Bypass -File tools\make-release.ps1
     powershell -ExecutionPolicy Bypass -File tools\make-release.ps1 -SkipBuild    # package the DLL that is already built
+    powershell -ExecutionPolicy Bypass -File tools\make-release.ps1 -UpdateReadme # write the installed SimHub version into the README
+
+  Before building, the script compares "SimHub x.y.z" in README.md with the installed SimHubWPF.exe and stops when they
+  differ. -UpdateReadme writes the installed version into the README; commit it and run the script again.
 
   Needs: Visual Studio (MSBuild), Inno Setup 6, and the environment variable SIMHUB_INSTALL_PATH.
   The version comes from AssemblyInformationalVersion in plugin\Shiftline\Properties\AssemblyInfo.cs.
 #>
-param([switch]$SkipBuild)
+param([switch]$SkipBuild, [switch]$UpdateReadme)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -27,6 +31,27 @@ if ($info -notmatch '\[assembly: AssemblyVersion\("(\d+)\.(\d+)\.(\d+)\.\d+"\)\]
 $numbers = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
 if (-not $version.StartsWith($numbers)) { throw "AssemblyInformationalVersion ($version) does not match AssemblyVersion ($numbers)" }
 Write-Host "Version $version"
+
+# --- SimHub version: the README names the version the plugin was tested with, which is the one installed here
+if ($env:SIMHUB_INSTALL_PATH) {
+    $simhubExe = Join-Path $env:SIMHUB_INSTALL_PATH 'SimHubWPF.exe'
+    if (-not (Test-Path $simhubExe)) { throw "SimHubWPF.exe not found in $env:SIMHUB_INSTALL_PATH" }
+    if ((Get-Item $simhubExe).VersionInfo.FileVersion -notmatch '^(\d+\.\d+\.\d+)') { throw 'The version of SimHubWPF.exe could not be read' }
+    $simhub = $Matches[1]
+    $readmePath = Join-Path $root 'README.md'
+    $readme = [System.IO.File]::ReadAllText($readmePath)
+    $named = [regex]::Matches($readme, 'SimHub (\d+\.\d+\.\d+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    $wrong = @($named | Where-Object { $_ -ne $simhub })
+    if ($wrong.Count -gt 0) {
+        if (-not $UpdateReadme) {
+            throw "README.md names SimHub $($wrong -join ', '), installed is $simhub. Run with -UpdateReadme, then commit the README and run again."
+        }
+        $readme = [regex]::Replace($readme, 'SimHub \d+\.\d+\.\d+', "SimHub $simhub")
+        [System.IO.File]::WriteAllText($readmePath, $readme, (New-Object System.Text.UTF8Encoding($true)))
+        throw "README.md now names SimHub $simhub. Commit it and run the script again."
+    }
+    Write-Host "SimHub $simhub (README matches)"
+}
 
 # --- 1. build the release DLL
 if (-not $SkipBuild) {
