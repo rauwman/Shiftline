@@ -321,6 +321,7 @@ namespace Shiftline.Plugin
                     break;
                 case "Tyre":
                     json["tc"] = cell.TyreCode;
+                    json["tl"] = LetterSvg(cell.TyreCode);
                     json["tk"] = Css(cell.TyreColour);
                     break;
                 case "iR":
@@ -345,6 +346,50 @@ namespace Shiftline.Plugin
             }
 
             return json;
+        }
+
+        private static readonly Dictionary<string, JObject> LetterSvgs = new Dictionary<string, JObject>();
+
+        /// <summary>
+        /// The tyre letter as the WPF overlays draw it (the outline of the glyph, LetterShape) for an SVG: path data "p" and
+        /// the box of the outline "x", "y", "w", "h". The page sizes the SVG to the outline, so the letter is
+        /// centred by its ink, not by the font's line height.
+        /// </summary>
+        internal static JObject LetterSvg(string code)
+        {
+            if (string.IsNullOrEmpty(code))
+            {
+                return null;
+            }
+
+            JObject svg;
+            if (LetterSvgs.TryGetValue(code, out svg))
+            {
+                return svg;
+            }
+
+            // the glyph itself (LetterShape moves it to 0,0 with a transform that the path text would not carry)
+            GeometryGroup moved = LetterShape(code) as GeometryGroup;
+            Geometry shape = moved != null && moved.Children.Count == 1 ? moved.Children[0] : LetterShape(code);
+            PathGeometry path = PathGeometry.CreateFromGeometry(shape);
+            string data = path.ToString(CultureInfo.InvariantCulture);
+            if (data.StartsWith("F0", StringComparison.Ordinal) || data.StartsWith("F1", StringComparison.Ordinal))
+            {
+                data = data.Substring(2).TrimStart();
+            }
+
+            Rect bounds = shape.Bounds;
+            svg = new JObject
+            {
+                { "p", data },
+                { "x", Math.Round(bounds.X, 2) },
+                { "y", Math.Round(bounds.Y, 2) },
+                { "w", Math.Round(bounds.Width, 2) },
+                { "h", Math.Round(bounds.Height, 2) },
+                { "evenodd", path.FillRule == FillRule.EvenOdd },
+            };
+            LetterSvgs[code] = svg;
+            return svg;
         }
 
         /// <summary>Rows that fit into this height (while the window is pulled longer or shorter).</summary>

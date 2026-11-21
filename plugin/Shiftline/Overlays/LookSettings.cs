@@ -31,10 +31,10 @@ namespace Shiftline.Plugin
         /// <summary>The choices as General offers them, with the value every overlay gets while it follows General.</summary>
         public static readonly StandingsChoice[] General =
         {
-            new StandingsChoice("Look", "Opacity", "Card background opacity", "0", OpacityValues),
-            new StandingsChoice("Look", "RowOpacity", "Row background opacity", "80", OpacityValues),
-            new StandingsChoice("Look", "HfOpacity", "Background opacity of the header and footer", "70", OpacityValues),
-            new StandingsChoice("Look", "RowGap", "Space between rows (standings and relatives)", "1",
+            new StandingsChoice("Look", "Opacity", "Overlay opacity", "0", OpacityValues),
+            new StandingsChoice("Look", "RowOpacity", "Table opacity", "80", OpacityValues),
+            new StandingsChoice("Look", "HfOpacity", "Header opacity", "70", OpacityValues),
+            new StandingsChoice("Look", "RowGap", "Row spacing", "1",
                 "0", "None (one panel)", "1", "1 px", "2", "2 px", "3", "3 px", "4", "4 px"),
             new StandingsChoice("Look", "Font", "Font", "Segoe UI", FontValues),
             new StandingsChoice("Look", "Weight", "Font weight", "Normal", WeightValues),

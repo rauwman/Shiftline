@@ -9,7 +9,8 @@ namespace Shiftline.Plugin
     /// <summary>The settings of the Battle Bar: what it shows, how it looks, and a live preview with invented data.</summary>
     public partial class BattleBarPage : UserControl
     {
-        private BattleBarOverlay _preview;
+        private IBattleBarView _preview;                    // WPF (BattleBarOverlay) or HTML (BattleBarHtmlView), as chosen in General
+        private System.Windows.FrameworkElement _previewElement;
         private bool _previewRace = true;
         private bool _previewAnimation;
         private int _animationStep;
@@ -31,6 +32,7 @@ namespace Shiftline.Plugin
             };
             Unloaded += (sender, args) =>
             {
+                ClosePreview();
                 if (_animationTimer != null)
                 {
                     _animationTimer.Stop();
@@ -165,17 +167,38 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
+            bool html = OverlaySettings.UseHtml;
+            if (_preview != null && (_preview is BattleBarHtmlView) != html)
+            {
+                ClosePreview();
+            }
+
             if (_preview == null)
             {
-                _preview = new BattleBarOverlay(true);
-                PreviewHost.Child = _preview;
+                if (html)
+                {
+                    // the shared preview (already loaded, see HtmlPreview) switches to the Battle Bar with its layout
+                    HtmlPreview host = HtmlPreview.Shared;
+                    BattleBarHtmlView view = new BattleBarHtmlView();
+                    view.Attach(host);
+                    host.MoveTo(PreviewHost);
+                    _preview = view;
+                    _previewElement = host;
+                }
+                else
+                {
+                    BattleBarOverlay wpf = new BattleBarOverlay(true);
+                    _preview = wpf;
+                    _previewElement = wpf;
+                    PreviewHost.Child = wpf;
+                }
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();
             _preview.ApplyOptions(BattleBarOptions.Load().ForFeatures(features));
             System.Windows.Size size = _preview.DesignSize;
-            _preview.Width = size.Width;
-            _preview.Height = size.Height;
+            _previewElement.Width = size.Width;
+            _previewElement.Height = size.Height;
             string game = OverlayData.SelectedGameName;
             PreviewGameText.Text = string.IsNullOrEmpty(game) ? string.Empty
                 : features == StandingsFeatures.All ? "Preview for " + game + "."
@@ -186,6 +209,24 @@ namespace Shiftline.Plugin
 
             // a bar wider than the page starts scrolled to the middle, where the player is
             Dispatcher.BeginInvoke(new Action(() => PreviewScroll.ScrollToHorizontalOffset(Math.Max(0, (PreviewScroll.ExtentWidth - PreviewScroll.ViewportWidth) / 2))), DispatcherPriority.Loaded);
+        }
+
+        private void ClosePreview()
+        {
+            HtmlPreview html = _previewElement as HtmlPreview;
+            if (html != null)
+            {
+                // the shared preview is kept: it goes back to its hidden spot, unless another page has taken it already
+                ((BattleBarHtmlView)_preview).Detach();
+                html.Release(PreviewHost);
+            }
+            else
+            {
+                PreviewHost.Child = null;
+            }
+
+            _preview = null;
+            _previewElement = null;
         }
 
         /// <summary>What the frames mean, with the colour and the time chosen below.</summary>

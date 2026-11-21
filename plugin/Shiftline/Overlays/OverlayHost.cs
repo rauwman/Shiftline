@@ -16,7 +16,7 @@ namespace Shiftline.Plugin
         private static IStandingsView _standingsView;         // WPF (StandingsOverlay) or HTML (StandingsHtmlView)
         private static DispatcherTimer _standingsTimer;
         private static OverlayWindow _battleWindow;
-        private static BattleBarOverlay _battleView;
+        private static IBattleBarView _battleView;           // WPF (BattleBarOverlay) or HTML (BattleBarHtmlView)
         private static DispatcherTimer _battleTimer;
         private static StandingsFeatures _battleFeatures = StandingsFeatures.All;
         private static OverlayWindow _relativesWindow;
@@ -405,6 +405,14 @@ namespace Shiftline.Plugin
 
         private static void SyncBattleBar()
         {
+            if (_battleWindow != null && _battleWindow.IsHtml != OverlaySettings.UseHtml)
+            {
+                // drawn with the other engine now: the next tick opens a new window
+                _battleWindow.Close();
+                _battleWindow = null;
+                _battleView = null;
+            }
+
             if (!OverlaySettings.IsEnabled(OverlayData.BattleBarKey))
             {
                 _battleTimer.Stop();
@@ -459,8 +467,21 @@ namespace Shiftline.Plugin
 
                 if (_battleWindow == null)
                 {
-                    _battleView = new BattleBarOverlay();
-                    _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", _battleView, _battleView.DesignSize);
+                    if (OverlaySettings.UseHtml)
+                    {
+                        BattleBarHtmlView html = new BattleBarHtmlView();
+                        html.ApplyOptions(BattleBarOptions.Load().ForFeatures(_battleFeatures));
+                        _battleView = html;
+                        _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", BattleBarHtmlView.Page, html.DesignSize);
+                        html.Attach(_battleWindow);
+                    }
+                    else
+                    {
+                        BattleBarOverlay wpf = new BattleBarOverlay();
+                        _battleView = wpf;
+                        _battleWindow = new OverlayWindow(OverlayData.BattleBarKey, "Battle Bar", wpf, wpf.DesignSize);
+                    }
+
                     _battleWindow.SetEditMode(_edit);
                     _battleWindow.SetFixedSize(_battleView.DesignSize);
                     _battleWindow.WidthDragging += factor => BattleScaleDragging(factor);

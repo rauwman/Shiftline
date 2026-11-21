@@ -151,6 +151,7 @@
     <Compile Include="Overlays\StandingsOverlay.Relatives.cs" />
     <Compile Include="Overlays\StandingsOverlay.Cells.cs" />
     <Compile Include="Overlays\StandingsOverlay.Html.cs" />
+    <Compile Include="Overlays\BattleBarOverlay.Html.cs" />
     <Compile Include="Overlays\HeaderItems.cs" />
     <Compile Include="Overlays\FlagImages.cs" />
     <Compile Include="Overlays\LookSettings.cs" />

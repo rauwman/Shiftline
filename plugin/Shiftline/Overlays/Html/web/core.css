@@ -6,6 +6,10 @@
 @font-face { font-family: "Inter"; font-weight: 600; src: url("fonts/Inter-SemiBold.ttf"); }
 @font-face { font-family: "Inter"; font-weight: 700; src: url("fonts/Inter-Bold.ttf"); }
 
+/* Windows' Bahnschrift as a variable web font (served from the PC, see HtmlHost), so font-stretch can make it narrow like
+   the WPF labels. Without the file the labels fall back to the plain system font. */
+@font-face { font-family: "Bahnschrift SL"; src: url("system/bahnschrift.ttf"); font-weight: 300 700; font-stretch: 75% 100%; }
+
 html, body {
     margin: 0;
     width: 100%;

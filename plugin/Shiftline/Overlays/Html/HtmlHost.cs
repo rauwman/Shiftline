@@ -212,7 +212,14 @@ namespace Shiftline.Plugin
                 try
                 {
                     Stream stream = null;
-                    if (path.StartsWith("fonts/", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(path, "system/bahnschrift.ttf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Windows' own Bahnschrift, read from the PC (not shipped): the narrow labels need its width axis,
+                        // which the browser only uses when it loads the font as a web font
+                        string file = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Fonts), "bahnschrift.ttf");
+                        stream = File.Exists(file) ? File.OpenRead(file) : null;
+                    }
+                    else if (path.StartsWith("fonts/", StringComparison.OrdinalIgnoreCase))
                     {
                         System.Windows.Resources.StreamResourceInfo info = Application.GetResourceStream(new Uri(FontFolder, path.Substring(6)));
                         stream = info == null ? null : info.Stream;

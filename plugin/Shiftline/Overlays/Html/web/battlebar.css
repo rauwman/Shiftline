@@ -1,0 +1,63 @@
+/* The Battle Bar. Sizes follow the WPF bar: cards 32 px (one line) or 46 px (two lines), header and footer pills 20 px. */
+body[data-kind="standings"] #bb { display: none; }
+#bb { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 8px; transform-origin: 0 0; color: #e8ecf1;
+      display: flex; flex-direction: column; align-items: center; }
+.bb-pill { box-sizing: border-box; height: 20px; display: flex; align-items: center; white-space: nowrap; }
+.bb-head { padding: 0 4px; margin-bottom: 4px; }
+.bb-head .hitem { display: flex; align-items: center; margin: 0 6px; font-size: 12px; }
+.bb-head svg { width: 12px; height: 12px; margin-right: 4px; fill: none; stroke: #8e98a6; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+/* the narrow label font of WPF: Bahnschrift, condensed (see core.css) */
+.bb-head .lbl { font-family: "Bahnschrift SL", "Bahnschrift", sans-serif; font-stretch: 75%; font-weight: 400; color: #8e98a6; }
+.bb-head .val { display: inline-block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-foot { padding-left: 10px; margin-top: 4px; }
+.bb-foot .lbl { font-size: 10px; color: #8e98a6; margin-right: 4px; }
+.bb-foot .val { font-size: 12px; margin-right: 12px; }
+.bb-mid { display: flex; align-items: center; }
+.bb-side { box-sizing: border-box; width: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; }
+.bb-side.low { flex-direction: row; }
+.bb-side .lbl { font-size: 9.5px; color: #8e98a6; line-height: 1.25; }
+.bb-side.low .lbl { margin-right: 4px; }
+.bb-side .val { font-size: 14px; line-height: 1.3; }
+.bb-side.low .val { font-size: 12px; }
+.bb-strip { position: relative; flex: none; }
+.bb-strip.scroll { overflow: hidden; }
+.bb-run { position: absolute; left: 0; top: 0; display: flex; will-change: transform; }
+.bb-mover { position: absolute; will-change: transform; }
+.bb-zoom { transform-origin: 0 0; position: relative; }
+.bb-card { position: relative; box-sizing: border-box; will-change: transform, opacity; }
+.bb-flash, .bb-frame { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.bb-flash { opacity: 0; }
+/* the frame: a 1.5 px ring above the card, a colour or a turning gradient */
+.bb-frame { padding: 1.5px; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude; }
+.bb-in { position: absolute; inset: 1.5px; padding: 0 7px; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+         grid-template-rows: 100%; align-items: center; }
+.bb-in.two { grid-template-rows: auto auto; align-content: center; }
+.bb-pos { width: 24px; height: 21px; margin-right: 5px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.bb-cls { width: 3px; margin-right: 7px; }
+.bb-two .bb-pos, .bb-two .bb-cls { grid-row: 1 / span 2; }
+.bb-namebox { display: flex; align-items: center; min-width: 0; }
+.bb-flag { width: 16px; height: 12px; margin-right: 5px; object-fit: fill; flex: none; }
+.bb-name { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-laps { margin-left: 4px; font-size: 10.5px; flex: none; }
+.bb-make { width: 30px; margin-left: 6px; text-align: right; font-size: 11px; color: #8e98a6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-gap { margin-left: 4px; display: flex; justify-content: flex-end; align-items: center; font-size: 13px; white-space: nowrap; }
+.bb-two .bb-namebox, .bb-two .bb-make, .bb-two .bb-gap { align-self: end; }
+.bb-row2 { display: flex; align-items: center; margin-top: 2px; grid-row: 2; white-space: nowrap; }
+.bb-rate { grid-column: 3; }
+.bb-right { grid-column: 4 / span 2; justify-self: end; }
+.bb-row2 > * + * { margin-left: 6px; }
+.bb-ir { font-size: 11px; color: #8e98a6; }
+.bb-lic { position: relative; display: flex; font-size: 9px; color: #fff; overflow: hidden; }
+.bb-lic::after { content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+                 background: linear-gradient(rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.086) 45%, rgba(255,255,255,0.118) 100%);
+                 -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                 -webkit-mask-composite: xor; mask-composite: exclude; }
+.bb-lic .num { padding: 1px 2px 1px 3px; }
+.bb-lic .let { padding: 1px 3px; font-weight: 700; }
+.bb-pit { font-size: 11px; font-weight: 700; color: #ffb020; }
+.bb-tyre { box-sizing: border-box; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #8e98a6; background: #050608;
+           display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #e8ecf1; }
+svg.letter { display: block; flex: none; fill: #e8ecf1; }
+.bb-gain { display: flex; align-items: center; font-size: 11px; color: #8e98a6; }
+.bb-chev { width: 8px; height: 8px; margin-right: 3px; flex: none; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

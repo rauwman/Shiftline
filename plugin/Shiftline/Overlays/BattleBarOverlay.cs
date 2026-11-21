@@ -15,7 +15,7 @@ namespace Shiftline.Plugin
     /// the field (ticker), fixed or running. The visual tree is built once per option change; an update only changes texts,
     /// colours and the slide of the cards.
     /// </summary>
-    internal sealed class BattleBarOverlay : Border
+    internal sealed partial class BattleBarOverlay : Border, IBattleBarView
     {
         private const double OneLineHeight = 32;
         private const double TwoLineHeight = 46;
@@ -46,7 +46,6 @@ namespace Shiftline.Plugin
         private Brush _headerBrush;      // the header pill and the footer, with an opacity of their own
         private Brush _playerBrush;
         private double _round = 1;
-        private double _nameWidth = 100;
         private double _cardWidth;
         private double _pitch;
         private FontFamily _font = new FontFamily("Segoe UI");
@@ -128,12 +127,14 @@ namespace Shiftline.Plugin
             _round = options.Get("Corners") == "Square" ? 0 : 1;
             _font = OverlayFonts.Get(options.Get("Font"));
             _weight = StandingsOverlay.WeightOf(options.Get("Weight"));
-            byte alpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("Opacity"))) / 100.0);
+            // the big tile around everything has the overlay opacity; the cards and side boxes the table opacity
+            Background = StandingsOverlay.Frozen(Alpha(options, "Opacity"), 0x0E, 0x12, 0x19);
+            CornerRadius = new CornerRadius(8 * _round);
+            byte alpha = Alpha(options, "RowOpacity");
             _cardBrush = StandingsOverlay.Frozen(alpha, 0x0E, 0x12, 0x19);
             byte hfAlpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("HfOpacity"))) / 100.0);
             _headerBrush = StandingsOverlay.Frozen(hfAlpha, 0x0E, 0x12, 0x19);
             _playerBrush = StandingsOverlay.Frozen((byte)Math.Max((int)alpha, 0xC0), 0x16, 0x2A, 0x3E);
-            _nameWidth = options.Get("Name.Format") == "Code" ? 40 : Math.Max(60, options.GetInt("Name.Width"));
             _cardWidth = CardWidth();
 
             _lastSlots = new Dictionary<int, int>();
@@ -236,7 +237,7 @@ namespace Shiftline.Plugin
         /// <summary>One line when only position, class, name, make and gap are on; two lines when more is shown.</summary>
         private double CardHeight
         {
-            get { return BottomItems().Count > 0 ? TwoLineHeight : OneLineHeight; }
+            get { return CardHeightOf(_options); }
         }
 
         private FrameworkElement BuildCards(double rowHeight)
@@ -291,7 +292,7 @@ namespace Shiftline.Plugin
 
         private List<string> BottomItems()
         {
-            return _options.Items.Select(c => c.Key).Where(k => !LeftItems.Contains(k) && !TopItems.Contains(k)).ToList();
+            return BottomItemsOf(_options);
         }
 
         private bool On(string key)
@@ -299,47 +300,9 @@ namespace Shiftline.Plugin
             return _options.Items.Any(c => c.Key == key);
         }
 
-        private double LeftWidth()
-        {
-            double width = 0;
-            if (On("Pos"))
-            {
-                width += 24 + 5;
-            }
-
-            if (On("Class"))
-            {
-                width += 3 + 7;
-            }
-
-            return width;
-        }
-
-        /// <summary>Width of a normal card (unscaled): frame, padding, the left block and the first line.</summary>
         private double CardWidth()
         {
-            double line = On("Name") ? _nameWidth : 0;
-            if (On("Flag"))
-            {
-                line += FlagWidth + FlagGap;
-            }
-
-            if (On("Make"))
-            {
-                line += (line > 0 ? Space : 0) + MakeWidth;
-            }
-
-            if (On("Gap"))
-            {
-                line += (line > 0 ? 4 : 0) + GapWidth;
-            }
-
-            if (line == 0)
-            {
-                line = 90;                  // only second-line items: room for them under nothing
-            }
-
-            return Math.Ceiling(2 * Frame + 2 * 7 + LeftWidth() + line);
+            return CardWidthOf(_options);
         }
 
         private const double MakeWidth = 30;
@@ -349,7 +312,7 @@ namespace Shiftline.Plugin
 
         private double GapWidth
         {
-            get { return _options.GetBool("Trend") ? 46 : 34; }
+            get { return GapWidthOf(_options); }
         }
 
         private double ItemWidth(string key)
@@ -821,7 +784,7 @@ namespace Shiftline.Plugin
                 return;
             }
 
-            List<StandingsRow> shown = mode == "Cards" ? ChooseCards(field) : ChooseTicker(field);
+            List<StandingsRow> shown = mode == "Cards" ? ChooseCards(_options, field) : ChooseTicker(field, _slots.Length);
             double seconds = AnimationSeconds(snapshot.IsReplay);
             string style = _options.Get("Anim.Style");
             Dictionary<int, int> slots = new Dictionary<int, int>();
@@ -882,11 +845,11 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The cars of the cards: optionally the leader, then the cars in front of the player, the player, the cars behind.</summary>
-        private List<StandingsRow> ChooseCards(Field field)
+        internal static List<StandingsRow> ChooseCards(BattleBarOptions options, Field field)
         {
-            int ahead = Math.Max(1, Math.Min(4, _options.GetInt("Ahead")));
-            int behind = Math.Max(1, Math.Min(4, _options.GetInt("Behind")));
-            bool leader = _options.GetBool("Leader");
+            int ahead = Math.Max(1, Math.Min(4, options.GetInt("Ahead")));
+            int behind = Math.Max(1, Math.Min(4, options.GetInt("Behind")));
+            bool leader = options.GetBool("Leader");
             List<StandingsRow> shown = new List<StandingsRow>();
             List<StandingsRow> order = field.Order;
             int p = field.PlayerIndex;
@@ -923,9 +886,8 @@ namespace Shiftline.Plugin
             return index >= 0 && index < order.Count ? order[index] : null;
         }
 
-        private List<StandingsRow> ChooseTicker(Field field)
+        internal static List<StandingsRow> ChooseTicker(Field field, int count)
         {
-            int count = _slots.Length;
             List<StandingsRow> order = field.Order;
             int start = 0;
             if (field.PlayerIndex >= 0 && order.Count > count)
@@ -951,7 +913,7 @@ namespace Shiftline.Plugin
 
             if (slot.Name != null)
             {
-                Set(slot.Name, NameOf(row));
+                Set(slot.Name, NameOf(_options, row));
                 UpdateLapMark(slot, row, field);
             }
 
@@ -1030,12 +992,12 @@ namespace Shiftline.Plugin
             bool sameLap;
             if (slot.Gap != null)
             {
-                Set(slot.Gap, GapText(row, field, out gap, out sameLap));
+                Set(slot.Gap, GapText(_options, row, field, out gap, out sameLap));
                 UpdateTrend(slot, row, field);
             }
             else
             {
-                GapText(row, field, out gap, out sameLap);
+                GapText(_options, row, field, out gap, out sameLap);
             }
 
             // The player's card is lighter (in the ticker it is the only sign of the player). Frame: blue around the player
@@ -1046,26 +1008,34 @@ namespace Shiftline.Plugin
                 slot.Box.Background = background;
             }
 
-            Brush frame = Brushes.Transparent;
-            double limit = _options.GetDouble("Battle");
-            if (row.IsPlayer)
-            {
-                frame = PlayerFrame();
-            }
-            else if (limit > 0 && sameLap && Math.Abs(gap) < limit && field.Race)
-            {
-                frame = BattleColour(_options.Get("Battle.Colour"));
-            }
-            else if (_options.Get("Classes") == "All" && field.MultiClass)
-            {
-                frame = classBrush;
-            }
+            string kind = FrameKind(_options, row, field, gap, sameLap);
+            Brush frame = kind == "Player" ? PlayerFrame() : kind == "Battle" ? BattleColour(_options.Get("Battle.Colour")) : kind == "Class" ? classBrush : Brushes.Transparent;
 
             if (!ReferenceEquals(slot.Box.BorderBrush, frame))
             {
                 slot.Box.BorderBrush = frame;
             }
 
+        }
+
+        /// <summary>
+        /// Which frame a card gets: "Player" around the player's card, "Battle" when a car is close to the player (same lap,
+        /// under the battle limit, races only), "Class" in the class colour when all classes show, otherwise "".
+        /// </summary>
+        internal static string FrameKind(BattleBarOptions options, StandingsRow row, Field field, double gap, bool sameLap)
+        {
+            double limit = options.GetDouble("Battle");
+            if (row.IsPlayer)
+            {
+                return "Player";
+            }
+
+            if (limit > 0 && sameLap && Math.Abs(gap) < limit && field.Race)
+            {
+                return "Battle";
+            }
+
+            return options.Get("Classes") == "All" && field.MultiClass ? "Class" : string.Empty;
         }
 
         private static readonly Brush GreenFrame = StandingsOverlay.Frozen(0xFF, 0x3D, 0xDC, 0x84);
@@ -1128,15 +1098,20 @@ namespace Shiftline.Plugin
         /// Sorted by the track, cars of another lap sit right next to the player. Like iRacing's relative: a car a lap (or more)
         /// down gets a muted blue name and "-1L", a car a lap up a red name and "+1L".
         /// </summary>
-        private void UpdateLapMark(Slot slot, StandingsRow row, Field field)
+        internal static int LapsApart(StandingsRow row, Field field)
         {
             StandingsRow player = field.Player;
-            int laps = 0;
             if (field.ByTrack && field.Race && player != null && !row.IsPlayer && row.LapDistPct >= 0 && player.LapDistPct >= 0)
             {
-                laps = (int)Math.Round(row.Progress - player.Progress);
+                return (int)Math.Round(row.Progress - player.Progress);
             }
 
+            return 0;
+        }
+
+        private void UpdateLapMark(Slot slot, StandingsRow row, Field field)
+        {
+            int laps = LapsApart(row, field);
             Brush name = laps < 0 ? LappedBrush : laps > 0 ? LappingBrush : TextBrush;
             if (!ReferenceEquals(slot.Name.Foreground, name))
             {
@@ -1282,7 +1257,7 @@ namespace Shiftline.Plugin
             _scrollShift.X = -Math.Round(_scrollOffset, 1);
         }
 
-        private string GapText(StandingsRow row, Field field, out double gap, out bool sameLap)
+        internal static string GapText(BattleBarOptions options, StandingsRow row, Field field, out double gap, out bool sameLap)
         {
             gap = 0;
             sameLap = false;
@@ -1306,7 +1281,7 @@ namespace Shiftline.Plugin
 
             StandingsRow reference = player;
             bool signed = true;
-            if (_options.Get("GapTo") == "Ahead")
+            if (options.Get("GapTo") == "Ahead")
             {
                 int index = field.Order.IndexOf(row);
                 reference = index > 0 ? field.Order[index - 1] : null;
@@ -1394,19 +1369,15 @@ namespace Shiftline.Plugin
             return (gap > 0.05 ? "+" : gap < -0.05 ? "-" : string.Empty) + value;
         }
 
-        /// <summary>Green: the player was faster than this car over the last laps (closing in, or pulling away); red: slower.</summary>
-        private void UpdateTrend(Slot slot, StandingsRow row, Field field)
+        /// <summary>
+        /// 1 (green, up): the player was faster than this car over the last laps (closing in, or pulling away); -1 (red,
+        /// down): slower; 0: no trend (off, the player's own card, too few laps).
+        /// </summary>
+        internal static int TrendOf(BattleBarOptions options, StandingsRow row, Field field)
         {
-            if (slot.Trend == null)
-            {
-                return;
-            }
-
-            Geometry shape = null;
-            Brush brush = MutedBrush;
-            int laps = Math.Max(1, _options.GetInt("Trend.Laps"));
+            int laps = Math.Max(1, options.GetInt("Trend.Laps"));
             StandingsRow player = field.Player;
-            if (_options.GetBool("Trend") && !row.IsPlayer && player != null && row.RecentLaps != null && player.RecentLaps != null
+            if (options.GetBool("Trend") && !row.IsPlayer && player != null && row.RecentLaps != null && player.RecentLaps != null
                 && row.RecentLaps.Length >= laps && player.RecentLaps.Length >= laps)
             {
                 double sum = 0;
@@ -1415,18 +1386,22 @@ namespace Shiftline.Plugin
                     sum += row.RecentLaps[k] - player.RecentLaps[k];   // positive: the other car was slower
                 }
 
-                if (sum > 0.05)
-                {
-                    shape = ChevronUp;
-                    brush = GreenBrush;
-                }
-                else if (sum < -0.05)
-                {
-                    shape = ChevronDown;
-                    brush = LossBrush;
-                }
+                return sum > 0.05 ? 1 : sum < -0.05 ? -1 : 0;
             }
 
+            return 0;
+        }
+
+        private void UpdateTrend(Slot slot, StandingsRow row, Field field)
+        {
+            if (slot.Trend == null)
+            {
+                return;
+            }
+
+            int trend = TrendOf(_options, row, field);
+            Geometry shape = trend > 0 ? ChevronUp : trend < 0 ? ChevronDown : null;
+            Brush brush = trend > 0 ? GreenBrush : trend < 0 ? LossBrush : MutedBrush;
             if (!ReferenceEquals(slot.Trend.Data, shape))
             {
                 slot.Trend.Data = shape;
@@ -1460,7 +1435,12 @@ namespace Shiftline.Plugin
         /// <summary>Fade and pop need more time than a slide to look smooth.</summary>
         private double FadeSeconds()
         {
-            switch (_options.Get("Anim.Speed"))
+            return FadeSecondsOf(_options);
+        }
+
+        internal static double FadeSecondsOf(BattleBarOptions options)
+        {
+            switch (options.Get("Anim.Speed"))
             {
                 case "Fast":
                     return 0.5;
@@ -1507,12 +1487,17 @@ namespace Shiftline.Plugin
 
         private double AnimationSeconds(bool replay)
         {
-            if (_options.Get("Anim.Style") == "Off" || (replay && !_options.GetBool("Anim.Replay")))
+            return AnimationSecondsOf(_options, replay);
+        }
+
+        internal static double AnimationSecondsOf(BattleBarOptions options, bool replay)
+        {
+            if (options.Get("Anim.Style") == "Off" || (replay && !options.GetBool("Anim.Replay")))
             {
                 return 0;
             }
 
-            switch (_options.Get("Anim.Speed"))
+            switch (options.Get("Anim.Speed"))
             {
                 case "Fast":
                     return 0.25;
@@ -1549,17 +1534,13 @@ namespace Shiftline.Plugin
                 : string.Empty;
         }
 
-        private void UpdateSide(SideBox side, StandingsSnapshot snapshot, Field field)
+        /// <summary>The value of a side box and its colour.</summary>
+        internal static string SideValue(string kind, StandingsSnapshot snapshot, Field field, out Brush brush)
         {
-            if (side == null)
-            {
-                return;
-            }
-
             StandingsRow player = field.Player;
             string value = "-";
-            Brush brush = TextBrush;
-            switch (side.Kind)
+            brush = TextBrush;
+            switch (kind)
             {
                 case "Laps":
                     if (snapshot.LapsTotal > 0 || snapshot.TimeRemaining <= 0)
@@ -1601,6 +1582,18 @@ namespace Shiftline.Plugin
                     break;
             }
 
+            return value;
+        }
+
+        private void UpdateSide(SideBox side, StandingsSnapshot snapshot, Field field)
+        {
+            if (side == null)
+            {
+                return;
+            }
+
+            Brush brush;
+            string value = SideValue(side.Kind, snapshot, field, out brush);
             Set(side.Value, string.IsNullOrEmpty(value) ? "-" : value);
             if (!ReferenceEquals(side.Value.Foreground, brush))
             {
@@ -1650,9 +1643,9 @@ namespace Shiftline.Plugin
             }
         }
 
-        private string NameOf(StandingsRow row)
+        internal static string NameOf(BattleBarOptions options, StandingsRow row)
         {
-            string format = _options.Get("Name.Format");
+            string format = options.Get("Name.Format");
             return format == "Code" ? ShortName(row.Name) : StandingsOverlay.FormatName(row.Name, format);
         }
 
@@ -1714,7 +1707,7 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>The cars in the order the bar shows them, the player, and what the gaps need.</summary>
-        private sealed class Field
+        internal sealed class Field
         {
             public Field(StandingsSnapshot snapshot, BattleBarOptions options)
             {

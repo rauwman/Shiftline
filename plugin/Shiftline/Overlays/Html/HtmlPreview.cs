@@ -25,7 +25,7 @@ namespace Shiftline.Plugin
     /// </summary>
     internal sealed class HtmlPreview : Border, IHtmlSurface
     {
-        private const string StartPage = "standings.html?preview=1";
+        private const string StartPage = "preview.html?preview=1";     // every overlay page in one (see web/preview.html)
         private static HtmlPreview _shared;
         private static Decorator _parking;
         private readonly WebView2CompositionControl _view;

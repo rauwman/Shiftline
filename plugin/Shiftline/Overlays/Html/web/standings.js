@@ -46,10 +46,43 @@
     const setPath = (p, d) => { d = d || ''; if (p.getAttribute('d') !== d) { p.setAttribute('d', d); } };
     const fontOf = (name) => name ? '"' + name + '", "Segoe UI", sans-serif' : '';
 
+    // The tyre letter: the outline of the glyph from C# (LetterSvg). The SVG fills the inside of the ring and its view is
+    // centred on the middle of the outline, so the letter sits in the middle by its ink (not by the line height of a font)
+    // and no separate small box is rounded to whole pixels.
+    const setLetter = (holder, l) => {
+        if (!holder.letter) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'letter');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svg.appendChild(path);
+            holder.textContent = '';
+            holder.appendChild(svg);
+            holder.letter = { svg, path, key: null };
+        }
+        const key = l ? l.p : '';
+        const t = holder.letter;
+        if (t.key === key) {
+            return;
+        }
+        t.key = key;
+        t.svg.style.display = l ? '' : 'none';
+        if (l) {
+            const size = holder.clientWidth || 10;
+            const cx = l.x + l.w / 2;
+            const cy = l.y + l.h / 2;
+            t.svg.setAttribute('viewBox', (cx - size / 2) + ' ' + (cy - size / 2) + ' ' + size + ' ' + size);
+            t.svg.setAttribute('width', size);
+            t.svg.setAttribute('height', size);
+            t.path.setAttribute('d', l.p);
+            t.path.setAttribute('fill-rule', l.evenodd ? 'evenodd' : 'nonzero');
+        }
+    };
+
     // ------------------------------------------------------------------ layout
 
     SL.on('layout', (l) => {
         layout = l;
+        document.body.dataset.kind = 'standings';
         lastSlotOf = new Map();
         motions.length = 0;
         const r = l.round;
@@ -338,7 +371,7 @@
                 return;
             case 'Tyre':
                 setShown(cell.pill, !!d.tc);
-                setText(cell.ring, d.tc);
+                setLetter(cell.ring, d.tl);
                 setStyle(cell.ring, 'borderColor', d.tk);
                 setText(cell.text, d.t);
                 return;

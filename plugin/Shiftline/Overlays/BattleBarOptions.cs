@@ -64,8 +64,9 @@ namespace Shiftline.Plugin
             new StandingsChoice("Name", "Lic.Number", "Safety rating: show the number next to the class letter", "1", OnOff),
             new StandingsChoice("Name", "Name.Width", "Maximum name width (longer names end with ...)", "100",
                 "80", "80 px", "100", "100 px", "120", "120 px", "140", "140 px", "160", "160 px"),
-            LookSettings.ForOverlay("Opacity", "Background opacity of the cards", LookSettings.FollowGeneral),
-            LookSettings.ForOverlay("HfOpacity", "Background opacity of the header and footer", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("Opacity", "Overlay opacity", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("RowOpacity", "Table opacity", LookSettings.FollowGeneral),
+            LookSettings.ForOverlay("HfOpacity", "Header opacity", LookSettings.FollowGeneral),
             LookSettings.ForOverlay("Font", "Font", LookSettings.FollowGeneral),
             LookSettings.ForOverlay("Weight", "Font weight", "SemiBold"),        // the Battle Bar keeps its own weight until it is set to follow General
             LookSettings.ForOverlay("Corners", "Boxes", LookSettings.FollowGeneral),
