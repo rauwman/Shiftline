@@ -125,7 +125,11 @@
                 }
                 const words = el('span', 'val', e);
                 if (item.max) {
+                    // long names (track, car) end with ... ; only these are clipped, and only sideways
+                    words.style.display = 'inline-block';
                     words.style.maxWidth = item.max + 'px';
+                    words.style.overflowX = 'clip';
+                    words.style.textOverflow = 'ellipsis';
                 }
                 if (item.label) {
                     el('span', 'lbl', words).textContent = item.label + '  ';

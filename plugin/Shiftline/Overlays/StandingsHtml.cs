@@ -28,7 +28,7 @@ namespace Shiftline.Plugin
     /// JSON. Everything is computed here (CellOf, BuildEntries, LookOf, RequiredWidth);
     /// the page only draws.
     /// </summary>
-    internal static partial class StandingsOverlay
+    internal static partial class StandingsModel
     {
         internal sealed class HtmlLayout
         {
@@ -170,7 +170,8 @@ namespace Shiftline.Plugin
                 Columns = columns,
                 Fills = fills,
                 Light = light,
-                DesignSize = new Size((designWidth + 16) * options.Scale, height * options.Scale),
+                // whole pixels: the preview shows the page as a bitmap 1:1, a fraction would drop a row of pixels
+                DesignSize = new Size(Math.Ceiling((designWidth + 16) * options.Scale), Math.Ceiling(height * options.Scale)),
                 Json = json.ToString(Formatting.None),
             };
         }
@@ -423,7 +424,7 @@ namespace Shiftline.Plugin
     internal sealed class StandingsHtmlView : IStandingsView
     {
         public const string Page = "standings.html";
-        private StandingsOverlay.HtmlLayout _layout;
+        private StandingsModel.HtmlLayout _layout;
         private IHtmlSurface _window;
         private string _lastFrame;                          // sent again after a (re)load, so a still preview is not left empty
 
@@ -475,13 +476,13 @@ namespace Shiftline.Plugin
 
         public void ApplyOptions(StandingsOptions options)
         {
-            _layout = StandingsOverlay.HtmlLayoutOf(options, InRace);
+            _layout = StandingsModel.HtmlLayoutOf(options, InRace);
             SendLayout();
         }
 
         public void Update(StandingsSnapshot snapshot)
         {
-            _lastFrame = StandingsOverlay.HtmlFrame(_layout, snapshot);
+            _lastFrame = StandingsModel.HtmlFrame(_layout, snapshot);
             if (_window != null)
             {
                 _window.Post(_lastFrame);
@@ -490,7 +491,7 @@ namespace Shiftline.Plugin
 
         public int RowsForHeight(double height)
         {
-            return StandingsOverlay.RowsFor(_layout.Options, height);
+            return StandingsModel.RowsFor(_layout.Options, height);
         }
 
         private void SendLayout()

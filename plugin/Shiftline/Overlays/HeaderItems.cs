@@ -26,12 +26,12 @@ namespace Shiftline.Plugin
     /// </summary>
     internal static class HeaderItems
     {
-        private static readonly Geometry ClockShape = StandingsOverlay.FrozenGeometry("M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2");
-        private static readonly Geometry ThermoShape = StandingsOverlay.FrozenGeometry("M 4.6,7.2 L 4.6,2.4 A 1.4,1.4 0 0 1 7.4,2.4 L 7.4,7.2 A 2.6,2.6 0 1 1 4.6,7.2 Z M 6,5 L 6,8.4");
-        private static readonly Geometry FlagShape = StandingsOverlay.FrozenGeometry("M 2.5,10.5 L 2.5,1.5 M 2.5,2 L 10,2 L 8.2,4.9 L 10,7.8 L 2.5,7.8");
-        private static readonly Geometry HourglassShape = StandingsOverlay.FrozenGeometry("M 2.5,1 L 9.5,1 M 2.5,11 L 9.5,11 M 3,1 L 3,3 L 6,6 L 3,9 L 3,11 M 9,1 L 9,3 L 6,6 L 9,9 L 9,11");
-        private static readonly Geometry SunShape = StandingsOverlay.FrozenGeometry("M 0.8,9.5 L 11.2,9.5 M 3,9.5 A 3,3 0 0 1 9,9.5 M 6,2 L 6,3.6 M 1.6,4.4 L 2.8,5.5 M 10.4,4.4 L 9.2,5.5");
-        private static readonly Geometry MoonShape = StandingsOverlay.FrozenGeometry("M 6.5,1.2 A 4.8,4.8 0 1 0 10.8,8.2 A 3.8,3.8 0 0 1 6.5,1.2 Z M 9.2,1.6 L 9.2,3.8 M 8.1,2.7 L 10.3,2.7");
+        private static readonly Geometry ClockShape = StandingsModel.FrozenGeometry("M 6,1 A 5,5 0 1 1 5.99,1 Z M 6,3.2 L 6,6 L 8,7.2");
+        private static readonly Geometry ThermoShape = StandingsModel.FrozenGeometry("M 4.6,7.2 L 4.6,2.4 A 1.4,1.4 0 0 1 7.4,2.4 L 7.4,7.2 A 2.6,2.6 0 1 1 4.6,7.2 Z M 6,5 L 6,8.4");
+        private static readonly Geometry FlagShape = StandingsModel.FrozenGeometry("M 2.5,10.5 L 2.5,1.5 M 2.5,2 L 10,2 L 8.2,4.9 L 10,7.8 L 2.5,7.8");
+        private static readonly Geometry HourglassShape = StandingsModel.FrozenGeometry("M 2.5,1 L 9.5,1 M 2.5,11 L 9.5,11 M 3,1 L 3,3 L 6,6 L 3,9 L 3,11 M 9,1 L 9,3 L 6,6 L 9,9 L 9,11");
+        private static readonly Geometry SunShape = StandingsModel.FrozenGeometry("M 0.8,9.5 L 11.2,9.5 M 3,9.5 A 3,3 0 0 1 9,9.5 M 6,2 L 6,3.6 M 1.6,4.4 L 2.8,5.5 M 10.4,4.4 L 9.2,5.5");
+        private static readonly Geometry MoonShape = StandingsModel.FrozenGeometry("M 6.5,1.2 A 4.8,4.8 0 1 0 10.8,8.2 A 3.8,3.8 0 0 1 6.5,1.2 Z M 9.2,1.6 L 9.2,3.8 M 8.1,2.7 L 10.3,2.7");
 
         private static FontFamily _narrowFont;
 

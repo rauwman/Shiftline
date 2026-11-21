@@ -68,7 +68,7 @@ namespace Shiftline.Plugin
         internal const double EdgeWidth = 1;        // the thin dark edge outside a ring
         internal const double GlassWidth = 1.5;     // edge of a plain circle in its own colour
 
-        internal static readonly Brush TextBrush = StandingsOverlay.Frozen(0xFF, 0xE8, 0xEC, 0xF1);
+        internal static readonly Brush TextBrush = StandingsModel.Frozen(0xFF, 0xE8, 0xEC, 0xF1);
 
         /// <summary>How often the map drew live cars, and how far in the past it shows them (data check of the page).</summary>
         internal static long FramesDrawn;
@@ -155,6 +155,9 @@ namespace Shiftline.Plugin
             {
                 look.DesignSize = look.Shape.Size;
             }
+
+            // whole pixels: the preview shows the page as a bitmap 1:1, a fraction would drop a row of pixels
+            look.DesignSize = new Size(Math.Ceiling(look.DesignSize.Width), Math.Ceiling(look.DesignSize.Height));
 
             return look;
         }
@@ -299,7 +302,7 @@ namespace Shiftline.Plugin
                     Fastest = isFastest,
                     LapRelation = lapRelation,
                     Position = positionOf(row),
-                    Colour = oneClass ?? StandingsOverlay.ClassBrush(row.ClassColor),
+                    Colour = oneClass ?? StandingsModel.ClassBrush(row.ClassColor),
                     Text = text
                 });
             }
@@ -307,10 +310,10 @@ namespace Shiftline.Plugin
             return facts;
         }
 
-        private static readonly Brush OneClassBlue = StandingsOverlay.Frozen(0xFF, 0x3F, 0xA9, 0xF5);
-        private static readonly Brush OneClassWhite = StandingsOverlay.Frozen(0xFF, 0xF4, 0xF6, 0xF9);
-        private static readonly Brush OneClassOrange = StandingsOverlay.Frozen(0xFF, 0xFF, 0x8C, 0x00);
-        private static readonly Brush OneClassGreen = StandingsOverlay.Frozen(0xFF, 0x3D, 0xDC, 0x84);
+        private static readonly Brush OneClassBlue = StandingsModel.Frozen(0xFF, 0x3F, 0xA9, 0xF5);
+        private static readonly Brush OneClassWhite = StandingsModel.Frozen(0xFF, 0xF4, 0xF6, 0xF9);
+        private static readonly Brush OneClassOrange = StandingsModel.Frozen(0xFF, 0xFF, 0x8C, 0x00);
+        private static readonly Brush OneClassGreen = StandingsModel.Frozen(0xFF, 0x3D, 0xDC, 0x84);
 
         /// <summary>The colour of the cars when only one class drives; null for "Game" (the class colour the game sends).</summary>
         private static Brush OneClassBrush(string choice)

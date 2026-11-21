@@ -147,10 +147,10 @@
     <Compile Include="Overlays\OverlayHost.cs" />
     <Compile Include="Overlays\OverlayWindow.cs" />
     <Compile Include="Overlays\StandingsOptions.cs" />
-    <Compile Include="Overlays\StandingsOverlay.cs" />
-    <Compile Include="Overlays\StandingsOverlay.Relatives.cs" />
-    <Compile Include="Overlays\StandingsOverlay.Cells.cs" />
-    <Compile Include="Overlays\StandingsOverlay.Html.cs" />
+    <Compile Include="Overlays\StandingsRules.cs" />
+    <Compile Include="Overlays\StandingsRules.Relatives.cs" />
+    <Compile Include="Overlays\StandingsRules.Cells.cs" />
+    <Compile Include="Overlays\StandingsHtml.cs" />
     <Compile Include="Overlays\BattleBarHtml.cs" />
     <Compile Include="Overlays\HeaderItems.cs" />
     <Compile Include="Overlays\FlagImages.cs" />

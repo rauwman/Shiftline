@@ -17,7 +17,7 @@ namespace Shiftline.Plugin
     /// BuildRelative), what each cell shows (CellOf), colours, column widths and formats. StandingsHtmlView sends them to the
     /// page (web/standings.js), which draws them.
     /// </summary>
-    internal static partial class StandingsOverlay
+    internal static partial class StandingsModel
     {
         private const double RowHeight = 24;
         private const double HeaderHeight = 26;

@@ -141,8 +141,8 @@ namespace Shiftline.Plugin
                 {
                     { "i", row.CarIdx },
                     { "t", fact.Text },
-                    { "c", StandingsOverlay.Css(fact.Colour) },
-                    { "k", StandingsOverlay.Css(fact.Pit ? TrackMapModel.TextBrush : StandingsOverlay.ReadableOn(fact.Colour)) },
+                    { "c", StandingsModel.Css(fact.Colour) },
+                    { "k", StandingsModel.Css(fact.Pit ? TrackMapModel.TextBrush : StandingsModel.ReadableOn(fact.Colour)) },
                     { "p", fact.Player },
                     { "pit", fact.Pit },
                     { "inPit", row.OnPitRoad },

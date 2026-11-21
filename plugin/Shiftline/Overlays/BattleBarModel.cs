@@ -27,23 +27,23 @@ namespace Shiftline.Plugin
 
         internal const double PlayerZoom = 1.18;
 
-        internal static readonly Brush TextBrush = StandingsOverlay.Frozen(0xFF, 0xE8, 0xEC, 0xF1);
+        internal static readonly Brush TextBrush = StandingsModel.Frozen(0xFF, 0xE8, 0xEC, 0xF1);
 
-        internal static readonly Brush MutedBrush = StandingsOverlay.Frozen(0xFF, 0x8E, 0x98, 0xA6);
+        internal static readonly Brush MutedBrush = StandingsModel.Frozen(0xFF, 0x8E, 0x98, 0xA6);
 
-        internal static readonly Brush WhiteFill = StandingsOverlay.Frozen(0xFF, 0xF9, 0xF9, 0xF9);
+        internal static readonly Brush WhiteFill = StandingsModel.Frozen(0xFF, 0xF9, 0xF9, 0xF9);
 
-        internal static readonly Brush SubtleFill = StandingsOverlay.Frozen(0x1E, 0xFF, 0xFF, 0xFF);
+        internal static readonly Brush SubtleFill = StandingsModel.Frozen(0x1E, 0xFF, 0xFF, 0xFF);
 
-        internal static readonly Brush AccentBrush = StandingsOverlay.Frozen(0xFF, 0x3F, 0xA9, 0xF5);
+        internal static readonly Brush AccentBrush = StandingsModel.Frozen(0xFF, 0x3F, 0xA9, 0xF5);
 
-        internal static readonly Brush BattleBrush = StandingsOverlay.Frozen(0xFF, 0xFF, 0x8A, 0x1F);
+        internal static readonly Brush BattleBrush = StandingsModel.Frozen(0xFF, 0xFF, 0x8A, 0x1F);
 
-        internal static readonly Brush GreenBrush = StandingsOverlay.Frozen(0xFF, 0x5E, 0xE0, 0x7A);
+        internal static readonly Brush GreenBrush = StandingsModel.Frozen(0xFF, 0x5E, 0xE0, 0x7A);
 
-        internal static readonly Brush LossBrush = StandingsOverlay.Frozen(0xFF, 0xF0, 0x5A, 0x4A);
+        internal static readonly Brush LossBrush = StandingsModel.Frozen(0xFF, 0xF0, 0x5A, 0x4A);
 
-        internal static readonly Brush PurpleBrush = StandingsOverlay.Frozen(0xFF, 0xC0, 0x7C, 0xFF);
+        internal static readonly Brush PurpleBrush = StandingsModel.Frozen(0xFF, 0xC0, 0x7C, 0xFF);
 
         // A card, laid out on a grid so everything lines up:
         //   [position][class bar] | name ............ make   gap |
@@ -183,13 +183,13 @@ namespace Shiftline.Plugin
             return options.Get("Classes") == "All" && field.MultiClass ? "Class" : string.Empty;
         }
 
-        internal static readonly Brush GreenFrame = StandingsOverlay.Frozen(0xFF, 0x3D, 0xDC, 0x84);
+        internal static readonly Brush GreenFrame = StandingsModel.Frozen(0xFF, 0x3D, 0xDC, 0x84);
 
-        internal static readonly Brush WhiteFrame = StandingsOverlay.Frozen(0xFF, 0xF9, 0xF9, 0xF9);
+        internal static readonly Brush WhiteFrame = StandingsModel.Frozen(0xFF, 0xF9, 0xF9, 0xF9);
 
-        internal static readonly Brush LappedBrush = StandingsOverlay.Frozen(0xFF, 0x7F, 0xB2, 0xE0);
+        internal static readonly Brush LappedBrush = StandingsModel.Frozen(0xFF, 0x7F, 0xB2, 0xE0);
 
-        internal static readonly Brush LappingBrush = StandingsOverlay.Frozen(0xFF, 0xF0, 0x40, 0x3E);
+        internal static readonly Brush LappingBrush = StandingsModel.Frozen(0xFF, 0xF0, 0x40, 0x3E);
 
         /// <summary>
         /// Sorted by the track, cars of another lap sit right next to the player. Like iRacing's relative: a car a lap (or more)
@@ -206,9 +206,9 @@ namespace Shiftline.Plugin
             return 0;
         }
 
-        internal static readonly Brush BattleRed = StandingsOverlay.Frozen(0xFF, 0xF0, 0x3E, 0x3E);
+        internal static readonly Brush BattleRed = StandingsModel.Frozen(0xFF, 0xF0, 0x3E, 0x3E);
 
-        internal static readonly Brush BattleYellow = StandingsOverlay.Frozen(0xFF, 0xFF, 0xD2, 0x3F);
+        internal static readonly Brush BattleYellow = StandingsModel.Frozen(0xFF, 0xFF, 0xD2, 0x3F);
 
         internal static Brush BattleColour(string name)
         {
@@ -233,7 +233,7 @@ namespace Shiftline.Plugin
                 // the player's own card: the gap to the leader in races, the best lap otherwise
                 if (!field.Race)
                 {
-                    return StandingsOverlay.Lap(row.BestLap, 3);
+                    return StandingsModel.Lap(row.BestLap, 3);
                 }
 
                 StandingsRow first = field.Order.Count > 0 ? field.Order[0] : null;
@@ -449,10 +449,10 @@ namespace Shiftline.Plugin
 
                     break;
                 case "Last":
-                    value = player == null ? "-" : StandingsOverlay.Lap(player.LastLap, 3);
+                    value = player == null ? "-" : StandingsModel.Lap(player.LastLap, 3);
                     break;
                 case "Best":
-                    value = player == null ? "-" : StandingsOverlay.Lap(player.BestLap, 3);
+                    value = player == null ? "-" : StandingsModel.Lap(player.BestLap, 3);
                     brush = player != null && player.BestLap > 0 && Math.Abs(player.BestLap - field.SessionBest) < 0.0005 ? PurpleBrush : GreenBrush;
                     break;
                 case "Temp":
@@ -469,7 +469,7 @@ namespace Shiftline.Plugin
         internal static string NameOf(BattleBarOptions options, StandingsRow row)
         {
             string format = options.Get("Name.Format");
-            return format == "Code" ? ShortName(row.Name) : StandingsOverlay.FormatName(row.Name, format);
+            return format == "Code" ? ShortName(row.Name) : StandingsModel.FormatName(row.Name, format);
         }
 
         /// <summary>Three letters of the last name in capitals, as TV graphics show drivers (ROG).</summary>

@@ -102,11 +102,11 @@ namespace Shiftline.Plugin
         internal static HtmlLayout HtmlLayoutOf(BattleBarOptions options)
         {
             // the big tile around everything has the overlay opacity; the cards and side boxes the table opacity
-            Brush panel = StandingsOverlay.Frozen(Alpha(options, "Opacity"), 0x0E, 0x12, 0x19);
+            Brush panel = StandingsModel.Frozen(Alpha(options, "Opacity"), 0x0E, 0x12, 0x19);
             byte alpha = Alpha(options, "RowOpacity");
-            Brush card = StandingsOverlay.Frozen(alpha, 0x0E, 0x12, 0x19);
-            Brush hf = StandingsOverlay.Frozen(Alpha(options, "HfOpacity"), 0x0E, 0x12, 0x19);
-            Brush player = StandingsOverlay.Frozen((byte)Math.Max((int)alpha, 0xC0), 0x16, 0x2A, 0x3E);
+            Brush card = StandingsModel.Frozen(alpha, 0x0E, 0x12, 0x19);
+            Brush hf = StandingsModel.Frozen(Alpha(options, "HfOpacity"), 0x0E, 0x12, 0x19);
+            Brush player = StandingsModel.Frozen((byte)Math.Max((int)alpha, 0xC0), 0x16, 0x2A, 0x3E);
             string mode = options.Get("Mode");
             double cardWidth = CardWidthOf(options);
             double cardHeight = CardHeightOf(options);
@@ -201,7 +201,8 @@ namespace Shiftline.Plugin
             }
 
             double designWidth = Math.Max(width, headerWidth) + 16;
-            double designHeight = rowHeight + 16 + (options.Header ? LineHeight + 4 : 0) + (options.Footer ? LineHeight + 4 : 0);
+            // header and footer keep 6 px to the cards (battlebar.css), so the larger card of the player does not touch them
+            double designHeight = rowHeight + 16 + (options.Header ? LineHeight + 6 : 0) + (options.Footer ? LineHeight + 6 : 0);
             double scale = options.Scale * BaseScale;
             Brush posFill = PositionFillOf(options);
             JArray right2 = new JArray(new[] { "Pit", "Tyre", "Gain" }.Where(k => OnItem(options, k)));
@@ -214,10 +215,10 @@ namespace Shiftline.Plugin
                 { "mode", mode },
                 { "round", options.Get("Corners") == "Square" ? 0 : 1 },
                 { "font", options.Get("Font") },
-                { "weight", StandingsOverlay.WeightOf(options.Get("Weight")).ToOpenTypeWeight() },
-                { "panel", StandingsOverlay.Css(panel) },
-                { "card", StandingsOverlay.Css(card) },
-                { "hf", StandingsOverlay.Css(hf) },
+                { "weight", StandingsModel.WeightOf(options.Get("Weight")).ToOpenTypeWeight() },
+                { "panel", StandingsModel.Css(panel) },
+                { "card", StandingsModel.Css(card) },
+                { "hf", StandingsModel.Css(hf) },
                 { "cardW", cardWidth },
                 { "cardH", cardHeight },
                 { "rowH", rowHeight },
@@ -239,7 +240,7 @@ namespace Shiftline.Plugin
                 { "lic", OnItem(options, "Lic") },
                 { "licNumber", options.GetBool("Lic.Number") },
                 { "right", right2 },
-                { "posFill", StandingsOverlay.Css(posFill) },
+                { "posFill", StandingsModel.Css(posFill) },
                 { "posDark", ReferenceEquals(posFill, WhiteFill) },
                 { "header", options.Header ? header : null },
                 { "headerW", headerWidth },
@@ -250,7 +251,7 @@ namespace Shiftline.Plugin
                 { "flash", options.GetBool("Anim.Flash") },
                 { "speed", options.Get("Ticker.Speed") == "Slow" ? 25 : options.Get("Ticker.Speed") == "Fast" ? 75 : 45 },
                 { "playerFrame", PlayerFrameJson(options.Get("Frame.Player")) },
-                { "battle", StandingsOverlay.Css(BattleColour(options.Get("Battle.Colour"))) },
+                { "battle", StandingsModel.Css(BattleColour(options.Get("Battle.Colour"))) },
             };
 
             return new HtmlLayout
@@ -259,7 +260,8 @@ namespace Shiftline.Plugin
                 Card = card,
                 Player = player,
                 Slots = slots,
-                DesignSize = new Size(designWidth * scale, designHeight * scale),
+                // whole pixels: the preview shows the page as a bitmap 1:1, a fraction would drop a row of pixels
+                DesignSize = new Size(Math.Ceiling(designWidth * scale), Math.Ceiling(designHeight * scale)),
                 Json = json.ToString(Formatting.None),
             };
         }
@@ -285,9 +287,9 @@ namespace Shiftline.Plugin
                 case "Off":
                     return null;
                 case "White":
-                    return new JObject { { "c", StandingsOverlay.Css(WhiteFrame) } };
+                    return new JObject { { "c", StandingsModel.Css(WhiteFrame) } };
                 case "Green":
-                    return new JObject { { "c", StandingsOverlay.Css(GreenFrame) } };
+                    return new JObject { { "c", StandingsModel.Css(GreenFrame) } };
                 case "Shiftline":
                     return new JObject { { "flow", new JArray("#01ABFF", "#903AA1", "#FF8C00", "#D60000") } };
                 case "BlueFlow":
@@ -295,7 +297,7 @@ namespace Shiftline.Plugin
                 case "GreenFlow":
                     return new JObject { { "flow", new JArray("#3DDC84", "#B4F5CF", "#1FA85E", "#86EDB2") } };
                 default:
-                    return new JObject { { "c", StandingsOverlay.Css(AccentBrush) } };
+                    return new JObject { { "c", StandingsModel.Css(AccentBrush) } };
             }
         }
 
@@ -367,7 +369,7 @@ namespace Shiftline.Plugin
                 sides[side == "Side.Left" ? "left" : "right"] = new JObject
                 {
                     { "v", string.IsNullOrEmpty(value) ? "-" : value },
-                    { "c", StandingsOverlay.Css(brush) },
+                    { "c", StandingsModel.Css(brush) },
                 };
             }
 
@@ -377,17 +379,17 @@ namespace Shiftline.Plugin
                 bool purple = player != null && player.BestLap > 0 && Math.Abs(player.BestLap - field.SessionBest) < 0.0005;
                 JObject footer = new JObject
                 {
-                    { "Last", player == null ? "-" : StandingsOverlay.Lap(player.LastLap, 3) },
-                    { "Best", player == null ? "-" : StandingsOverlay.Lap(player.BestLap, 3) },
-                    { "BestColour", StandingsOverlay.Css(purple ? PurpleBrush : GreenBrush) },
+                    { "Last", player == null ? "-" : StandingsModel.Lap(player.LastLap, 3) },
+                    { "Best", player == null ? "-" : StandingsModel.Lap(player.BestLap, 3) },
+                    { "BestColour", StandingsModel.Css(purple ? PurpleBrush : GreenBrush) },
                     { "Delta", "-" },
-                    { "DeltaColour", StandingsOverlay.Css(MutedBrush) },
+                    { "DeltaColour", StandingsModel.Css(MutedBrush) },
                 };
                 if (snapshot.HasDelta)
                 {
                     double delta = snapshot.DeltaToBest;
                     footer["Delta"] = (delta > 0 ? "+" : delta < 0 ? "-" : string.Empty) + Math.Abs(delta).ToString("0.00", CultureInfo.InvariantCulture);
-                    footer["DeltaColour"] = StandingsOverlay.Css(delta < -0.005 ? GreenBrush : delta > 0.005 ? LossBrush : TextBrush);
+                    footer["DeltaColour"] = StandingsModel.Css(delta < -0.005 ? GreenBrush : delta > 0.005 ? LossBrush : TextBrush);
                 }
 
                 frame["footer"] = footer;
@@ -405,15 +407,15 @@ namespace Shiftline.Plugin
             {
                 { "id", "c" + row.CarIdx.ToString(CultureInfo.InvariantCulture) },
                 { "pos", position > 0 ? position.ToString(CultureInfo.InvariantCulture) : "-" },
-                { "cls", StandingsOverlay.Css(StandingsOverlay.ClassBrush(row.ClassColor)) },
-                { "bg", StandingsOverlay.Css(row.IsPlayer ? layout.Player : layout.Card) },
+                { "cls", StandingsModel.Css(StandingsModel.ClassBrush(row.ClassColor)) },
+                { "bg", StandingsModel.Css(row.IsPlayer ? layout.Player : layout.Card) },
             };
 
             if (OnItem(options, "Name"))
             {
                 int laps = LapsApart(row, field);
                 card["name"] = NameOf(options, row);
-                card["nameC"] = StandingsOverlay.Css(laps < 0 ? LappedBrush : laps > 0 ? LappingBrush : TextBrush);
+                card["nameC"] = StandingsModel.Css(laps < 0 ? LappedBrush : laps > 0 ? LappingBrush : TextBrush);
                 card["laps"] = laps == 0 ? string.Empty : (laps > 0 ? "+" : "-") + Math.Abs(laps).ToString(CultureInfo.InvariantCulture) + "L";
             }
 
@@ -429,7 +431,7 @@ namespace Shiftline.Plugin
 
             if (OnItem(options, "iR"))
             {
-                card["ir"] = StandingsOverlay.FormatIRating(row.IRating, "K1");
+                card["ir"] = StandingsModel.FormatIRating(row.IRating, "K1");
             }
 
             if (OnItem(options, "Lic"))
@@ -437,17 +439,17 @@ namespace Shiftline.Plugin
                 string[] parts = (row.License ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 double rating = 0;
                 bool hasRating = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out rating);
-                Brush colour = StandingsOverlay.LicenceBrush(row.LicenseColor);
+                Brush colour = StandingsModel.LicenceBrush(row.LicenseColor);
                 if (colour != null && parts.Length > 0)
                 {
-                    Brush soft = StandingsOverlay.Soften(colour);
+                    Brush soft = StandingsModel.Soften(colour);
                     card["lic"] = new JObject
                     {
                         { "l", parts[0] },
                         { "n", hasRating ? (Math.Floor(rating * 10) / 10).ToString("0.0", CultureInfo.InvariantCulture) : string.Empty },
-                        { "s", StandingsOverlay.Css(soft) },
-                        { "t", StandingsOverlay.Css(StandingsOverlay.ContrastText(soft)) },
-                        { "h", StandingsOverlay.Css(StandingsOverlay.Shade(colour)) },
+                        { "s", StandingsModel.Css(soft) },
+                        { "t", StandingsModel.Css(StandingsModel.ContrastText(soft)) },
+                        { "h", StandingsModel.Css(StandingsModel.Shade(colour)) },
                     };
                 }
             }
@@ -471,8 +473,8 @@ namespace Shiftline.Plugin
                 {
                     string code;
                     Brush colour;
-                    StandingsOverlay.TyreLook(type, out code, out colour);
-                    card["tyre"] = new JObject { { "c", code }, { "k", StandingsOverlay.Css(colour) }, { "l", StandingsOverlay.LetterSvg(code) } };
+                    StandingsModel.TyreLook(type, out code, out colour);
+                    card["tyre"] = new JObject { { "c", code }, { "k", StandingsModel.Css(colour) }, { "l", StandingsModel.LetterSvg(code) } };
                 }
             }
 
