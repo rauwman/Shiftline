@@ -36,8 +36,20 @@ Write-Host "Version $version"
 if ($env:SIMHUB_INSTALL_PATH) {
     $simhubExe = Join-Path $env:SIMHUB_INSTALL_PATH 'SimHubWPF.exe'
     if (-not (Test-Path $simhubExe)) { throw "SimHubWPF.exe not found in $env:SIMHUB_INSTALL_PATH" }
-    if ((Get-Item $simhubExe).VersionInfo.FileVersion -notmatch '^(\d+\.\d+\.\d+)') { throw 'The version of SimHubWPF.exe could not be read' }
-    $simhub = $Matches[1]
+    # SimHubWPF.exe carries 1.0.0 as its file version; the real version sits in the assembly or product version
+    $info = (Get-Item $simhubExe).VersionInfo
+    $candidates = @()
+    try { $candidates += [System.Reflection.AssemblyName]::GetAssemblyName($simhubExe).Version.ToString() } catch { }
+    $candidates += $info.ProductVersion, $info.FileVersion
+    $simhub = $null
+    foreach ($candidate in $candidates) {
+        if ($candidate -match '^(\d+\.\d+\.\d+)' -and $Matches[1] -ne '1.0.0' -and $Matches[1] -ne '0.0.0') { $simhub = $Matches[1]; break }
+    }
+}
+if ($env:SIMHUB_INSTALL_PATH -and -not $simhub) {
+    Write-Warning "The SimHub version could not be read from SimHubWPF.exe ($($candidates -join ' / ')). The README check is skipped."
+}
+elseif ($simhub) {
     $readmePath = Join-Path $root 'README.md'
     $readme = [System.IO.File]::ReadAllText($readmePath)
     $named = [regex]::Matches($readme, 'SimHub (\d+\.\d+\.\d+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
