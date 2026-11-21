@@ -42,6 +42,33 @@ namespace Shiftline.Plugin
 
         public TrackLayout Layout { get; private set; }
 
+        /// <summary>The fitted points of the track (window coordinates), for the HTML page.</summary>
+        public Point[] Points
+        {
+            get { return _points; }
+        }
+
+        public bool Closed
+        {
+            get { return _closed; }
+        }
+
+        /// <summary>The fitted points of the pit lane, null without one.</summary>
+        public Point[] PitPoints
+        {
+            get { return _pit; }
+        }
+
+        public double PitEntry
+        {
+            get { return _pitEntry; }
+        }
+
+        public double PitExit
+        {
+            get { return _pitExit; }
+        }
+
         /// <summary>The window size: the track plus the padding on every side.</summary>
         public Size Size { get; private set; }
 

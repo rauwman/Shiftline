@@ -1,0 +1,3 @@
+/* The Track Map: one canvas the size of the map; everything on it is drawn by trackmap.js. */
+body[data-kind]:not([data-kind="track"]) #tm { display: none; }
+#tm { position: absolute; left: 0; top: 0; }

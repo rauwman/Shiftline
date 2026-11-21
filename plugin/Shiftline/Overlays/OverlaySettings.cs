@@ -31,7 +31,7 @@ namespace Shiftline.Plugin
         public const int DefaultRate = 10;
 
         /// <summary>The choices of the overlay frame rate: most frames per second the overlays draw (0 = unlimited).</summary>
-        public static readonly int[] FrameRates = { 30, 60, 0 };
+        public static readonly int[] FrameRates = { 30, 60, 90, 120, 0 };
         public const int DefaultFrameRate = 60;
 
         private static readonly object Gate = new object();

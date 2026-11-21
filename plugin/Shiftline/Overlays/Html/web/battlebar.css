@@ -1,5 +1,5 @@
 /* The Battle Bar. Sizes follow the WPF bar: cards 32 px (one line) or 46 px (two lines), header and footer pills 20 px. */
-body[data-kind="standings"] #bb { display: none; }
+body[data-kind]:not([data-kind="battle"]) #bb { display: none; }
 #bb { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 8px; transform-origin: 0 0; color: #e8ecf1;
       display: flex; flex-direction: column; align-items: center; }
 .bb-pill { box-sizing: border-box; height: 20px; display: flex; align-items: center; white-space: nowrap; }

@@ -1,5 +1,5 @@
 /* Standings and relatives. Sizes follow the WPF overlay: rows 24 px, header and footer 26 px, cells with 2-3 px margins. */
-body[data-kind="battle"] #panel { display: none; }
+body[data-kind]:not([data-kind="standings"]) #panel { display: none; }
 #panel { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 6px 8px; transform-origin: 0 0; color: #e8ecf1; font-size: 13px; }
 .hdr, .ftr { box-sizing: border-box; height: 26px; display: flex; align-items: center; }
 .hdr { margin-bottom: 4px; }
@@ -28,7 +28,11 @@ body[data-kind="battle"] #panel { display: none; }
 .cell.r > .box { justify-content: flex-end; }
 .cell.cls { padding: 4px 3px 4px 1px; }
 .cell.cls > .box { height: 16px; padding: 0; }
-.txt { overflow: hidden; text-overflow: ellipsis; }
+/* clipped only sideways (for the ...): the trimmed box below would otherwise cut off descenders such as g and y */
+.txt { overflow-x: clip; overflow-y: visible; text-overflow: ellipsis; }
+/* Text is centred by its capitals and figures (cap height down to the baseline), not by the line height of the font:
+   Segoe UI has much more room above its letters than below, so a centred line box sits the text low. */
+.cell .txt, .labels div, .hitem > span, .fitem .lbl, .fitem .val { text-box: trim-both cap alphabetic; }
 svg.chev { width: 8px; height: 8px; margin-right: 3px; flex: none; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .pill { display: flex; align-items: center; height: 18px; box-sizing: border-box; }
 .tyre { width: 100%; height: 18px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; padding: 1px; }

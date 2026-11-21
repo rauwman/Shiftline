@@ -130,6 +130,7 @@
     <Compile Include="Overlays\TrackMapGeometry.cs" />
     <Compile Include="Overlays\TrackMapOptions.cs" />
     <Compile Include="Overlays\TrackMapOverlay.cs" />
+    <Compile Include="Overlays\TrackMapOverlay.Html.cs" />
     <Compile Include="Overlays\TrackMapSample.cs" />
     <Compile Include="Overlays\CarMakes.cs" />
     <Compile Include="Overlays\GameFocus.cs" />

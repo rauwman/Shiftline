@@ -25,7 +25,7 @@ namespace Shiftline.Plugin
         private static StandingsFeatures _relativesFeatures = StandingsFeatures.All;
         private static bool _relativesRace = true;         // whether the relatives are laid out for a race (the iRating change needs room only there)
         private static OverlayWindow _trackWindow;
-        private static TrackMapOverlay _trackView;
+        private static ITrackMapView _trackView;             // WPF (TrackMapOverlay) or HTML (TrackMapHtmlView)
         private static DispatcherTimer _trackTimer;
         private static TimeSpan _trackSampleInterval = TimeSpan.FromMilliseconds(100);
         private static long _trackSeenSequence = -1;
@@ -717,6 +717,14 @@ namespace Shiftline.Plugin
 
         private static void SyncTrackMap()
         {
+            if (_trackWindow != null && _trackWindow.IsHtml != OverlaySettings.UseHtml)
+            {
+                // drawn with the other engine now: the next tick opens a new window
+                _trackWindow.Close();
+                _trackWindow = null;
+                _trackView = null;
+            }
+
             if (!OverlaySettings.IsEnabled(OverlayData.TrackMapKey))
             {
                 _trackTimer.Stop();
@@ -775,8 +783,20 @@ namespace Shiftline.Plugin
 
                 if (_trackWindow == null)
                 {
-                    _trackView = new TrackMapOverlay();
-                    _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", _trackView, _trackView.DesignSize);
+                    if (OverlaySettings.UseHtml)
+                    {
+                        TrackMapHtmlView html = new TrackMapHtmlView();
+                        _trackView = html;
+                        _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", TrackMapHtmlView.Page, html.DesignSize);
+                        html.Attach(_trackWindow);
+                    }
+                    else
+                    {
+                        TrackMapOverlay wpf = new TrackMapOverlay();
+                        _trackView = wpf;
+                        _trackWindow = new OverlayWindow(OverlayData.TrackMapKey, "Track Map", wpf, wpf.DesignSize);
+                    }
+
                     _trackWindow.SetEditMode(_edit);
                     _trackWindow.SetFixedSize(_trackView.DesignSize);
                     _trackView.DesignSizeChanged += FitTrackWindow;

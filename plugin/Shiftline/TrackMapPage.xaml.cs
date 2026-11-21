@@ -12,7 +12,8 @@ namespace Shiftline.Plugin
     {
         private readonly Dictionary<string, Grid> _rows = new Dictionary<string, Grid>();
         private readonly Stopwatch _driving = new Stopwatch();
-        private TrackMapOverlay _preview;
+        private ITrackMapView _preview;                     // WPF (TrackMapOverlay) or HTML (TrackMapHtmlView), as chosen in General
+        private System.Windows.FrameworkElement _previewElement;
         private DispatcherTimer _radioTimer;
         private DispatcherTimer _checkTimer;
         private bool _shapesShown;
@@ -96,6 +97,8 @@ namespace Shiftline.Plugin
                 {
                     _sampleTimer.Stop();
                 }
+
+                ClosePreview();
             };
         }
 
@@ -190,18 +193,40 @@ namespace Shiftline.Plugin
 
         private void RefreshPreview()
         {
+            bool html = OverlaySettings.UseHtml;
+            if (_preview != null && (_preview is TrackMapHtmlView) != html)
+            {
+                ClosePreview();
+            }
+
             if (_preview == null)
             {
-                _preview = new TrackMapOverlay();
+                if (html)
+                {
+                    // the shared preview (already loaded, see HtmlPreview) switches to the Track Map with its layout
+                    HtmlPreview host = HtmlPreview.Shared;
+                    TrackMapHtmlView view = new TrackMapHtmlView();
+                    view.Attach(host);
+                    host.MoveTo(PreviewHost);
+                    _preview = view;
+                    _previewElement = host;
+                }
+                else
+                {
+                    TrackMapOverlay wpf = new TrackMapOverlay();
+                    _preview = wpf;
+                    _previewElement = wpf;
+                    PreviewHost.Child = wpf;
+                }
+
                 _preview.DesignSizeChanged += SizePreview;
-                PreviewHost.Child = _preview;
             }
 
             StandingsFeatures features = OverlayData.PreviewFeatures();
             _preview.ApplyOptions(TrackMapOptions.Load());
             System.Windows.Size size = _preview.DesignSize;
-            _preview.Width = size.Width;
-            _preview.Height = size.Height;
+            _previewElement.Width = size.Width;
+            _previewElement.Height = size.Height;
             string game = OverlayData.SelectedGameName;
             PreviewGameText.Text = string.IsNullOrEmpty(game) ? string.Empty : "Preview for " + game + ".";
             PreviewGameText.Visibility = PreviewGameText.Text.Length == 0 ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
@@ -215,8 +240,32 @@ namespace Shiftline.Plugin
         private void SizePreview()
         {
             System.Windows.Size size = _preview.DesignSize;
-            _preview.Width = size.Width;
-            _preview.Height = size.Height;
+            _previewElement.Width = size.Width;
+            _previewElement.Height = size.Height;
+        }
+
+        private void ClosePreview()
+        {
+            if (_preview == null)
+            {
+                return;
+            }
+
+            _preview.DesignSizeChanged -= SizePreview;
+            HtmlPreview html = _previewElement as HtmlPreview;
+            if (html != null)
+            {
+                // the shared preview is kept: it goes back to its hidden spot, unless another page has taken it already
+                ((TrackMapHtmlView)_preview).Detach();
+                html.Release(PreviewHost);
+            }
+            else
+            {
+                PreviewHost.Child = null;
+            }
+
+            _preview = null;
+            _previewElement = null;
         }
 
         /// <summary>The credit line of the track shapes and which track the preview shows.</summary>

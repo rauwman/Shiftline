@@ -15,7 +15,7 @@ namespace Shiftline.Plugin
     /// light ring, a lap ring is the same band in red or blue; both sit flush on the circle. The player is always on top. Where circles overlap the important ones stay on top: cars close to the player over far
     /// ones, the own class over the others, cars in the pit below everything.
     /// </summary>
-    internal sealed class TrackMapOverlay : FrameworkElement
+    internal sealed partial class TrackMapOverlay : FrameworkElement, ITrackMapView
     {
         private const double EdgeMargin = 6;
         private const double PlayerZoom = 1.25;
@@ -24,8 +24,13 @@ namespace Shiftline.Plugin
         private const double GlassShade = 0.75;
         private const byte GlassAlpha = 0x66;       // 40 %
         private const double EdgeWidth = 1;         // the thin dark edge outside a ring
-        private const double RingWidth = 2.5;       // the ring of the player and the lap rings, drawn inside the circle's size
+        private const double RingWidth = 2.5;       // the ring of the player and the lap rings
+        // A ring starts where the glass edge of a plain circle starts and reaches this far past the circle, its dark edge
+        // included: a car with a ring keeps the number size of every other car and grows only a little. The player's circle is
+        // made smaller by the same, so it stays as large as before (its ring ends at the player radius).
+        private const double RingOutset = RingWidth + EdgeWidth - GlassWidth;
         private const double PitOpacity = 0.55;
+        private const double NearPlayer = 0.05;     // part of a lap around the player where the closest car lies on top
         private const double NumberSize = 0.55;     // height of the figures as part of the coloured disc's diameter
         private const double NumberRoom = 0.82;     // widest a number may be, as part of the diameter; longer numbers shrink
         private const double StartLineWidth = 2;    // the start/finish line across the track
@@ -59,6 +64,8 @@ namespace Shiftline.Plugin
         private Pen _linePen;
         private Pen _roadPen;
         private double _roadGap;                    // distance between the two lines of the road (centre to centre)
+        private Pen _roadFillPen;                   // the fill between the two lines, null for none
+        private Pen _roadFillLinePen;               // the same with flat ends, for the straight line
         private Brush _stripBrush;
         private Pen _stripPen;                      // the strip around the ring or along the track shape
         private Pen _pitPen;                        // the pit lane of a track shape
@@ -145,6 +152,7 @@ namespace Shiftline.Plugin
             public bool OtherClass;                 // another class than the player (only when the player is known)
             public double Distance;                 // to the player along the lap, as a fraction of a lap (0 when there is no player)
             public int LapRelation;                 // +n: n laps up on the player, -n: n laps down
+            public int Position;                    // live in races (FactsOf)
             public Brush Colour;
             public string Text;
         }
@@ -252,82 +260,58 @@ namespace Shiftline.Plugin
         public void ApplyOptions(TrackMapOptions options)
         {
             _options = options;
-            _vertical = options.Vertical;
-            _length = options.Length;
-            _round = options.Get("Corners") == "Square" ? 0 : 8;
-            byte alpha = (byte)Math.Round(255 * Math.Max(0, Math.Min(100, options.GetInt("Opacity"))) / 100.0);
-            _plate = StandingsOverlay.Frozen(alpha, 0x0E, 0x12, 0x19);
+            TrackMapLook look = LookOf(options, _layout);
+            _vertical = look.Vertical;
+            _length = look.Length;
+            _round = look.Round;
+            _plate = StandingsOverlay.Frozen(look.Alpha, 0x0E, 0x12, 0x19);
             _typeface = new Typeface(OverlayFonts.Get(options.Get("Font")), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
-            _dot = Math.Max(10, options.GetInt("Dot"));
-            _playerRadius = _dot * PlayerZoom / 2;
-            _reach = _playerRadius;
-            _style = options.Get("LineStyle");
-            _smooth = options.GetBool("Smooth");
-            _radio = options.GetBool("Radio");
-            if (_waveColour != options.Get("WaveColour"))
+            _dot = look.Dot;
+            _playerRadius = look.PlayerRadius;
+            _reach = look.Reach;
+            _style = look.Style;
+            _smooth = look.Smooth;
+            _radio = look.Radio;
+            if (_waveColour != look.WaveColour)
             {
                 StopWaves();
-                _waveColour = options.Get("WaveColour");
+                _waveColour = look.WaveColour;
             }
-            double thickness = Math.Max(1, options.GetInt("Thickness"));
-            Color colour = LineColour(options.Get("LineColour"));
-            _linePen = MakeLinePen(Frozen(0xB0, colour), thickness);
+
+            Color colour = look.LineColour;
+            _linePen = MakeLinePen(Frozen(0xB0, colour), look.Thickness);
             _roadPen = new Pen(Frozen(0xD8, colour), RoadLineWidth) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
             _roadPen.Freeze();
-            _roadGap = thickness * 2 + 2;
-            _stripBrush = Frozen(alpha, colour);
-            _stripPen = new Pen(_stripBrush, _playerRadius * 2 + 8) { LineJoin = PenLineJoin.Round };
+            _roadGap = look.RoadGap;
+            _roadFillPen = null;
+            _roadFillLinePen = null;
+            if (look.RoadFill > 0)
+            {
+                _roadFillPen = new Pen(Frozen(look.RoadFill, colour), look.RoadGap) { LineJoin = PenLineJoin.Round };
+                _roadFillPen.Freeze();
+                _roadFillLinePen = new Pen(Frozen(look.RoadFill, colour), look.RoadGap) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
+                _roadFillLinePen.Freeze();
+            }
+
+            _stripBrush = Frozen(look.Alpha, colour);
+            _stripPen = new Pen(_stripBrush, look.StripWidth) { LineJoin = PenLineJoin.Round };
             _stripPen.Freeze();
             _pitPen = new Pen(Frozen(0x90, colour), 1.5) { DashStyle = new DashStyle(new double[] { 2, 2 }, 0), LineJoin = PenLineJoin.Round };
             _pitPen.Freeze();
-            _shapesOn = options.TrackShapes;
-            _usualOrientation = options.Get("TrackOrientation") != "North";
-            _trackSize = options.SizeOf("TrackSize");
-            _startLine = options.Get("StartLine");
+            _shapesOn = look.ShapesOn;
+            _usualOrientation = look.Usual;
+            _trackSize = look.TrackSize;
+            _startLine = look.StartLine;
             _texts.Clear();
-
-            // with track shapes on, a track without a shape gets a ring of the track size (it takes the same place as a map)
-            _ring = options.Ring || _shapesOn;
-            _alongPad = EdgeMargin + _reach;
-            _crossCentre = EdgeMargin + _reach;
-            if (_ring)
-            {
-                int ringSize = _shapesOn ? _trackSize : options.RingSize;
-                double side = ringSize + 2 * _alongPad;
-                _ringRadius = ringSize / 2.0;
-                _ringCentre = new Point(side / 2, side / 2);
-                _turn = options.Get("Direction") == "Anticlockwise" ? -1 : 1;
-                switch (options.Get("StartAt"))
-                {
-                    case "Right":
-                        _startAngle = 90;
-                        break;
-                    case "Bottom":
-                        _startAngle = 180;
-                        break;
-                    case "Left":
-                        _startAngle = 270;
-                        break;
-                    default:
-                        _startAngle = 0;
-                        break;
-                }
-
-                _designSize = new Size(side, side);
-            }
-            else
-            {
-                _designSize = _vertical
-                    ? new Size(2 * _crossCentre, _length + 2 * _alongPad)
-                    : new Size(_length + 2 * _alongPad, 2 * _crossCentre);
-            }
-
-            // the real shape of the track, when there is one: then it replaces the line or the ring
-            _shape = _shapesOn && _layout != null ? TrackShape.Build(_layout, _usualOrientation, _trackSize, EdgeMargin + _reach + 4) : null;
-            if (_shape != null)
-            {
-                _designSize = _shape.Size;
-            }
+            _ring = look.Ring;
+            _alongPad = look.AlongPad;
+            _crossCentre = look.CrossCentre;
+            _ringRadius = look.RingRadius;
+            _ringCentre = look.RingCentre;
+            _turn = look.Turn;
+            _startAngle = look.StartAngle;
+            _shape = look.Shape;
+            _designSize = look.DesignSize;
 
             InvalidateMeasure();
             DrawTrackLayer();
@@ -734,8 +718,8 @@ namespace Shiftline.Plugin
             }
 
             // What lies on top where circles overlap, from below to above: cars in the pit, other classes, the own class, the
-            // player. Inside each group the cars closer to the player lie on top of the far ones; without a player the better
-            // position lies on top.
+            // player. Inside each group the cars right around the player lie on top, the closest uppermost; in a pack further
+            // away the better position lies on top, so the front of the pack stays readable.
             cars.Sort((a, b) =>
             {
                 int byRank = Rank(a).CompareTo(Rank(b));
@@ -744,7 +728,14 @@ namespace Shiftline.Plugin
                     return byRank;
                 }
 
-                int byDistance = b.Distance.CompareTo(a.Distance);
+                bool nearA = hasPlayer && a.Distance <= NearPlayer;
+                bool nearB = hasPlayer && b.Distance <= NearPlayer;
+                if (nearA != nearB)
+                {
+                    return nearA ? 1 : -1;
+                }
+
+                int byDistance = nearA ? b.Distance.CompareTo(a.Distance) : 0;
                 return byDistance != 0 ? byDistance : PositionKey(b).CompareTo(PositionKey(a));
             });
 
@@ -851,6 +842,11 @@ namespace Shiftline.Plugin
             }
             else if (_style == "Road")
             {
+                if (_roadFillPen != null)
+                {
+                    dc.DrawGeometry(null, _roadFillPen, _shape.Line);
+                }
+
                 dc.DrawGeometry(null, _roadPen, _shape.Road(_roadGap));
             }
             else
@@ -870,6 +866,11 @@ namespace Shiftline.Plugin
                 }
                 else if (_style == "Road")
                 {
+                    if (_roadFillPen != null)
+                    {
+                        dc.DrawEllipse(null, _roadFillPen, _ringCentre, _ringRadius, _ringRadius);
+                    }
+
                     dc.DrawEllipse(null, _roadPen, _ringCentre, _ringRadius - _roadGap / 2, _ringRadius - _roadGap / 2);
                     dc.DrawEllipse(null, _roadPen, _ringCentre, _ringRadius + _roadGap / 2, _ringRadius + _roadGap / 2);
                 }
@@ -894,6 +895,11 @@ namespace Shiftline.Plugin
             }
             else if (_style == "Road")
             {
+                if (_roadFillLinePen != null)
+                {
+                    dc.DrawLine(_roadFillLinePen, start, end);
+                }
+
                 dc.DrawLine(_roadPen, LinePoint(0, _crossCentre - _roadGap / 2), LinePoint(1, _crossCentre - _roadGap / 2));
                 dc.DrawLine(_roadPen, LinePoint(0, _crossCentre + _roadGap / 2), LinePoint(1, _crossCentre + _roadGap / 2));
             }
@@ -1015,7 +1021,7 @@ namespace Shiftline.Plugin
 
         private static int PositionKey(Car car)
         {
-            return car.Row.Position > 0 ? car.Row.Position : int.MaxValue;
+            return car.Position > 0 ? car.Position : int.MaxValue;
         }
 
         /// <summary>The point at "fraction" (0..1) of the line, "cross" away from it across the line (the line itself: _crossCentre).</summary>
@@ -1044,18 +1050,7 @@ namespace Shiftline.Plugin
         /// <summary>The cars to draw, with their place on the line. Not sorted for drawing yet.</summary>
         private List<Car> Collect(out StandingsRow player, out bool hasPlayer, out bool centred)
         {
-            StandingsRow[] rows = _snapshot.Rows ?? new StandingsRow[0];
-            player = null;
-            foreach (StandingsRow row in rows)
-            {
-                if (row.IsPlayer || row.CarIdx == _snapshot.PlayerCarIdx)
-                {
-                    player = row;
-                    break;
-                }
-            }
-
-            hasPlayer = player != null && player.TrackSurface != -1 && player.LapDistPct >= 0;
+            List<CarFact> facts = FactsOf(_options, _snapshot, out player, out hasPlayer);
             centred = _options.Centred && hasPlayer && _shape == null;     // on a track shape: the whole map (follow view later)
             double range = _options.GetInt("Range") / 100.0;
             double playerPct = hasPlayer ? Shown(player) : 0;
@@ -1065,55 +1060,10 @@ namespace Shiftline.Plugin
                 TrackPositionLog.Frame(playerPct, _smooth ? _delay : 0);
             }
 
-            bool classOnly = _options.Get("Show") == "Class" && player != null;
-            bool hidePit = _options.Get("Pit") == "Hide";
-            bool lapRings = _options.GetBool("LapRings") && (_snapshot.IsRace || _snapshot.IsSample);
-            string label = _options.Get("Label");
-            bool marksFastest = _options.GetBool("Fastest");
-
-            // the fastest lap of each class, and whether there is more than one class
-            Dictionary<int, double> fastest = new Dictionary<int, double>();
-            foreach (StandingsRow row in rows)
-            {
-                double best;
-                if (row.BestLap > 0 && (!fastest.TryGetValue(row.ClassId, out best) || row.BestLap < best))
-                {
-                    fastest[row.ClassId] = row.BestLap;
-                }
-            }
-
-            bool classes = fastest.Count > 1;
-            if (label == "Auto")
-            {
-                label = !_snapshot.IsRace && !_snapshot.IsSample ? "Number" : classes ? "ClassPosition" : "Position";
-            }
-
             List<Car> cars = new List<Car>();
-            foreach (StandingsRow row in rows)
+            foreach (CarFact fact in facts)
             {
-                if (row.TrackSurface == -1 || !(row.LapDistPct >= 0))
-                {
-                    continue;       // not in the world, or no position on the track
-                }
-
-                bool isPlayer = ReferenceEquals(row, player);
-                if (isPlayer && !hasPlayer)
-                {
-                    continue;
-                }
-
-                bool otherClass = player != null && !isPlayer && row.ClassId != player.ClassId;
-                if (classOnly && otherClass)
-                {
-                    continue;
-                }
-
-                bool pit = row.OnPitRoad && !isPlayer;
-                if (pit && hidePit)
-                {
-                    continue;
-                }
-
+                StandingsRow row = fact.Row;
                 Point at;
                 Point inPit;
                 if (_shape != null)
@@ -1136,44 +1086,19 @@ namespace Shiftline.Plugin
                     at = LinePoint(fraction, _crossCentre);
                 }
 
-                double classBest;
-                // only the own class: the fastest lap of another class says nothing about your race (all classes without a player)
-                bool isFastest = marksFastest && row.BestLap > 0 && (player == null || row.ClassId == player.ClassId)
-                    && fastest.TryGetValue(row.ClassId, out classBest) && row.BestLap <= classBest;
-
-                double distance = hasPlayer ? Math.Abs(TrackMapGeometry.Signed(row.LapDistPct, playerPct)) : 0;
-                int lapRelation = 0;
-                if (lapRings && hasPlayer && !isPlayer)
-                {
-                    lapRelation = (int)Math.Round((row.Progress - player.Progress) - TrackMapGeometry.Signed(row.LapDistPct, playerPct));
-                }
-
-                string text = string.Empty;
-                switch (label)
-                {
-                    case "Number":
-                        text = row.Number ?? string.Empty;
-                        break;
-                    case "Position":
-                        text = row.Position > 0 ? row.Position.ToString(CultureInfo.InvariantCulture) : string.Empty;
-                        break;
-                    case "ClassPosition":
-                        text = row.ClassPosition > 0 ? row.ClassPosition.ToString(CultureInfo.InvariantCulture) : string.Empty;
-                        break;
-                }
-
                 cars.Add(new Car
                 {
                     Row = row,
                     At = at,
-                    Fastest = isFastest,
-                    Player = isPlayer,
-                    Pit = pit,
-                    OtherClass = otherClass,
-                    Distance = distance,
-                    LapRelation = lapRelation,
-                    Colour = StandingsOverlay.ClassBrush(row.ClassColor),
-                    Text = text
+                    Fastest = fact.Fastest,
+                    Player = fact.Player,
+                    Pit = fact.Pit,
+                    OtherClass = fact.OtherClass,
+                    Distance = hasPlayer ? Math.Abs(TrackMapGeometry.Signed(row.LapDistPct, playerPct)) : 0,
+                    LapRelation = fact.LapRelation,
+                    Position = fact.Position,
+                    Colour = fact.Colour,
+                    Text = fact.Text
                 });
             }
 
@@ -1183,15 +1108,16 @@ namespace Shiftline.Plugin
         private void DrawCar(DrawingContext dc, Car car)
         {
             Point centre = car.At;
-            double r = car.Player ? _playerRadius : _dot / 2;       // outer edge of the circle
+            double r = car.Player ? _playerRadius - RingOutset : _dot / 2;       // edge of the coloured circle
             // one ring at most: the player's own (violet with the fastest lap), else a lap ring, else the fastest lap
             Pen ringPen = car.Player ? (car.Fastest ? FastestPen : PlayerRingPen)
                 : car.LapRelation > 0 ? LapAheadPen
                 : car.LapRelation < 0 ? LapBehindPen
                 : car.Fastest ? FastestPen : null;
-            // disc: the coloured area; inner: the part of it the number may use
-            double disc = ringPen != null ? r - EdgeWidth - RingWidth + 0.5 : r;
-            double inner = ringPen != null ? r - EdgeWidth - RingWidth : r - GlassWidth;
+            // disc: the coloured area; inner: the part of it the number may use, the same in every circle. A ring lies over the
+            // glass edge and a little outside the circle (RingOutset).
+            double disc = r;
+            double inner = r - GlassWidth;
             if (car.Pit)
             {
                 dc.PushOpacity(PitOpacity);
@@ -1203,9 +1129,10 @@ namespace Shiftline.Plugin
 
             if (ringPen != null)
             {
-                // the ring sits flush on the circle: a thin dark edge outside, the coloured band inside of it
-                dc.DrawEllipse(null, EdgePen, centre, r - EdgeWidth / 2, r - EdgeWidth / 2);
-                dc.DrawEllipse(null, ringPen, centre, r - EdgeWidth - RingWidth / 2, r - EdgeWidth - RingWidth / 2);
+                // the ring sits flush around the circle: the coloured band, a thin dark edge outside of it
+                double band = r - GlassWidth + RingWidth / 2;
+                dc.DrawEllipse(null, ringPen, centre, band, band);
+                dc.DrawEllipse(null, EdgePen, centre, r + RingOutset - EdgeWidth / 2, r + RingOutset - EdgeWidth / 2);
             }
             else
             {
