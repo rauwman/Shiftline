@@ -12,7 +12,9 @@
     },
     "simhub": {
       "trackCodes": [
-        "assettocorsa/monza"
+        "assettocorsa/monza",
+        "f12024/monza",
+        "f12025/monza"
       ]
     }
   },

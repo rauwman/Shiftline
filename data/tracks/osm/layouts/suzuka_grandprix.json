@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/suzuka",
+        "f12025/suzuka"
+      ]
     }
   },
   "center": [

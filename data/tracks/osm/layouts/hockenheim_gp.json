@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/hockenheim",
+        "f12025/hockenheim"
+      ]
     }
   },
   "center": [

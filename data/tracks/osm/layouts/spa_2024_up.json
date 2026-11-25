@@ -12,7 +12,9 @@
     },
     "simhub": {
       "trackCodes": [
-        "assettocorsa/spa"
+        "assettocorsa/spa",
+        "f12024/spa",
+        "f12025/spa"
       ]
     }
   },

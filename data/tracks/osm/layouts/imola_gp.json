@@ -12,7 +12,10 @@
     },
     "simhub": {
       "trackCodes": [
-        "assettocorsa/imola"
+        "assettocorsa/imola",
+        "automobilista2/imolaams2-imola_gp_2018",
+        "f12024/imola",
+        "f12025/imola"
       ]
     }
   },

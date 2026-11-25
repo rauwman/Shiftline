@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/catalunya",
+        "f12025/catalunya"
+      ]
     }
   },
   "center": [

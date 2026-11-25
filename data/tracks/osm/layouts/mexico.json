@@ -5,7 +5,9 @@
   "config": "Mexican Grand Prix",
   "match": {
     "iracing": {
-      "trackNames": [],
+      "trackNames": [
+        "mexicocity_gp"
+      ],
       "trackIds": []
     },
     "simhub": {

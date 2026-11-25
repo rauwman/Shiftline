@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/zandvoort",
+        "f12025/zandvoort"
+      ]
     }
   },
   "center": [

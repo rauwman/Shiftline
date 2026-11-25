@@ -11,7 +11,11 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "automobilista2/interlagos-interlagos_gp",
+        "f12024/brazil",
+        "f12025/brazil"
+      ]
     }
   },
   "center": [

@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/portimão",
+        "f12025/portimão"
+      ]
     }
   },
   "center": [

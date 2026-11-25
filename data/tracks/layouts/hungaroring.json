@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/hungaroring",
+        "f12025/hungaroring"
+      ]
     }
   },
   "center": [

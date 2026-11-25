@@ -11,7 +11,11 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "automobilista2/spielberg-spielberg_modern",
+        "f12024/austria",
+        "f12025/austria"
+      ]
     }
   },
   "center": [

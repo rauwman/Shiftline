@@ -11,7 +11,10 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "f12024/texas",
+        "f12025/texas"
+      ]
     }
   },
   "center": [

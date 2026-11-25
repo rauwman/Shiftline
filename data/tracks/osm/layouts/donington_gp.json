@@ -11,7 +11,9 @@
       "trackIds": []
     },
     "simhub": {
-      "trackCodes": []
+      "trackCodes": [
+        "automobilista2/donington-donington_gp"
+      ]
     }
   },
   "center": [

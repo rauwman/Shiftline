@@ -12,7 +12,9 @@
     },
     "simhub": {
       "trackCodes": [
-        "assettocorsa/ks_silverstone-gp"
+        "assettocorsa/ks_silverstone-gp",
+        "f12024/silverstone",
+        "f12025/silverstone"
       ]
     }
   },

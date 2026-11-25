@@ -19,6 +19,18 @@
   ],
   "layouts": [
     {
+      "id": "adelaide",
+      "config": null,
+      "lengthM": 3270.4,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/adelaide.json",
+      "sha256": "ba3c5f445c227249a6ccf75b89e551a28c62388e22c2c0c80cf29229cd92c0a2"
+    },
+    {
       "id": "albert_park",
       "config": null,
       "lengthM": 5304.9,
@@ -40,7 +52,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/algarve_gp.json",
-      "sha256": "3e7aad2a3e14a6b825ea14cb038caac12a5759fce0175980b221f4e669d8c199"
+      "sha256": "7092953d7d9ac4f6f4190d6b8491e8b01f0698916f8901ed7c6caefbec72df92"
     },
     {
       "id": "algarve_gpchicane",
@@ -235,6 +247,18 @@
       "sha256": "88efbef3334e32278bd208e5e609d79bf9dcbacb5867b2971d9da54f0c3f7584"
     },
     {
+      "id": "autopolis",
+      "config": null,
+      "lengthM": 4630.9,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/autopolis.json",
+      "sha256": "5a75e33e5eb94519ebfc0857a6d8008bd3e19d99d725e845594a8b15ccb3b090"
+    },
+    {
       "id": "bahrain",
       "config": "Grand Prix",
       "lengthM": 5407.6,
@@ -245,6 +269,18 @@
       "source": "OpenStreetMap",
       "file": "osm/layouts/bahrain.json",
       "sha256": "9de9afeb8db46861de9b0b9e9b1f8105fa9dfcb01e3750f16b173bf96afa325e"
+    },
+    {
+      "id": "baku",
+      "config": null,
+      "lengthM": 5955.1,
+      "closed": true,
+      "points": 299,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/baku.json",
+      "sha256": "e7e5646fde14524e644bf56ec10c4d23124aa663bd7aab3ee0702926f6d87901"
     },
     {
       "id": "barber_full",
@@ -304,7 +340,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/barcelona_gp.json",
-      "sha256": "ab53a31dc9a32cbcc5ce03b61ad8e18207e367a4147dd4759587bf577a86d333"
+      "sha256": "5b8b5fd950ff619659c94c5b27d42fc87d8d10684cac55a3e6cbf3ef95ef00ff"
     },
     {
       "id": "barcelona_historic",
@@ -364,7 +400,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/bathurst.json",
-      "sha256": "cc5cfc970fbf172a174728f3748b807ec736389f02eef87a3461588ced75bbb7"
+      "sha256": "90eca85a29855f43e67a22988c8494567c760d4200faa690d3e68b7a1d326d40"
     },
     {
       "id": "belleisle",
@@ -820,7 +856,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/cota_gp.json",
-      "sha256": "ec47e4fe07201f793a093397285b6266ae91ee96f7c671459ae9d33c5ccb8231"
+      "sha256": "73906749d5d807ad69cc0d8d0225b0a35c9e59dd386522b128db878d110f9b51"
     },
     {
       "id": "cota_west",
@@ -1036,7 +1072,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/donington_gp.json",
-      "sha256": "0ca2c0f40f98633bd333b974c0f33e2aa693a2f94d2bf765e2dd53d957e3a0c1"
+      "sha256": "ad1104acfe531e025980e1f5ee1cf99bdce9b910792fd953c0c08f901ef1970a"
     },
     {
       "id": "donington_national",
@@ -1168,7 +1204,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/hockenheim_gp.json",
-      "sha256": "a20d1cd0fe9071b5747f70807947138e84a771d18e3283d15a6c50af0400df30"
+      "sha256": "19b11d0e3313163b8584fd62b046364648c2d24e8cc9e4ed4ce859ab876991ca"
     },
     {
       "id": "hockenheim_nationala",
@@ -1324,7 +1360,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/hungaroring.json",
-      "sha256": "07dfc4aaf11824d4cc77ea6293bc055830a21f6bbae1c963754b2cb8dbdfa459"
+      "sha256": "e85a48ce0e4fd32eecc3c4d1fd0ff9cef24477cd5f5c10e2b4f5b28c7ce62d42"
     },
     {
       "id": "imola_gp",
@@ -1336,7 +1372,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/imola_gp.json",
-      "sha256": "205c9c3780c2ec60a936115a62e9fb22db099346660e3d6d1cb2788d8afbccf6"
+      "sha256": "66d442e9ac120f33f92f5604c5653a3d68a91aae791cdd0cbfb331659b3ed81f"
     },
     {
       "id": "imola_moto",
@@ -1456,7 +1492,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/interlagos_gp.json",
-      "sha256": "5460a0c9c23bb5c0be6f71b5368808c437fb14b0591d9898faa586132e66fe98"
+      "sha256": "56be3b8569d337f12f5c68d1019ef85707c8cd7aa651deac2f061e4c43b7ec15"
     },
     {
       "id": "interlagos_moto",
@@ -1625,6 +1661,18 @@
       "source": "SIMRacingApps",
       "file": "layouts/irwindale_outerinner.json",
       "sha256": "29d28ae7bf0ab5c2bc4f9648f350df98f62598c9434e7af05e7dfb66e30eb3b7"
+    },
+    {
+      "id": "jeddah",
+      "config": null,
+      "lengthM": 6182.6,
+      "closed": true,
+      "points": 310,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/jeddah.json",
+      "sha256": "c1d47b5a1764753689d45ba02ed8609063599c34ce2fe2fac7c7a188dc4bd77a"
     },
     {
       "id": "jerez_gp",
@@ -2035,6 +2083,18 @@
       "sha256": "5c8549dd8568165e4619baeb236b96e262aa81b7121b6192f8cad2b3d8114af3"
     },
     {
+      "id": "las_vegas",
+      "config": null,
+      "lengthM": 6219.7,
+      "closed": true,
+      "points": 312,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/las_vegas.json",
+      "sha256": "7bef9138158da6d0c4e93bc1c435fb917c1d7292cbca1ed017fdcdc3ed9e0620"
+    },
+    {
       "id": "ledenon",
       "config": null,
       "lengthM": 3144.3,
@@ -2215,6 +2275,18 @@
       "sha256": "38abed14874319a49ab9e04e7d3908b91005dcfb138372bc949ec2121a0e47a2"
     },
     {
+      "id": "lusail",
+      "config": "Grand Prix",
+      "lengthM": 5420.4,
+      "closed": true,
+      "points": 271,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/lusail.json",
+      "sha256": "6fe36e2b866c77f15085dec761f24907d901e56cf1a93d495c1e16de282802a9"
+    },
+    {
       "id": "magnycours_gp",
       "config": null,
       "lengthM": 4443.9,
@@ -2248,7 +2320,31 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/mexico.json",
-      "sha256": "bf7b6928969ee5df8e5a2c38fd47da2efc9d70ece3a55bc235a734c5634acdfc"
+      "sha256": "9ad068300064ecbe1047f07f965c50267a834c223ffbec13d80353a5e4e4e12c"
+    },
+    {
+      "id": "mexicocity_ev",
+      "config": "Mexico City E-Prix",
+      "lengthM": 2613.7,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/mexicocity_ev.json",
+      "sha256": "ec23f16de5ee5025c940ae74e9031bbf398ca60a00f8565ecf8a55e95bd84b3f"
+    },
+    {
+      "id": "miami",
+      "config": null,
+      "lengthM": 5399.5,
+      "closed": true,
+      "points": 271,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/miami.json",
+      "sha256": "2a0cfeb06d4a6b241c8ccb6f4e3880955f8e1851a1056e4adf0311a6dc80ee8f"
     },
     {
       "id": "michigan",
@@ -2431,6 +2527,18 @@
       "sha256": "65a1c16e518ee17f416fae151fedf057d259681fe8feee37ca4a9f5a1acc2a56"
     },
     {
+      "id": "monaco",
+      "config": null,
+      "lengthM": 3310.7,
+      "closed": true,
+      "points": 256,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/monaco.json",
+      "sha256": "cc99866f647cd6e121c9251121c3637e3c7e8948ab9f71f5083519f1bc758918"
+    },
+    {
       "id": "montreal",
       "config": null,
       "lengthM": 4355,
@@ -2440,7 +2548,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/montreal.json",
-      "sha256": "f71ffac5a84f29b31d38bb0529a6d9dda88e690539ed00463a9122f0b8ce6e1e"
+      "sha256": "8b9e2d4c2f0059e46ae9e817dcb2998ef690a76c224931ff709849a99988e159"
     },
     {
       "id": "monza_combinedchicanes",
@@ -2464,7 +2572,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/monza_full.json",
-      "sha256": "b0a5bca5bf00e3bfdb512480307f45f7936365530d73cc67e1a9c2c2106879e5"
+      "sha256": "170ef14418f6bb3b46c301ed3ff5c9e3642d548612e9b0730e9a260e1a1a2f05"
     },
     {
       "id": "monza_gpsecondchicane",
@@ -3571,6 +3679,18 @@
       "sha256": "c2fc3ac1deeb143f6cd18373fcfa00d35e333f281f2ebce212b3d41138ec8ae7"
     },
     {
+      "id": "shanghai",
+      "config": null,
+      "lengthM": 5447.1,
+      "closed": true,
+      "points": 273,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/shanghai.json",
+      "sha256": "58240d95eab9663d98308ab567d4611db1f7233f899666fb3203d45e27de69f9"
+    },
+    {
       "id": "silverstone_2019_gp",
       "config": null,
       "lengthM": 5869.6,
@@ -3580,7 +3700,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/silverstone_2019_gp.json",
-      "sha256": "a369ff13583673a1f70a8a8b5064e266a1ae22dc90432ce7a5bdfbab106cdcfa"
+      "sha256": "7b1b3096db0a510151668b4b5a0ad163bdbff299f167e88130f9d8a7da058fd3"
     },
     {
       "id": "silverstone_2019_international",
@@ -3665,6 +3785,18 @@
       "source": "SIMRacingApps",
       "file": "layouts/silverstone_southern.json",
       "sha256": "2dd8e8d07e93b9eba38592a791699710ca3ce4d0932253f4381f87c625b40a0f"
+    },
+    {
+      "id": "singapore",
+      "config": null,
+      "lengthM": 4968,
+      "closed": true,
+      "points": 256,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/singapore.json",
+      "sha256": "44c646ab005a488d7ac569ba903aa65a5804c0d14f100d0cdc01a3f2224c417d"
     },
     {
       "id": "slinger_figure8",
@@ -3880,7 +4012,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/spa_2024_up.json",
-      "sha256": "23c5ebedb37d533dd8edd5dd146ff94fda57b603210884ea98a84b0f1278781d"
+      "sha256": "ac486f438d568052bd5aa22552a080c983d11d376f9c0d6f636d34e6a24d7bde"
     },
     {
       "id": "spa_combined",
@@ -3928,7 +4060,7 @@
       "check": "checked",
       "source": "SIMRacingApps",
       "file": "layouts/spielberg_gp.json",
-      "sha256": "668f01823a10d361a6c7ad82685fecd7c55206e1a3b843687c5cf5de3f31bdfc"
+      "sha256": "6cbf79862419c9b7214d3208c04b31dce031861ccf336c7663b1b3d34f5e4da4"
     },
     {
       "id": "spielberg_national",
@@ -3977,6 +4109,18 @@
       "source": "SIMRacingApps",
       "file": "layouts/stafford_short.json",
       "sha256": "0dd22ba85d9ae06860e4d13720a693931d7c6c896b184b5142d8e5214b26563a"
+    },
+    {
+      "id": "sugo",
+      "config": null,
+      "lengthM": 3578.7,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/sugo.json",
+      "sha256": "2671d3b7a5847d72fd85ba6a971971550b24f03d721b9f4724ecf2fe97252227"
     },
     {
       "id": "summit_jefferson",
@@ -4060,7 +4204,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/suzuka_grandprix.json",
-      "sha256": "1b6c7f83c4328a88ee2ece434bd7d112c5b543256f277cc2e9dea2b8a12ee9f3"
+      "sha256": "6b0e6dd192853aa6449ebc98b007600d89ff4f3570646887f8182fe476887ad1"
     },
     {
       "id": "suzuka_moto",
@@ -4735,6 +4879,18 @@
       "sha256": "f3a218ba1e73d3785cbf81464de3d69ba111ef2312b8835f75635b6847159d28"
     },
     {
+      "id": "yas_marina",
+      "config": null,
+      "lengthM": 5287,
+      "closed": true,
+      "points": 265,
+      "pit": true,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/yas_marina.json",
+      "sha256": "37ca3ae51cef3fc23b7047f685587d696195e99f27a0be1c2f172892f904336f"
+    },
+    {
       "id": "zandvoort_2023_gp",
       "config": null,
       "lengthM": 4245,
@@ -4744,7 +4900,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/zandvoort_2023_gp.json",
-      "sha256": "5b1f3d9bbaeeaf1a42688cda9506dd96d89618923bd2e5d191663ddcf4141cff"
+      "sha256": "39dec0f9c34127f923d49c0e23aef49eacd7a6665dcf329d4d3d5d61da6e7d59"
     },
     {
       "id": "zandvoort_2023_gpchicane",
