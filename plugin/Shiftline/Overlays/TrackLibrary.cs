@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Newtonsoft.Json;
@@ -122,14 +123,20 @@ namespace Shiftline.Plugin
     }
 
     /// <summary>
-    /// The track shapes shipped with the plugin (data/tracks, zipped into the DLL at build time as "Shiftline.tracks.zip") plus
+    /// The track shapes shipped with the plugin (data/tracks, as Shiftline.Tracks.zip in Public Documents\Shiftline\Tracks; the
+    /// copy zipped into the DLL is only the fallback until it is removed) plus
     /// the user's own files in PluginsData\Shiftline\Tracks, which win. Loaded once in the background; until then IsReady is
     /// false and the Track Map draws its line or ring.
     /// </summary>
     internal static class TrackLibrary
     {
         private const string ResourceName = "Shiftline.tracks.zip";
+        private const int SupportedFormat = 1;      // manifest formatVersion this loader understands
+        private static readonly TimeSpan WatchEvery = TimeSpan.FromSeconds(15);
         private static readonly object Gate = new object();
+        private static readonly object LoadGate = new object();
+        private static Timer _watch;
+        private static string _loadedStamp = string.Empty;
         private static Task _loading;
         private static volatile TrackLayout[] _layouts;
         private static Dictionary<string, TrackSource> _sources = new Dictionary<string, TrackSource>(StringComparer.Ordinal);
@@ -181,99 +188,184 @@ namespace Shiftline.Plugin
                 if (_loading == null)
                 {
                     _loading = Task.Run((Action)Load);
+                    _watch = new Timer(delegate { CheckTrackFile(); }, null, WatchEvery, WatchEvery);
                 }
             }
+        }
+
+        /// <summary>Loads again when the track file appears or changes (the self-heal download, an update), no restart needed.</summary>
+        private static void CheckTrackFile()
+        {
+            try
+            {
+                if (_layouts == null || FileStamp() == _loadedStamp)
+                {
+                    return;
+                }
+
+                Load();
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Info("Track Map: track file check failed: " + ex.Message);
+            }
+        }
+
+        private static string FileStamp()
+        {
+            FileInfo info = new FileInfo(TrackPack.ZipPath);
+            return info.Exists ? info.Length + "/" + info.LastWriteTimeUtc.Ticks : string.Empty;
         }
 
         private static void Load()
         {
-            Dictionary<string, TrackLayout> layouts = new Dictionary<string, TrackLayout>(StringComparer.OrdinalIgnoreCase);
-            Dictionary<string, TrackSource> sources = new Dictionary<string, TrackSource>(StringComparer.Ordinal);
-            try
+            lock (LoadGate)
             {
-                LoadShipped(layouts, sources);
-            }
-            catch (Exception ex)
-            {
-                Problem = "The shipped track shapes could not be read: " + ex.Message;
-                PluginLog.Info("Track Map: " + Problem);
-            }
+                _loadedStamp = FileStamp();
+                Problem = null;
+                Dictionary<string, TrackLayout> layouts = new Dictionary<string, TrackLayout>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, TrackSource> sources = new Dictionary<string, TrackSource>(StringComparer.Ordinal);
+                try
+                {
+                    LoadShipped(layouts, sources);
+                }
+                catch (Exception ex)
+                {
+                    Problem = "The shipped track shapes could not be read: " + ex.Message;
+                    PluginLog.Info("Track Map: " + Problem);
+                }
 
-            try
-            {
-                LoadUser(layouts);
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Info("Track Map: own track files could not be read: " + ex.Message);
-            }
+                try
+                {
+                    LoadUser(layouts);
+                }
+                catch (Exception ex)
+                {
+                    PluginLog.Info("Track Map: own track files could not be read: " + ex.Message);
+                }
 
-            _sources = sources;
-            _layouts = layouts.Values.ToArray();
-            PluginLog.Info("Track Map: " + _layouts.Length + " track shapes loaded.");
+                _sources = sources;
+                _layouts = layouts.Values.ToArray();
+                PluginLog.Info("Track Map: " + _layouts.Length + " track shapes loaded.");
+            }
         }
 
+        /// <summary>
+        /// The shipped shapes: the track file of the plugin release (Public Documents\Shiftline\Tracks) first; while the DLL still
+        /// embeds a copy, that one is the fallback when the file is missing, unreadable or of a newer format.
+        /// </summary>
         private static void LoadShipped(Dictionary<string, TrackLayout> layouts, Dictionary<string, TrackSource> sources)
         {
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName))
+            string path = TrackPack.ZipPath;
+            string externalProblem = null;
+            if (File.Exists(path))
             {
-                if (stream == null)
+                try
                 {
-                    Problem = "No track shapes in this build.";
+                    // read it whole and let go of the file at once: the self-heal must be able to replace it while SimHub runs
+                    byte[] data;
+                    using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
+                    using (MemoryStream copy = new MemoryStream())
+                    {
+                        file.CopyTo(copy);
+                        data = copy.ToArray();
+                    }
+
+                    Dictionary<string, TrackLayout> found = new Dictionary<string, TrackLayout>(StringComparer.OrdinalIgnoreCase);
+                    Dictionary<string, TrackSource> foundSources = new Dictionary<string, TrackSource>(StringComparer.Ordinal);
+                    using (MemoryStream stream = new MemoryStream(data))
+                    {
+                        LoadZip(stream, found, foundSources);
+                    }
+
+                    foreach (KeyValuePair<string, TrackLayout> pair in found)
+                    {
+                        layouts[pair.Key] = pair.Value;
+                    }
+
+                    foreach (KeyValuePair<string, TrackSource> pair in foundSources)
+                    {
+                        sources[pair.Key] = pair.Value;
+                    }
+
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    externalProblem = "The track file " + path + " could not be used: " + ex.Message;
+                    PluginLog.Info("Track Map: " + externalProblem);
+                }
+            }
+
+            using (Stream embedded = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName))
+            {
+                if (embedded == null)
+                {
+                    Problem = externalProblem ?? "No track shapes found (the track file is missing).";
                     return;
                 }
 
-                using (ZipArchive zip = new ZipArchive(stream, ZipArchiveMode.Read))
+                LoadZip(embedded, layouts, sources);
+            }
+        }
+
+        private static void LoadZip(Stream stream, Dictionary<string, TrackLayout> layouts, Dictionary<string, TrackSource> sources)
+        {
+            using (ZipArchive zip = new ZipArchive(stream, ZipArchiveMode.Read))
+            {
+                // the zip may store "\" or "/" as separator, depending on the tool that made it
+                Dictionary<string, ZipArchiveEntry> entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipArchiveEntry entry in zip.Entries)
                 {
-                    // the zip may store "\" or "/" as separator, depending on the tool that made it
-                    Dictionary<string, ZipArchiveEntry> entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
-                    foreach (ZipArchiveEntry entry in zip.Entries)
+                    entries[entry.FullName.Replace('\\', '/').TrimStart('/')] = entry;
+                }
+
+                ZipArchiveEntry manifestEntry;
+                if (!entries.TryGetValue("manifest.json", out manifestEntry))
+                {
+                    throw new InvalidDataException("The track data has no manifest.");
+                }
+
+                JObject manifest = ReadJson(manifestEntry.Open());
+                int format = (int?)manifest["formatVersion"] ?? 1;
+                if (format > SupportedFormat)
+                {
+                    throw new InvalidDataException("The track data is format " + format + ", this plugin reads up to " + SupportedFormat + ". Update the plugin.");
+                }
+
+                foreach (JObject source in (manifest["sources"] as JArray ?? new JArray()).OfType<JObject>())
+                {
+                    string name = (string)source["name"] ?? string.Empty;
+                    sources[name] = new TrackSource
                     {
-                        entries[entry.FullName.Replace('\\', '/').TrimStart('/')] = entry;
+                        Name = name,
+                        DisplayName = (string)source["displayName"] ?? name,
+                        License = (string)source["license"] ?? string.Empty,
+                        Url = (string)source["url"] ?? (string)source["repo"] ?? string.Empty
+                    };
+                }
+
+                foreach (JObject item in (manifest["layouts"] as JArray ?? new JArray()).OfType<JObject>())
+                {
+                    // the path always comes from the manifest ("layouts/..." or "osm/layouts/..."), never from the id
+                    string file = ((string)item["file"] ?? string.Empty).Replace('\\', '/').TrimStart('/');
+                    ZipArchiveEntry entry;
+                    if (file.Length == 0 || !entries.TryGetValue(file, out entry))
+                    {
+                        continue;       // a missing layout is normal: that track falls back to the line or the ring
                     }
 
-                    ZipArchiveEntry manifestEntry;
-                    if (!entries.TryGetValue("manifest.json", out manifestEntry))
+                    try
                     {
-                        Problem = "The track data has no manifest.";
-                        return;
+                        TrackLayout layout = TrackLayout.Parse(ReadJson(entry.Open()), (string)item["source"] ?? string.Empty);
+                        if (layout != null)
+                        {
+                            layouts[layout.Id] = layout;
+                        }
                     }
-
-                    JObject manifest = ReadJson(manifestEntry.Open());
-                    foreach (JObject source in (manifest["sources"] as JArray ?? new JArray()).OfType<JObject>())
+                    catch (Exception ex)
                     {
-                        string name = (string)source["name"] ?? string.Empty;
-                        sources[name] = new TrackSource
-                        {
-                            Name = name,
-                            DisplayName = (string)source["displayName"] ?? name,
-                            License = (string)source["license"] ?? string.Empty,
-                            Url = (string)source["url"] ?? (string)source["repo"] ?? string.Empty
-                        };
-                    }
-
-                    foreach (JObject item in (manifest["layouts"] as JArray ?? new JArray()).OfType<JObject>())
-                    {
-                        // the path always comes from the manifest ("layouts/..." or "osm/layouts/..."), never from the id
-                        string file = ((string)item["file"] ?? string.Empty).Replace('\\', '/').TrimStart('/');
-                        ZipArchiveEntry entry;
-                        if (file.Length == 0 || !entries.TryGetValue(file, out entry))
-                        {
-                            continue;       // a missing layout is normal: that track falls back to the line or the ring
-                        }
-
-                        try
-                        {
-                            TrackLayout layout = TrackLayout.Parse(ReadJson(entry.Open()), (string)item["source"] ?? string.Empty);
-                            if (layout != null)
-                            {
-                                layouts[layout.Id] = layout;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            PluginLog.Info("Track Map: layout " + file + " skipped: " + ex.Message);
-                        }
+                        PluginLog.Info("Track Map: layout " + file + " skipped: " + ex.Message);
                     }
                 }
             }
