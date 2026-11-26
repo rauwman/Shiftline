@@ -47,6 +47,8 @@ Source: "..\plugin\Shiftline\Assets\Flags\LICENSE-flag-icons.txt"; DestDir: "{co
 Source: "..\data\tracks\LICENSES\SIMRacingApps\*"; DestDir: "{commondocs}\Shiftline\Licenses\SIMRacingApps"; Flags: ignoreversion
 ; Layouts corrected from OpenStreetMap (ODbL) carry their attribution. Skipped while the pack has no OSM layouts.
 Source: "..\data\tracks\LICENSES\OpenStreetMap\*"; DestDir: "{commondocs}\Shiftline\Licenses\OpenStreetMap"; Flags: ignoreversion skipifsourcedoesntexist
+; Layouts taken from imported layers with a free licence (ODbL, CC BY, CC0) carry their credits. Skipped while the pack has none.
+Source: "..\data\tracks\LICENSES\Imported\*"; DestDir: "{commondocs}\Shiftline\Licenses\Imported"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{commonprograms}\Shiftline\Uninstall Shiftline"; Filename: "{uninstallexe}"
