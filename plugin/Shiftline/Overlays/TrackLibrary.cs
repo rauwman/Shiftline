@@ -288,6 +288,7 @@ namespace Shiftline.Plugin
                         sources[pair.Key] = pair.Value;
                     }
 
+                    PluginLog.Info("Track Map: track shapes read from the track file.");
                     return;
                 }
                 catch (Exception ex)
@@ -306,6 +307,7 @@ namespace Shiftline.Plugin
                 }
 
                 LoadZip(embedded, layouts, sources);
+                PluginLog.Info("Track Map: track shapes read from the copy inside the plugin.");
             }
         }
 
