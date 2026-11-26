@@ -4,7 +4,7 @@
 ;   ISCC.exe /DAppVersion=0.2.1 Shiftline.iss). The installer appears in installer\Output.
 
 #ifndef AppVersion
-  #define AppVersion "0.4.0"
+  #define AppVersion "0.4.1"
 #endif
 
 [Setup]

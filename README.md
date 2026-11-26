@@ -52,7 +52,7 @@ Untested so far: ERS mode and the safety car delta (F1 games).
 - **Standings:** position, class colour, places gained, car number, country flag (iRacing), name, car make, licence and iRating with an estimated change (iRacing), gap and interval, last lap, tyres, pit stops and the live delta to the cars around you. Header with session, track, time left, SOF and clock; footer with your last, best and delta
 - **Relatives:** the cars around you on the track with the gap to you, in the same look as the standings. How many cars you see in front and behind is up to you
 - **Battle Bar:** you in the middle with the cars around you, or a ticker with the field like on TV (fixed or running), with gaps, trend arrows, country flags and a battle frame
-- **Track Map:** the track as its real shape for iRacing and many tracks in other SimHub games (about 400 layouts built in), or as a ring or a line when no shape is known. Cars with lap rings, the fastest lap, the pit lane and an animated start/finish line
+- **Track Map:** the track as its real shape for iRacing and many tracks in other SimHub games (about 400 layouts, installed with the plugin), or as a ring or a line when no shape is known. Cars with lap rings, the fastest lap, the pit lane and an animated start/finish line
 - Every column can be switched and styled: number styles, name formats, decimals, backgrounds, fonts (Inter and Saira SemiCondensed built in), rounded or square corners, rows and size
 - **Main settings** on the General page: update rate and frame rate, overlay, table and header opacity, row spacing, font, weight and corners for all overlays at once. Each overlay page follows them ("Same as in General") or has its own values
 - Classes on their own, grouped or mixed; animated position changes
