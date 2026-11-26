@@ -261,14 +261,14 @@
     {
       "id": "bahrain",
       "config": "Grand Prix",
-      "lengthM": 5407.6,
+      "lengthM": 5409.3,
       "closed": true,
       "points": 271,
       "pit": true,
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/bahrain.json",
-      "sha256": "9de9afeb8db46861de9b0b9e9b1f8105fa9dfcb01e3750f16b173bf96afa325e"
+      "sha256": "dd7cab645e9318fd907cb3c04122083d093e8f72f5db966577a3f679991edb7a"
     },
     {
       "id": "baku",
@@ -280,7 +280,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/baku.json",
-      "sha256": "e7e5646fde14524e644bf56ec10c4d23124aa663bd7aab3ee0702926f6d87901"
+      "sha256": "9cb281cc64a568505deed3f4c48ca255bbcea9fdab56b7ff1178d3ca3a3ad47f"
     },
     {
       "id": "barber_full",
@@ -437,6 +437,18 @@
       "source": "OpenStreetMap",
       "file": "osm/layouts/brandshatch_indy.json",
       "sha256": "e0864a2e5ad757801c270ef11666cd31785e28cca64c57988ab4c953d3b084c3"
+    },
+    {
+      "id": "brandshatch_rallycross",
+      "config": null,
+      "lengthM": 1927.7,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "corrected",
+      "source": "OpenStreetMap",
+      "file": "osm/layouts/brandshatch_rallycross.json",
+      "sha256": "50f411c36060fe898e1007f6d8bae8dfc2fe2c4c6ad79f0c3c35bf659fc979bb"
     },
     {
       "id": "bristol",
@@ -2320,7 +2332,7 @@
       "check": "corrected",
       "source": "OpenStreetMap",
       "file": "osm/layouts/mexico.json",
-      "sha256": "9ad068300064ecbe1047f07f965c50267a834c223ffbec13d80353a5e4e4e12c"
+      "sha256": "528bf836cc951bbe5d8e9eaf3d0af0e8eb45a8952278cf5c5ce2c12ddaab44f4"
     },
     {
       "id": "mexicocity_ev",
@@ -4505,6 +4517,18 @@
       "source": "SIMRacingApps",
       "file": "layouts/vegas_inflegends.json",
       "sha256": "197fff12bfd09467548abc4d18f7278a89245d23ade3709acc39a0ae2a382c6b"
+    },
+    {
+      "id": "vegas_legends",
+      "config": null,
+      "lengthM": 449.6,
+      "closed": true,
+      "points": 256,
+      "pit": false,
+      "check": "checked",
+      "source": "SIMRacingApps",
+      "file": "layouts/vegas_legends.json",
+      "sha256": "52a399e286818ae6e8c3dd8b2915d93fe3c31b5241dab2b74a366caa05d4786c"
     },
     {
       "id": "vegas_oval",

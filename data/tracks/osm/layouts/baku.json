@@ -31,7 +31,7 @@
     "license": "ODbL-1.0",
     "kind": "osm",
     "file": "additions/baku.json",
-    "sha256": "99b0ba36ea9756747085df55fc296ad46f8845f6ff24c00c5f66e21bbe680c5e",
+    "sha256": "72ccdd0b5fe0d2ae8667164263e297ff28a0ffd6a606fb2abb2e6b386131d33b",
     "smoothing": "centripetal-catmull-rom",
     "correction": {
       "reason": "Traced along OpenStreetMap ways.",
@@ -76,7 +76,8 @@
       "start": {
         "source": "OpenTrackData",
         "slug": "baku",
-        "confidence": "medium"
+        "confidence": "medium",
+        "confirmedAt": "2026-11-25"
       }
     },
     "check": "corrected",

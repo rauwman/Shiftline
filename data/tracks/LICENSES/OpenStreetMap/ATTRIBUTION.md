@@ -15,5 +15,5 @@ Changes made by Shiftline: shapes traced by eye along the OpenStreetMap ways, pr
 smoothed with a centripetal Catmull-Rom spline and resampled to evenly spaced points.
 
 Start/finish positions of these layouts are taken from OpenTrackData (https://github.com/chendo/opentrackdata),
-researched there from official circuit sources: autopolis, bahrain, baku, mexico
+researched there from official circuit sources: autopolis, baku, mexico
 (c) OpenTrackData contributors, Open Database License (ODbL) 1.0; OpenTrackData is itself derived from OpenStreetMap.

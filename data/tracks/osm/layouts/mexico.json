@@ -37,7 +37,7 @@
     "license": "ODbL-1.0",
     "kind": "osm",
     "file": "additions/mexico.json",
-    "sha256": "bf77c9ee3fefaa1688eb725f00dbfc206535affc73104e71da3a8d8f2e909bfb",
+    "sha256": "e3820f130e91a786e3001079a30e92c183b03f6552343402aa0d5c861a415c79",
     "smoothing": "centripetal-catmull-rom",
     "correction": {
       "reason": "Traced along OpenStreetMap ways.",
@@ -66,9 +66,9 @@
         "source": "OpenTrackData",
         "slug": "mexico",
         "confidence": "medium",
-        "agreeM": 277,
-        "spreadM": 277,
-        "confirmedAt": "2026-11-15"
+        "agreeM": 278,
+        "spreadM": 278,
+        "confirmedAt": "2026-11-25"
       },
       "pitWayIds": [
         638504647,
