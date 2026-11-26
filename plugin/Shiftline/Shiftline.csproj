@@ -192,6 +192,7 @@
     <Compile Include="Shiftline.cs" />
     <Compile Include="TabSettings.cs" />
     <Compile Include="TestScenarios.cs" />
+    <Compile Include="TrackPack.cs" />
     <Compile Include="UpdateService.cs" />
     <Resource Include="Assets\background.jpg" />
     <Resource Include="Assets\logo.png" />
@@ -282,5 +283,15 @@
         <LogicalName>Shiftline.tracks.zip</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
+  </Target>
+  <!-- Debug builds put the current data/tracks where the plugin reads it (Public Documents\Shiftline\Tracks, see TrackPack.cs);
+       released plugins get the file from the installer, the updater or their own release. -->
+  <Target Name="CopyTrackDataDebug" AfterTargets="Build" Condition=" '$(Configuration)' == 'Debug' And Exists('$(MSBuildProjectDirectory)\..\..\data\tracks\manifest.json') ">
+    <PropertyGroup>
+      <ShiftlineTracksFolder>$([System.Environment]::GetFolderPath(SpecialFolder.CommonDocuments))\Shiftline\Tracks</ShiftlineTracksFolder>
+    </PropertyGroup>
+    <MakeDir Directories="$(ShiftlineTracksFolder)" />
+    <ZipDirectory SourceDirectory="$(MSBuildProjectDirectory)\..\..\data\tracks" DestinationFile="$(ShiftlineTracksFolder)\Shiftline.Tracks.zip" Overwrite="true" />
+    <WriteLinesToFile File="$(ShiftlineTracksFolder)\Shiftline.Tracks.version" Lines="debug" Overwrite="true" />
   </Target>
 </Project>

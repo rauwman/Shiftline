@@ -3,7 +3,9 @@
     Shiftline-Setup-<version>.exe      the installer
     Shiftline.Plugin.dll               the plugin
     Shiftline.Plugin.dll.sha256        the checksum of that DLL
-  Upload these three files to the GitHub release.
+    Shiftline.Tracks.zip               the track shapes (data\tracks), installed next to the plugin's data
+    Shiftline.Tracks.zip.sha256        the checksum of that zip
+  Upload these files to the GitHub release. The plugin and its updater need the exact names.
 
   Usage (from the repository folder):
     powershell -ExecutionPolicy Bypass -File tools\make-release.ps1
@@ -84,7 +86,30 @@ if (-not (Test-Path $dll)) { throw "The DLL does not exist: $dll" }
 $hash = (Get-FileHash $dll -Algorithm SHA256).Hash
 Write-Host "SHA256 $hash"
 
-# --- 3. installer (it packs the DLL from bin\Release)
+# --- 3a. track shapes: data\tracks as Shiftline.Tracks.zip (entry names with "/") and the version they belong to
+$tracksDir = Join-Path $root 'data\tracks'
+if (-not (Test-Path (Join-Path $tracksDir 'manifest.json'))) { throw 'data\tracks\manifest.json not found' }
+$changed = git -C $root status --porcelain -- data/tracks
+if ($changed) { throw 'data\tracks has changes that are not committed. Commit them (or undo them) first, the release has to match Git.' }
+$staging = Join-Path $root 'installer\Output'
+New-Item -ItemType Directory -Force $staging | Out-Null
+$tracksZip = Join-Path $staging 'Shiftline.Tracks.zip'
+if (Test-Path $tracksZip) { Remove-Item $tracksZip -Force }
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::Open($tracksZip, 'Create')
+try {
+    $base = (Resolve-Path $tracksDir).Path.TrimEnd('\') + '\'
+    Get-ChildItem $tracksDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+        $entry = $_.FullName.Substring($base.Length).Replace('\', '/')
+        [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal)
+    }
+}
+finally { $zip.Dispose() }
+[IO.File]::WriteAllText((Join-Path $staging 'Shiftline.Tracks.version'), $version, [Text.Encoding]::ASCII)
+$tracksHash = (Get-FileHash $tracksZip -Algorithm SHA256).Hash
+Write-Host "Track shapes: $((Get-Item $tracksZip).Length) bytes, SHA256 $tracksHash"
+
+# --- 3. installer (it packs the DLL from bin\Release and the track shapes from installer\Output)
 $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
 if (-not (Test-Path $iscc)) { throw 'Inno Setup 6 not found (ISCC.exe)' }
 Write-Host 'Compiling the installer ...'
@@ -93,7 +118,7 @@ if ($LASTEXITCODE -ne 0) { throw 'The installer could not be compiled' }
 $setup = Join-Path $root "installer\Output\Shiftline-Setup-$version.exe"
 if (-not (Test-Path $setup)) { throw "The installer was not created: $setup" }
 
-# --- 4. collect the three files and check them against each other
+# --- 4. collect the files and check them against each other
 $out = Join-Path $root "release\$version"
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 New-Item -ItemType Directory -Force $out | Out-Null
@@ -104,6 +129,9 @@ Copy-Item $setup $out
 $copied = (Get-FileHash (Join-Path $out 'Shiftline.Plugin.dll') -Algorithm SHA256).Hash
 $written = (Get-Content (Join-Path $out 'Shiftline.Plugin.dll.sha256') -Raw).Trim()
 if ($copied -ne $written) { throw 'The checksum file does not match the DLL in the release folder' }
+Copy-Item $tracksZip $out
+[IO.File]::WriteAllText((Join-Path $out 'Shiftline.Tracks.zip.sha256'), $tracksHash, [Text.Encoding]::ASCII)
+if ((Get-FileHash (Join-Path $out 'Shiftline.Tracks.zip') -Algorithm SHA256).Hash -ne $tracksHash) { throw 'The checksum file does not match the track zip in the release folder' }
 
 Write-Host ''
 Write-Host "Done. Upload these files to the GitHub release v$($version):" -ForegroundColor Green

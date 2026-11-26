@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -119,8 +120,14 @@ namespace Shiftline.Plugin
             {
                 UpdateText.Text = "Downloading version " + info.Version + " ...";
                 string file = await UpdateService.DownloadAsync(info);
+                string tracks = null;
+                if (info.TracksUrl != null && info.TracksChecksumUrl != null)
+                {
+                    tracks = await TrackPack.DownloadAsync(info.TracksUrl, info.TracksChecksumUrl, Path.Combine(UpdateService.UpdateFolder, TrackPack.ZipName + ".new"));
+                }
+
                 UpdateText.Text = "Closing SimHub to install the update ...";
-                if (UpdateService.StartInstall(file))
+                if (UpdateService.StartInstall(file, tracks, info.Version.ToString()))
                 {
                     Application.Current.Shutdown();
                     return;

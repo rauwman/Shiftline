@@ -42,13 +42,23 @@ Source: "..\README.md"; DestDir: "{commondocs}\Shiftline"; Flags: ignoreversion
 Source: "..\plugin\Shiftline\Assets\Fonts\OFL-*.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
 ; The country flags of the standings come from the flag-icons project (MIT licence), built into the DLL. Its licence travels with them.
 Source: "..\plugin\Shiftline\Assets\Flags\LICENSE-flag-icons.txt"; DestDir: "{commondocs}\Shiftline\Licenses"; Flags: ignoreversion
-; The track map data (data\tracks) is built into the DLL. Layouts from SIMRacingApps (Apache License 2.0) need its
+; The track shapes: tools\make-release.ps1 zips data\tracks into Output\Shiftline.Tracks.zip and writes the version they
+; belong to. They are replaced completely on every install and update (see TrackPack.cs in the plugin).
+Source: "Output\Shiftline.Tracks.zip"; DestDir: "{commondocs}\Shiftline\Tracks"; Flags: ignoreversion
+Source: "Output\Shiftline.Tracks.version"; DestDir: "{commondocs}\Shiftline\Tracks"; Flags: ignoreversion
+; The track map data (data\tracks) is a file of its own. Layouts from SIMRacingApps (Apache License 2.0) need its
 ; licence and NOTICE to travel with them.
 Source: "..\data\tracks\LICENSES\SIMRacingApps\*"; DestDir: "{commondocs}\Shiftline\Licenses\SIMRacingApps"; Flags: ignoreversion
 ; Layouts corrected from OpenStreetMap (ODbL) carry their attribution. Skipped while the pack has no OSM layouts.
 Source: "..\data\tracks\LICENSES\OpenStreetMap\*"; DestDir: "{commondocs}\Shiftline\Licenses\OpenStreetMap"; Flags: ignoreversion skipifsourcedoesntexist
 ; Layouts taken from imported layers with a free licence (ODbL, CC BY, CC0) carry their credits. Skipped while the pack has none.
 Source: "..\data\tracks\LICENSES\Imported\*"; DestDir: "{commondocs}\Shiftline\Licenses\Imported"; Flags: ignoreversion skipifsourcedoesntexist
+; Layouts traced from CC BY-SA pictures (bysa/) carry the licence texts and the list of authors. Skipped while there are none.
+Source: "..\data\tracks\LICENSES\CC-BY-SA\*"; DestDir: "{commondocs}\Shiftline\Licenses\CC-BY-SA"; Flags: ignoreversion skipifsourcedoesntexist
+
+[UninstallDelete]
+; The plugin may have downloaded the track shapes itself (after an update by an older updater).
+Type: filesandordirs; Name: "{commondocs}\Shiftline\Tracks"
 
 [Icons]
 Name: "{commonprograms}\Shiftline\Uninstall Shiftline"; Filename: "{uninstallexe}"

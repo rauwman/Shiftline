@@ -88,19 +88,25 @@ namespace Shiftline.Plugin
         public string DllUrl { get; set; }
 
         public string ChecksumUrl { get; set; }
+
+        /// <summary>The track shapes of the release (Shiftline.Tracks.zip) and their checksum, or null for older releases.</summary>
+        public string TracksUrl { get; set; }
+
+        public string TracksChecksumUrl { get; set; }
     }
 
     /// <summary>
-    /// Looks for a newer release on GitHub, downloads its Shiftline.Plugin.dll and replaces the installed one after SimHub has
-    /// closed. SimHub locks the DLL while it runs, so a small PowerShell script waits for SimHub to exit, copies the new file
-    /// (keeping the old one as a backup) and starts SimHub again.
+    /// Looks for a newer release on GitHub, downloads its Shiftline.Plugin.dll and its track shapes (Shiftline.Tracks.zip) and
+    /// replaces the installed ones after SimHub has closed. SimHub locks the DLL while it runs, so a small PowerShell script waits
+    /// for SimHub to exit, copies the new files (keeping the old DLL as a backup) and starts SimHub again. One release, one
+    /// update for everything: there are no separate updates for parts of the plugin.
     /// </summary>
     public static class UpdateService
     {
-        private const string Repository = "rauwman/Shiftline";
+        internal const string Repository = "rauwman/Shiftline";
         private const string DllName = "Shiftline.Plugin.dll";
 
-        private static readonly HttpClient Http = CreateClient();
+        internal static readonly HttpClient Http = CreateClient();
 
         /// <summary>The newest newer release found by the last check, or null.</summary>
         public static UpdateInfo Available { get; private set; }
@@ -216,6 +222,14 @@ namespace Shiftline.Plugin
                         {
                             info.ChecksumUrl = (string)asset["browser_download_url"];
                         }
+                        else if (string.Equals(name, TrackPack.ZipName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            info.TracksUrl = (string)asset["browser_download_url"];
+                        }
+                        else if (string.Equals(name, TrackPack.ZipName + ".sha256", StringComparison.OrdinalIgnoreCase))
+                        {
+                            info.TracksChecksumUrl = (string)asset["browser_download_url"];
+                        }
                     }
 
                     best = info;
@@ -285,11 +299,12 @@ namespace Shiftline.Plugin
         }
 
         /// <summary>
-        /// Starts the script that replaces the installed DLL after SimHub has exited and starts SimHub again. It asks for
-        /// administrator rights when the SimHub folder cannot be written to (for example under Program Files). The caller closes SimHub.
-        /// Returns false when the script could not be started (for example the administrator question was cancelled).
+        /// Starts the script that replaces the installed DLL (and, when given, the track shapes) after SimHub has exited and starts
+        /// SimHub again. It asks for administrator rights when the SimHub folder cannot be written to (for example under Program
+        /// Files). The caller closes SimHub. Returns false when the script could not be started (for example the administrator
+        /// question was cancelled). "version" is written next to the track shapes (see TrackPack).
         /// </summary>
-        public static bool StartInstall(string newDll)
+        public static bool StartInstall(string newDll, string newTracks = null, string version = null)
         {
             string target = typeof(UpdateService).Assembly.Location;
             string simHubExe = Process.GetCurrentProcess().MainModule.FileName;
@@ -305,6 +320,13 @@ namespace Shiftline.Plugin
                 + " -Backup " + Quote(Path.Combine(previous, DllName))
                 + " -Exe " + Quote(simHubExe)
                 + " -Log " + Quote(Path.Combine(UpdateFolder, "update.log"));
+            if (newTracks != null && version != null)
+            {
+                arguments += " -TracksSource " + Quote(newTracks)
+                    + " -TracksTarget " + Quote(TrackPack.ZipPath)
+                    + " -TracksVersionFile " + Quote(TrackPack.VersionPath)
+                    + " -Version " + Quote(version);
+            }
 
             ProcessStartInfo start = new ProcessStartInfo("powershell.exe", arguments) { UseShellExecute = true, WindowStyle = ProcessWindowStyle.Hidden };
             if (!IsWritable(Path.GetDirectoryName(target)))
@@ -344,7 +366,7 @@ namespace Shiftline.Plugin
             }
         }
 
-        private const string ScriptText = @"param([int]$ProcessId, [string]$Source, [string]$Target, [string]$Backup, [string]$Exe, [string]$Log)
+        private const string ScriptText = @"param([int]$ProcessId, [string]$Source, [string]$Target, [string]$Backup, [string]$Exe, [string]$Log, [string]$TracksSource = '', [string]$TracksTarget = '', [string]$TracksVersionFile = '', [string]$Version = '')
 function Write-Log($text) { Add-Content -LiteralPath $Log -Value ((Get-Date -Format s) + ' ' + $text) }
 try {
     Write-Log 'Waiting for SimHub to close'
@@ -370,6 +392,25 @@ try {
     if ($done) {
         Write-Log 'Plugin replaced, the old file is kept as a backup'
         Remove-Item -LiteralPath $Source -Force -ErrorAction SilentlyContinue
+        if ($TracksSource) {
+            $tracksDone = $false
+            for ($i = 0; $i -lt 20 -and -not $tracksDone; $i++) {
+                try {
+                    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $TracksTarget) | Out-Null
+                    Copy-Item -LiteralPath $TracksSource -Destination $TracksTarget -Force
+                    Set-Content -LiteralPath $TracksVersionFile -Value $Version -NoNewline -Encoding ASCII
+                    $tracksDone = $true
+                } catch {
+                    Start-Sleep -Milliseconds 500
+                }
+            }
+            if ($tracksDone) {
+                Write-Log 'Track shapes replaced'
+                Remove-Item -LiteralPath $TracksSource -Force -ErrorAction SilentlyContinue
+            } else {
+                Write-Log 'The track shapes could not be replaced, the plugin downloads them at its next start'
+            }
+        }
         Write-Log 'Starting SimHub'
         Start-Process explorer.exe -ArgumentList ('""' + $Exe + '""')
     } else {

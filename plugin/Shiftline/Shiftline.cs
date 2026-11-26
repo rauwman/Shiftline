@@ -150,6 +150,9 @@ namespace Shiftline.Plugin
             this.AttachDelegate("ScriptBuild", () => { NoteScriptRead(); return Settings.ScriptBuild; });
             this.AttachDelegate("ScriptSource", () => ScriptSource.Text);
 
+            // The track shapes are a file of their own; fetch the one of this version when it is missing (see TrackPack).
+            Task.Run(() => TrackPack.EnsureAsync());
+
             // Look for a newer release a little after SimHub has started (the Home page shows the result).
             if (UpdateService.AutoCheck)
             {
