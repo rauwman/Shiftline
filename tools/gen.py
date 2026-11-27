@@ -211,12 +211,12 @@ tabsettings_cs = '\n'.join(ts) + '\n'
 
 # ---------------------------------------------------------------- write
 def write(name, text):
-    with open(os.path.join(proj, name), 'w', encoding='utf-8-sig', newline='\r\n') as f:
+    with open(os.path.join(proj, name), 'w', encoding='utf-8-sig', newline='\n') as f:   # the repo holds LF; CRLF would leave these files modified on Windows
         f.write(text)
 
 write('Settings.cs', settings_cs)
 write('TestScenarios.cs', scenarios_cs)
 write('TabSettings.cs', tabsettings_cs)
 json.dump({'defaults': defaults, 'scenarios': scenarios, 'maxSide': MAX_SIDE, 'maxCentre': MAX_CENTRE},
-          open(os.path.join(here, 'gen_summary.json'), 'w'), indent=1)
+          open(os.path.join(here, 'gen_summary.json'), 'w', newline='\n'), indent=1)
 print('generated', len(defaults), 'settings,', len(scenarios), 'scenarios ->', proj)

@@ -32,7 +32,15 @@ def read(*parts):
 
 # 1. C# syntax (tree-sitter) and language level (project has no LangVersion: C# 7.3 on net48)
 parser = Parser(Language(tscs.language()))
-cs_files = sorted(glob.glob(os.path.join(proj, '**', '*.cs'), recursive=True))
+cs_files = sorted(f for f in glob.glob(os.path.join(proj, '**', '*.cs'), recursive=True)
+                  if not {'obj', 'bin'} & set(os.path.relpath(f, proj).split(os.sep)))   # skip build output
+
+
+def code_only(s):
+    """C# source without comments and string/char literals, so the language-level checks only see code."""
+    return re.sub(r'//[^\n]*|/\*.*?\*/|@"(?:[^"]|"")*"|\$?"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])\'', ' ', s, flags=re.S)
+
+
 all_cs = ''
 for f in cs_files:
     src = open(f, 'rb').read()
@@ -51,11 +59,12 @@ for f in cs_files:
         ok = False
     text = re.sub(r'//.*', '', src.decode('utf-8-sig'))
     all_cs += text
+    code = code_only(src.decode('utf-8-sig'))
     for pat, what in [(r'\?\?=', '??= (C# 8)'), (r'\bis not\b', 'is not (C# 9)'),
                       (r'\busing\s+(var|[A-Z]\w*)\s+\w+\s*=[^;]*;\s*$', 'using declaration (C# 8)'),
                       (r'\bnew\(\)', 'target-typed new (C# 9)'), (r'\binit;', 'init accessor (C# 9)'),
                       (r'\brecord\b', 'record (C# 9)'), (r'\bswitch\s*\{', 'switch expression (C# 8)')]:
-        if re.search(pat, text, re.M):
+        if re.search(pat, code, re.M):
             fail(f'{os.path.basename(f)} uses {what}')
 
 # 2. Settings.cs (generated) vs script defaults
@@ -132,7 +141,7 @@ for name, xt in texts.items():
     if 'public ' + cl_m.group(1) + '()' not in code:
         fail(f'{name}: code-behind has no parameterless constructor')
     # elements the code talks to must exist in the XAML
-    skip = class_names | {'System', 'Data', 'Plugin', 'Index', 'Settings', 'Clipboard', 'Process', 'Directory', 'Environment', 'Visibility'}
+    skip = class_names | {'System', 'Data', 'Plugin', 'Index', 'Settings', 'Clipboard', 'Process', 'Directory', 'Environment', 'Visibility', 'Windows'}   # 'Windows' = System.Windows.Visibility
     for ident in set(re.findall(r'\b([A-Z]\w+)\.(?:ItemsSource|SelectedItem|SelectedIndex|Items|Visibility|Children|Value|Text|ScrollIntoView|Content|IsChecked)\b', code)):
         if ident not in skip and ident not in declared_names[name]:
             fail(f'{name}: code uses {ident} but the XAML has no x:Name="{ident}"')
@@ -191,7 +200,7 @@ for name, t in texts.items():
             ui.setdefault(re.match(r'\{Binding (\w+)', sv).group(1), []).extend(i.get('Tag') for i in sel)
 for prop, value in re.findall(r'IsChecked="\{Binding (\w+), Converter=\{StaticResource StrEq\}, ConverterParameter=([^}]+)\}"', pages_xaml):
     ui.setdefault(prop, []).append(value)
-json.dump(ui, open(os.path.join(here, 'ui_values.json'), 'w'), indent=1)
+json.dump(ui, open(os.path.join(here, 'ui_values.json'), 'w', newline='\n'), indent=1)
 for prop, vals in ui.items():
     if prop not in js_defaults:
         continue                      # a choice that belongs to the plugin (for example the game of a preset), not to the LED script
@@ -214,13 +223,18 @@ except ET.ParseError as e:
 for inc in re.findall(r'<(?:Compile|Page) Include="([^"]+)"', cp_text):
     if not os.path.exists(os.path.join(proj, inc.replace('\\', os.sep))):
         fail('csproj includes missing file ' + inc)
-included = {i.replace('\\', '/') for i in re.findall(r'<(?:Compile|Page) Include="([^"]+)"', cp_text)}
+# Debug-only files (screenshot tool) are listed in Directory.Build.targets next to the csproj
+targets_path = os.path.join(proj, 'Directory.Build.targets')
+targets_text = open(targets_path, encoding='utf-8-sig').read() if os.path.exists(targets_path) else ''
+included = {i.replace('\\', '/') for i in re.findall(r'<(?:Compile|Page) Include="([^"]+)"', cp_text + targets_text)}
 for f in cs_files + xaml_files:
     rel = os.path.relpath(f, proj).replace(os.sep, '/')
     if rel not in included:
         fail('file not in csproj: ' + rel)
 print('ok   csproj lists all source files')
 for inc in re.findall(r'<EmbeddedResource Include="([^"]+)"', cp_text):
+    if '*' in inc or '$(' in inc:
+        continue   # wildcards and MSBuild properties are resolved by the build, not here
     if not os.path.exists(os.path.normpath(os.path.join(proj, inc.replace('\\', os.sep)))):
         fail('csproj embeds missing file ' + inc)
 print('ok   embedded resources exist')
