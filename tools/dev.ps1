@@ -6,10 +6,12 @@
     powershell -ExecutionPolicy Bypass -File tools\dev.ps1 -Run start # one item without the menu
 
   Items: start (chat start summary), build (Debug build, errors only), check (gen.py, check.py, Node tests),
-  commit (proposals from .dev\COMMIT.txt or a simple suggestion, trailer, asks before push). Output of start/build/check goes to .dev\*.txt and the clipboard.
-  Only the commit item writes to Git (add, commit, and push after asking). The other items only read it.
+  commit (proposals from .dev\COMMIT.txt or a simple suggestion, trailer, asks before push),
+  release (version, notes check, test points, build, tag, GitHub release; with -DryRun it only shows the steps).
+  Output of start/build/check goes to .dev\*.txt and the clipboard, the release summary to .dev\RELEASE.txt.
+  Only the commit and release items write to Git (add, commit, tag, push, always after asking). The other items only read it.
 #>
-param([string]$Run = '')
+param([string]$Run = '', [switch]$DryRun)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -375,6 +377,354 @@ function Invoke-Commit {
     } finally { Pop-Location }
 }
 
+# --- release assistant ----------------------------------------------------------------------------------------------
+# Menu item 8 (item 9 = dry run, changes nothing). Steps:
+#   1 preflight (git state, checks)   2 version   3 notes file   4 test points   5 write version, commit, push
+#   6 build   7 try the installer   8 tag check   9 publish   10 summary in .dev\RELEASE.txt
+# Every step that changes something asks first and any problem stops the run. Run it again to carry on: steps that are
+# already done (version written, commit pushed) are skipped.
+# .dev\TESTLIST.txt holds one test point per line: area | what | open or tested  (no "|" inside the text).
+# The chats append lines, the menu marks them as tested and drops them after a release.
+
+# Area of a changed file (first match wins); only a hint for what to look at.
+$script:AreaRules = @(
+    @{ Area = 'Track data';                  Pattern = '^data/tracks/' },
+    @{ Area = 'Installer, updater, release'; Pattern = '^(installer/|tools/make-release|plugin/Shiftline/(TrackPack|UpdateService))' },
+    @{ Area = 'LED';                         Pattern = '^(tools/(Shiftline\.plugin\.js|gen\.py|check\.py|loader\.js|test_)|plugin/Shiftline/(Led|Preset|ColourTheme))' },
+    @{ Area = 'Overlays, Track Map';         Pattern = '^plugin/Shiftline/(Overlays/|.*(Overlay|Standings|BattleBar|TrackMap))' },
+    @{ Area = 'Docs';                        Pattern = '^(docs/|README|LICENSE)' },
+    @{ Area = 'Dev tools';                   Pattern = '^tools/' }
+)
+
+# Things that can only be tried once the release exists. They go into the summary.
+$script:AfterReleaseChecks = @(
+    'Install the previous release, then update in SimHub: Home page > Updates > Install and restart.',
+    'SimHub starts again and the Home page shows the new version.',
+    'PluginsData\Shiftline\Update\update.log has no error.',
+    'C:\Users\Public\Documents\Shiftline\Tracks\Shiftline.Tracks.version names the new version.',
+    'The Track Map shows a real track shape.'
+)
+
+function Confirm-Step([string]$question) {
+    $a = Read-Host ($question + ' (y/n)')
+    return ($a -eq 'y')
+}
+
+function Stop-Release([string]$text) {
+    Write-Host ''
+    Write-Host $text -ForegroundColor Yellow
+    Write-Host 'Release stopped here. Run item 8 again to carry on, finished steps are skipped.'
+}
+
+function Get-AheadBehind([string]$branch) {
+    $r = @{ Ahead = 0; Behind = 0 }
+    $c = (git rev-list --left-right --count "HEAD...origin/$branch" 2>$null)
+    if ($c) { $p = ($c -split '\s+'); $r.Ahead = [int]$p[0]; $r.Behind = [int]$p[1] }
+    return $r
+}
+
+function Get-FileVersion {
+    $info = [System.IO.File]::ReadAllText((Join-Path $root 'plugin\Shiftline\Properties\AssemblyInfo.cs'))
+    if ($info -match 'AssemblyInformationalVersion\("([^"]+)"\)') { return $Matches[1] }
+    return ''
+}
+
+function Set-TextKeepBom([string]$path, [string]$text) {
+    $bytes = [System.IO.File]::ReadAllBytes($path)
+    $bom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($bom)))
+}
+
+# Writes the version into AssemblyInfo.cs (3 lines) and Shiftline.iss (AppVersion). Keeps BOM and line endings.
+function Set-ReleaseVersion([string]$version) {
+    $numbers = [regex]::Match($version, '^\d+\.\d+\.\d+').Value
+    $edits = @(
+        @{ File = 'plugin\Shiftline\Properties\AssemblyInfo.cs'; Pattern = '(\[assembly: AssemblyVersion\(")[^"]+("\)\])';              Value = ($numbers + '.0') },
+        @{ File = 'plugin\Shiftline\Properties\AssemblyInfo.cs'; Pattern = '(\[assembly: AssemblyFileVersion\(")[^"]+("\)\])';          Value = ($numbers + '.0') },
+        @{ File = 'plugin\Shiftline\Properties\AssemblyInfo.cs'; Pattern = '(\[assembly: AssemblyInformationalVersion\(")[^"]+("\)\])'; Value = $version },
+        @{ File = 'installer\Shiftline.iss';                     Pattern = '(#define AppVersion ")[^"]+(")';                          Value = $version }
+    )
+    foreach ($file in @($edits | ForEach-Object { $_.File } | Select-Object -Unique)) {
+        $path = Join-Path $root $file
+        $text = [System.IO.File]::ReadAllText($path)
+        $new = $text
+        foreach ($e in @($edits | Where-Object { $_.File -eq $file })) {
+            if (-not [regex]::IsMatch($new, $e.Pattern)) { throw ('Version line not found in ' + $file + ': ' + $e.Pattern) }
+            $new = [regex]::Replace($new, $e.Pattern, ('${1}' + $e.Value + '${2}'))
+        }
+        if ($new -ne $text) { Set-TextKeepBom $path $new; Out-Line ($file + ': set to ' + $version) }
+        else { Out-Line ($file + ': already ' + $version) }
+    }
+}
+
+function Test-TagFree([string]$version) {
+    $t = 'v' + $version
+    if (@(git tag -l $t).Count -gt 0) {
+        Write-Host ('Tag ' + $t + ' already exists locally.') -ForegroundColor Yellow
+        return $false
+    }
+    $remote = @(git ls-remote --tags origin ('refs/tags/' + $t))
+    if ($remote.Count -gt 0) {
+        Write-Host ('Tag ' + $t + ' already exists on origin (a deleted release leaves its tag behind). Check where it points before you go on.') -ForegroundColor Yellow
+        return $false
+    }
+    return $true
+}
+
+function Push-IfAhead([string]$branch) {
+    git fetch --quiet origin 2>$null
+    $ab = Get-AheadBehind $branch
+    if ($ab.Behind -gt 0) { Write-Host ('origin/' + $branch + ' has ' + $ab.Behind + ' new commits. Run git pull first.') -ForegroundColor Yellow; return $false }
+    if ($ab.Ahead -eq 0) { return $true }
+    if (-not (Confirm-Step ('Push ' + $ab.Ahead + ' commit(s) to origin/' + $branch + ' now'))) { return $false }
+    git push | Out-Host
+    return ($LASTEXITCODE -eq 0)
+}
+
+# --- test list
+function Read-TestList {
+    $file = Join-Path $dev 'TESTLIST.txt'
+    $items = @()
+    if (-not (Test-Path $file)) { return $items }
+    foreach ($line in @(Get-Content $file -Encoding UTF8)) {
+        if ($line -match '^\s*#' -or -not $line.Trim()) { continue }
+        $p = @($line -split '\s*\|\s*')
+        if ($p.Count -lt 3) { continue }
+        $items += @{ Area = $p[0].Trim(); What = $p[1].Trim(); Status = $p[2].Trim().ToLower(); Raw = $line }
+    }
+    return $items
+}
+
+function Update-TestList([string]$mode, [string]$raw) {
+    $file = Join-Path $dev 'TESTLIST.txt'
+    if (-not (Test-Path $file)) { return }
+    Copy-Item $file ($file + '.bak') -Force
+    $lines = @(Get-Content $file -Encoding UTF8)
+    if ($mode -eq 'mark') {
+        $lines = @($lines | ForEach-Object { if ($_ -eq $raw) { $_ -replace '\|\s*open\s*$', '| tested' } else { $_ } })
+    } elseif ($mode -eq 'drop') {
+        $lines = @($lines | Where-Object { $_ -match '^\s*#' -or $_ -notmatch '\|\s*tested\s*$' })
+    }
+    Set-Content -Path $file -Value $lines -Encoding UTF8
+}
+
+# Runs tools\make-release.ps1; offers -UpdateReadme when the SimHub version in the README is out of date.
+function Invoke-MakeRelease {
+    $script2 = Join-Path $root 'tools\make-release.ps1'
+    $extra = @{}
+    for ($try = 0; $try -lt 3; $try++) {
+        $msg = ''
+        try { & $script2 @extra } catch { $msg = $_.Exception.Message }
+        if (-not $msg) { return $true }
+        Write-Host $msg -ForegroundColor Red
+        if ($msg -match 'README\.md names SimHub') {
+            if (-not (Confirm-Step 'Write the installed SimHub version into README.md')) { return $false }
+            $extra = @{ UpdateReadme = $true }
+            continue
+        }
+        if ($msg -match 'README\.md now names SimHub') {
+            $extra = @{}
+            if (-not (Save-Commit @('README.md') 'Update the SimHub version in the README' '' '')) { return $false }
+            continue
+        }
+        return $false
+    }
+    return $false
+}
+
+function Invoke-Release {
+    param([switch]$DryRun)
+    $ErrorActionPreference = 'Continue'
+    $script:out.Clear()
+    $title = 'Shiftline release'
+    if ($DryRun) { $title += ' (dry run, nothing is changed)' }
+    $script:out.Add($title + ', ' + (Get-Date -Format 'yyyy-MM-dd HH:mm'))
+    Push-Location $root
+    try {
+        # 1 -------------------------------------------------------------------------------------------------------
+        Write-Head '1 Preflight'
+        git fetch --quiet origin 2>$null
+        $branch = (git rev-parse --abbrev-ref HEAD).Trim()
+        if ($branch -ne 'main') { Stop-Release ('Branch is ' + $branch + ', a release is made from main.'); return }
+        $ab = Get-AheadBehind $branch
+        if ($ab.Behind -gt 0) { Stop-Release ('origin/main has ' + $ab.Behind + ' new commits. Run git pull first.'); return }
+        $allowed = @('plugin/Shiftline/Properties/AssemblyInfo.cs', 'installer/Shiftline.iss', 'README.md')
+        $other = @(Get-ChangedFiles | Where-Object { $allowed -notcontains $_ })
+        if ($other.Count -gt 0) {
+            Out-Line 'uncommitted changes:'
+            $other | Select-Object -First 15 | ForEach-Object { Out-Line ('  ' + $_) }
+            Stop-Release 'Commit or undo these first (menu item 7).'
+            return
+        }
+        $tag = (git describe --tags --abbrev=0 2>$null)
+        if ($tag) { $tag = $tag.Trim() }
+        Out-Line ('branch ' + $branch + ', ' + $ab.Ahead + ' unpushed commit(s), last tag ' + $tag)
+        if ($tag) {
+            $subjects = @(git log --oneline "$tag..HEAD")
+            Out-Line ('commits since ' + $tag + ': ' + $subjects.Count)
+            $subjects | Select-Object -First 30 | ForEach-Object { Out-Line ('  ' + $_) }
+            $areaCounts = @{}
+            foreach ($f in @(git diff --name-only "$tag..HEAD")) {
+                $area = 'Plugin (other)'
+                foreach ($r in $script:AreaRules) { if ($f -match $r.Pattern) { $area = $r.Area; break } }
+                if ($areaCounts.ContainsKey($area)) { $areaCounts[$area]++ } else { $areaCounts[$area] = 1 }
+            }
+            if ($areaCounts.Count -gt 0) {
+                Out-Line 'changed since the last tag (what to look at):'
+                $areaCounts.Keys | Sort-Object | ForEach-Object { Out-Line ('  ' + $_ + ': ' + $areaCounts[$_] + ' file(s)') }
+            }
+        }
+        if ($DryRun) { Out-Line 'would run the checks (gen.py, check.py, Node tests)' }
+        else {
+            $mine = @($script:out)
+            Invoke-Check
+            $failed = @($script:out | Where-Object { $_ -match 'FAILED|not found' })
+            $script:out.Clear()
+            $mine | ForEach-Object { $script:out.Add($_) }
+            if ($failed.Count -gt 0) { Out-Line 'checks FAILED (details in .dev\CHECK.txt)'; Stop-Release 'Fix the checks first.'; return }
+            Out-Line 'checks OK'
+            $other = @(Get-ChangedFiles | Where-Object { $allowed -notcontains $_ })
+            if ($other.Count -gt 0) {
+                $other | ForEach-Object { Out-Line ('  ' + $_) }
+                Stop-Release 'The checks changed files (gen.py output). Commit them first (menu item 7).'
+                return
+            }
+        }
+
+        # 2 -------------------------------------------------------------------------------------------------------
+        Write-Head '2 Version'
+        $suggest = ''
+        if ($tag -match '^v(\d+)\.(\d+)\.(\d+)') { $suggest = $Matches[1] + '.' + $Matches[2] + '.' + ([int]$Matches[3] + 1) }
+        $fileVersion = Get-FileVersion
+        if ($fileVersion -and ('v' + $fileVersion) -ne $tag) { $suggest = $fileVersion }
+        $version = (Ask-Default 'Version to release' $suggest).Trim()
+        if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') { Stop-Release ('"' + $version + '" is not a version like 0.4.2 or 0.5.0-beta.1.'); return }
+        Out-Line ('version ' + $version)
+        if (-not (Test-TagFree $version)) { Stop-Release 'The tag is taken.'; return }
+
+        # 3 -------------------------------------------------------------------------------------------------------
+        Write-Head '3 Release notes'
+        $notes = Join-Path $root ('release\notes-' + $version + '.md')
+        if (-not (Test-Path $notes) -or (Get-Item $notes).Length -lt 20) {
+            Stop-Release ('release\notes-' + $version + '.md is missing. Ask the Basis chat to write the release notes (Release ' + $version + ' vorbereiten), then run this item again.')
+            return
+        }
+        Out-Line ('notes: release\notes-' + $version + '.md')
+
+        # 4 -------------------------------------------------------------------------------------------------------
+        Write-Head '4 Test points'
+        $open = @(Read-TestList | Where-Object { $_.Status -eq 'open' })
+        $deferred = @()
+        if ($open.Count -eq 0) { Out-Line 'no open test points in .dev\TESTLIST.txt' }
+        foreach ($t in $open) {
+            Out-Line ('[' + $t.Area + '] ' + $t.What)
+            if ($DryRun) { continue }
+            $a = Read-Host '  t = tested, d = release without it, Enter = stop'
+            if ($a -eq 't') { Update-TestList 'mark' $t.Raw; Out-Line '  -> tested' }
+            elseif ($a -eq 'd') { $deferred += $t; Out-Line '  -> not tested, goes into the summary' }
+            else { Stop-Release 'Test it first, or answer d to release without it.'; return }
+        }
+
+        if ($DryRun) {
+            Write-Head 'Would do next'
+            Out-Line ('5 write ' + $version + ' into AssemblyInfo.cs and Shiftline.iss, commit "Shiftline ' + $version + '", push')
+            Out-Line '6 run tools\make-release.ps1 (Release build, track zip, installer), check the 5 files'
+            Out-Line '7 ask you to try the installer over your installation'
+            Out-Line ('8 check that tag v' + $version + ' is free and everything is pushed')
+            $pre = ''
+            if ($version.Contains('-')) { $pre = ' as pre-release' }
+            Out-Line ('9 tag v' + $version + ', push the tag, gh release create' + $pre + ' with the notes and the 5 files')
+            Out-Line '10 write .dev\RELEASE.txt (summary, not tested, after-release checks)'
+            Write-Host ''
+            Write-Host 'Dry run done. Nothing was changed.' -ForegroundColor Green
+            return
+        }
+
+        # 5 -------------------------------------------------------------------------------------------------------
+        Write-Head '5 Version, commit, push'
+        Set-ReleaseVersion $version
+        $pending = @(Get-ChangedFiles | Where-Object { $allowed -contains $_ })
+        if ($pending.Count -gt 0) {
+            if (-not (Save-Commit $pending ('Shiftline ' + $version) '' '')) { Stop-Release 'The version commit was not made.'; return }
+        } else { Out-Line 'version commit: nothing to commit (already done)' }
+        if (-not (Push-IfAhead $branch)) { Stop-Release 'Push did not happen.'; return }
+
+        # 6 -------------------------------------------------------------------------------------------------------
+        Write-Head '6 Release files'
+        if (-not (Confirm-Step 'Build the release files now (Release build, track zip, installer; SimHub may keep running)')) { Stop-Release 'Build skipped.'; return }
+        if (-not (Invoke-MakeRelease)) { Stop-Release 'make-release.ps1 failed, see above.'; return }
+        $relDir = Join-Path $root ('release\' + $version)
+        $expected = @(('Shiftline-Setup-' + $version + '.exe'), 'Shiftline.Plugin.dll', 'Shiftline.Plugin.dll.sha256', 'Shiftline.Tracks.zip', 'Shiftline.Tracks.zip.sha256')
+        $missing = @($expected | Where-Object { -not (Test-Path (Join-Path $relDir $_)) })
+        $surplus = @(Get-ChildItem $relDir -File | Where-Object { $expected -notcontains $_.Name })
+        if ($missing.Count -gt 0) { Stop-Release ('Missing in release\' + $version + ': ' + ($missing -join ', ')); return }
+        if ($surplus.Count -gt 0) { Stop-Release ('Unexpected files in release\' + $version + ': ' + (($surplus | ForEach-Object { $_.Name }) -join ', ')); return }
+        Out-Line ('5 files in release\' + $version + ' OK')
+
+        # 7 -------------------------------------------------------------------------------------------------------
+        Write-Head '7 Try the installer'
+        Out-Line ('Run release\' + $version + '\Shiftline-Setup-' + $version + '.exe over your installation and start SimHub.')
+        Out-Line 'Look for: the plugin loads without errors in the log, and C:\Users\Public\Documents\Shiftline\Tracks holds Shiftline.Tracks.zip and Shiftline.Tracks.version.'
+        if (-not (Confirm-Step 'Installer tried and fine')) { Stop-Release 'Try the installer first (the build is repeated when you run this item again).'; return }
+
+        # 8 -------------------------------------------------------------------------------------------------------
+        Write-Head '8 Tag check'
+        if (-not (Test-TagFree $version)) { Stop-Release 'The tag is taken.'; return }
+        if (@(Get-ChangedFiles).Count -gt 0) { Stop-Release 'There are uncommitted changes. Commit them (item 7) or undo them; the release has to match Git.'; return }
+        if (-not (Push-IfAhead $branch)) { Stop-Release 'Everything has to be pushed before the tag is made.'; return }
+        $short = (git rev-parse --short HEAD).Trim()
+        Out-Line ('tag v' + $version + ' is free, HEAD ' + $short + ' is on origin')
+
+        # 9 -------------------------------------------------------------------------------------------------------
+        Write-Head '9 Publish'
+        $prerelease = $version.Contains('-')
+        $files = @(Get-ChildItem $relDir -File | ForEach-Object { $_.FullName })
+        $tagName = 'v' + $version
+        $title2 = 'Shiftline ' + $version
+        if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+            Out-Line 'gh not found. Run these by hand:'
+            Out-Line ('  git tag ' + $tagName)
+            Out-Line ('  git push origin ' + $tagName)
+            $cmd = '  gh release create ' + $tagName + ' --verify-tag --title "' + $title2 + '" --notes-file release\notes-' + $version + '.md'
+            if ($prerelease) { $cmd += ' --prerelease' }
+            Out-Line ($cmd + ' release\' + $version + '\*')
+            Stop-Release 'Not published (gh missing).'
+            return
+        }
+        $kind = ''
+        if ($prerelease) { $kind = ' (pre-release)' }
+        Out-Line ('ready: tag ' + $tagName + ' on ' + $short + ', GitHub release "' + $title2 + '"' + $kind + ', ' + $files.Count + ' files, notes from release\notes-' + $version + '.md')
+        if (-not (Confirm-Step 'Publish now (tag, push tag, GitHub release)')) { Stop-Release 'Not published.'; return }
+        git tag $tagName
+        git push origin $tagName | Out-Host
+        if ($LASTEXITCODE -ne 0) { Stop-Release ('Pushing the tag failed. It exists locally; remove it with: git tag -d ' + $tagName); return }
+        $ghArgs = @('release', 'create', $tagName, '--verify-tag', '--title', $title2, '--notes-file', $notes)
+        if ($prerelease) { $ghArgs += '--prerelease' }
+        $ghArgs += $files
+        & gh @ghArgs | Out-Host
+        if ($LASTEXITCODE -ne 0) { Stop-Release ('gh release create failed. The tag ' + $tagName + ' is already on origin: create the release by hand (docs\RELEASE.md, section 3) or delete the tag first.'); return }
+        $url = (& gh release view $tagName --json url -q .url 2>$null)
+
+        # 10 ------------------------------------------------------------------------------------------------------
+        Write-Head '10 Summary'
+        Out-Line ('version ' + $version + ', commit ' + $short + ', tag ' + $tagName)
+        if ($url) { Out-Line ('release: ' + $url) }
+        foreach ($f in @('Shiftline.Plugin.dll.sha256', 'Shiftline.Tracks.zip.sha256')) {
+            Out-Line ($f.Replace('.sha256', '') + ' SHA256 ' + (Get-Content (Join-Path $relDir $f) -Raw).Trim())
+        }
+        if ($deferred.Count -gt 0) {
+            Out-Line 'released WITHOUT testing:'
+            $deferred | ForEach-Object { Out-Line ('  [' + $_.Area + '] ' + $_.What) }
+        }
+        Out-Line 'now try (report the result in the chat, it goes into HISTORY):'
+        $script:AfterReleaseChecks | ForEach-Object { Out-Line ('  - ' + $_) }
+        Update-TestList 'drop' ''
+        Save-Out 'RELEASE.txt'
+    } catch {
+        Stop-Release ('Error: ' + $_.Exception.Message)
+    } finally { Pop-Location }
+}
+
 function Show-Menu {
     while ($true) {
         Write-Host ''
@@ -384,6 +734,8 @@ function Show-Menu {
         Write-Host '  5  Build Debug (errors and warnings only)'
         Write-Host '  6  Checks: gen.py, check.py, Node tests'
         Write-Host '  7  Commit (with trailer, asks before push)'
+        Write-Host '  8  Release (version, build, tag, GitHub release)'
+        Write-Host '  9  Release dry run (shows the steps, changes nothing)'
         Write-Host '  q  Quit'
         $choice = Read-Host 'Choice'
         switch ($choice) {
@@ -392,6 +744,8 @@ function Show-Menu {
             '5' { Invoke-Build }
             '6' { Invoke-Check }
             '7' { Invoke-Commit }
+            '8' { Invoke-Release }
+            '9' { Invoke-Release -DryRun }
             'q' { return }
             default { Write-Host 'Unknown choice' }
         }
@@ -404,5 +758,6 @@ switch ($Run) {
     'build' { Invoke-Build }
     'check' { Invoke-Check }
     'commit' { Invoke-Commit }
+    'release' { Invoke-Release -DryRun:$DryRun }
     default { throw "Unknown item: $Run" }
 }
