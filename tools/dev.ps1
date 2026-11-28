@@ -30,7 +30,7 @@ $script:Chats = @(
 # Local model for commit suggestions (key l in item 7). To swap the model, change only this block.
 $script:LocalModel = 'gpt-oss:20b'
 $script:LocalThink = 'medium'      # gpt-oss: low, medium or high. For other models use $false.
-$script:OllamaUrl = 'http://localhost:11434'
+$script:OllamaUrl = 'http://127.0.0.1:11434'
 $script:LocalContext = 16384       # context in tokens
 $script:LocalKeepAlive = '30m'     # how long the model stays in VRAM after use; menu item 10 (u) frees it at once
 $script:LocalPrewarm = $true       # item 7 loads the model in the background when Ollama already runs
@@ -348,7 +348,7 @@ function Save-Commit([string[]]$files, [string]$subject, [string]$body, [string]
 
 # --- Ollama control (menu item 10, auto start for key l, background prewarm) ------------------------------------------
 function Test-Ollama {
-    try { [void](Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/version') -TimeoutSec 2); return $true } catch { return $false }
+    try { [void](Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/version') -TimeoutSec 5); return $true } catch { return $false }
 }
 
 # Starts Ollama when it is not running (the tray app, else "ollama serve") and waits up to 20 seconds.
