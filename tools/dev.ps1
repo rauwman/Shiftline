@@ -307,7 +307,8 @@ function Resolve-Issue([string[]]$files, [string]$issue) {
             if ($LASTEXITCODE -eq 0 -and $json) {
                 Write-Host ''
                 Write-Host 'Open issues:'
-                foreach ($i in @(($json -join "`n") | ConvertFrom-Json)) { Write-Host ('  #' + $i.number + '  ' + $i.title) }
+                $list = ($json -join "`n") | ConvertFrom-Json
+                foreach ($i in $list) { Write-Host ('  #' + $i.number + '  ' + $i.title) }
             }
         } catch { }
         $number = (Read-Host 'Issue number (Enter = none)').TrimStart('#').Trim()
