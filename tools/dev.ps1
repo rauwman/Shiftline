@@ -6,8 +6,9 @@
     powershell -ExecutionPolicy Bypass -File tools\dev.ps1 -Run start # one item without the menu
 
   Items: start (chat start summary), build (Debug build, errors only), check (gen.py, check.py, Node tests),
-  commit (proposals from .dev\COMMIT.txt or a simple suggestion, trailer, asks before push),
-  release (version, notes check, test points, build, tag, GitHub release; with -DryRun it only shows the steps).
+  commit (proposals from .dev\COMMIT.txt or a simple suggestion, key l = suggestion from a local Ollama model, trailer, asks before push),
+  release (version, notes check, test points, build, tag, GitHub release; with -DryRun it only shows the steps),
+  ollama (status, load, unload, close the local model). tools\dev.cmd starts the menu with a double click.
   Output of start/build/check goes to .dev\*.txt and the clipboard, the release summary to .dev\RELEASE.txt.
   Only the commit and release items write to Git (add, commit, tag, push, always after asking). The other items only read it.
 #>
@@ -25,6 +26,17 @@ $script:Chats = @(
     @{ Name = 'Features';   Areas = @('area: led', 'area: overlays', 'area: track map'); Ids = @('OV', 'FE'); Match = 'Features|Overlays' },
     @{ Name = 'Track Data'; Areas = @('area: track data', 'area: track map'); Ids = @('TD');     Match = 'Track Data' }
 )
+
+# Local model for commit suggestions (key l in item 7). To swap the model, change only this block.
+$script:LocalModel = 'gpt-oss:20b'
+$script:LocalThink = 'medium'      # gpt-oss: low, medium or high. For other models use $false.
+$script:OllamaUrl = 'http://localhost:11434'
+$script:LocalContext = 16384       # context in tokens
+$script:LocalKeepAlive = '30m'     # how long the model stays in VRAM after use; menu item 10 (u) frees it at once
+$script:LocalPrewarm = $true       # item 7 loads the model in the background when Ollama already runs
+$script:OllamaApp = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama app.exe'   # started when Ollama is not running
+$script:LocalDiffLimit = 24000     # characters of diff sent to the model
+$script:ListOnly = '^(plugin/Shiftline/(Settings|TabSettings|TestScenarios)\.cs|data/tracks/)'   # generated or data files: only the name is sent
 
 $script:out = New-Object System.Collections.Generic.List[string]
 function Out-Line([string]$text) { Write-Host $text; $script:out.Add($text) }
@@ -299,6 +311,160 @@ function Save-Commit([string[]]$files, [string]$subject, [string]$body, [string]
     return $true
 }
 
+# --- Ollama control (menu item 10, auto start for key l, background prewarm) ------------------------------------------
+function Test-Ollama {
+    try { [void](Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/version') -TimeoutSec 2); return $true } catch { return $false }
+}
+
+# Starts Ollama when it is not running (the tray app, else "ollama serve") and waits up to 20 seconds.
+function Start-Ollama {
+    if (Test-Ollama) { return $true }
+    if (Test-Path $script:OllamaApp) { Start-Process -FilePath $script:OllamaApp }
+    else {
+        $exe = (Get-Command ollama -ErrorAction SilentlyContinue).Source
+        if (-not $exe) { Write-Host 'Ollama not found. Install it from ollama.com.' -ForegroundColor Yellow; return $false }
+        Start-Process -FilePath $exe -ArgumentList 'serve' -WindowStyle Hidden
+    }
+    Write-Host 'Starting Ollama ...' -ForegroundColor Cyan
+    for ($i = 0; $i -lt 40; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (Test-Ollama) { return $true }
+    }
+    Write-Host 'Ollama did not start within 20 seconds.' -ForegroundColor Yellow
+    return $false
+}
+
+# Loads the model (keep = $script:LocalKeepAlive) or unloads it (keep = 0). Documented Ollama API: empty generate request.
+function Set-OllamaModel([object]$keep) {
+    $req = @{ model = $script:LocalModel; keep_alive = $keep } | ConvertTo-Json
+    try {
+        [void](Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/generate') -Method Post -ContentType 'application/json' -Body $req -TimeoutSec 300)
+        return $true
+    } catch {
+        Write-Host ('Ollama error: ' + $_.Exception.Message) -ForegroundColor Yellow
+        return $false
+    }
+}
+
+function Show-OllamaStatus {
+    if (-not (Test-Ollama)) { Write-Host 'Ollama is not running.'; return }
+    Write-Host ('Ollama is running (' + $script:OllamaUrl + ').')
+    try { $ps = Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/ps') -TimeoutSec 5 } catch { $ps = $null }
+    $models = @()
+    if ($ps -and $ps.models) { $models = @($ps.models) }
+    if ($models.Count -eq 0) { Write-Host 'No model loaded (no VRAM used by Ollama).'; return }
+    foreach ($m in $models) {
+        $gb = [math]::Round(([double]$m.size_vram) / 1GB, 1)
+        $until = ''
+        if ($m.expires_at) { try { $until = ', unloads at ' + ([datetime]$m.expires_at).ToLocalTime().ToString('HH:mm') } catch { } }
+        Write-Host ('Loaded: ' + $m.name + ', ' + $gb + ' GB VRAM' + $until)
+    }
+}
+
+function Stop-OllamaAll {
+    if (Test-Ollama) { [void](Set-OllamaModel 0) }
+    $procs = @(Get-Process -Name 'ollama app', 'ollama', 'llama-server' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -and $_.Path -like '*Ollama*' })
+    if ($procs.Count -eq 0) { Write-Host 'Ollama is not running.'; return }
+    $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+    Write-Host 'Ollama closed.' -ForegroundColor Green
+}
+
+function Show-OllamaMenu {
+    while ($true) {
+        Write-Host ''
+        Write-Host ('Local model: ' + $script:LocalModel) -ForegroundColor Cyan
+        Show-OllamaStatus
+        $a = Read-Host 'l = load (starts Ollama if needed), u = unload (frees the VRAM), x = close Ollama, Enter = back'
+        switch ($a) {
+            'l' {
+                if (Start-Ollama) {
+                    Write-Host ('Loading ' + $script:LocalModel + ' ...')
+                    if (Set-OllamaModel $script:LocalKeepAlive) { Write-Host 'Model loaded.' -ForegroundColor Green }
+                }
+            }
+            'u' {
+                if (-not (Test-Ollama)) { Write-Host 'Ollama is not running.' }
+                elseif (Set-OllamaModel 0) { Write-Host 'Model unloaded.' -ForegroundColor Green }
+            }
+            'x' { if (Confirm-Step 'Close Ollama (model and tray app)') { Stop-OllamaAll } }
+            '' { return }
+            default { Write-Host 'Unknown choice' }
+        }
+    }
+}
+
+# Loads the model in the background while the commit dialog shows its proposals. Only when Ollama already runs.
+function Start-OllamaPrewarm {
+    if (-not $script:LocalPrewarm) { return }
+    if (-not (Test-Ollama)) { return }
+    try {
+        Add-Type -AssemblyName System.Net.Http
+        if (-not $script:Http) { $script:Http = New-Object System.Net.Http.HttpClient; $script:Http.Timeout = [TimeSpan]::FromMinutes(5) }
+        $req = @{ model = $script:LocalModel; keep_alive = $script:LocalKeepAlive } | ConvertTo-Json
+        $content = New-Object System.Net.Http.StringContent($req, [System.Text.Encoding]::UTF8, 'application/json')
+        $script:PrewarmTask = $script:Http.PostAsync($script:OllamaUrl + '/api/generate', $content)
+        Write-Host ('Loading ' + $script:LocalModel + ' in the background (for key l) ...') -ForegroundColor DarkGray
+    } catch { }
+}
+
+# --- local model (Ollama) -------------------------------------------------------------------------------------------
+# Key "l" in the commit dialogs asks a local model for a subject and a body. Nothing is sent anywhere else: the model
+# runs on this PC (Ollama, http://localhost:11434). It starts only when you press l.
+
+function Convert-ModelText([string]$s) {
+    foreach ($c in 0x2010, 0x2011, 0x2012, 0x2013, 0x2014) { $s = $s.Replace([string][char]$c, '-') }
+    foreach ($c in 0x2018, 0x2019) { $s = $s.Replace([string][char]$c, "'") }
+    foreach ($c in 0x201C, 0x201D) { $s = $s.Replace([string][char]$c, '"') }
+    return $s
+}
+
+# Returns @{ Subject; Body } or $null (Ollama not running, empty answer). The caller then keeps the simple suggestion.
+function Get-LocalSuggestion([string[]]$files) {
+    $listOnly = @($files | Where-Object { $_ -match $script:ListOnly })
+    $diffFiles = @($files | Where-Object { $_ -notmatch $script:ListOnly })
+    $tracked = @($diffFiles | Where-Object { git ls-files -- $_ })
+    $untracked = @($diffFiles | Where-Object { -not (git ls-files -- $_) })
+    $parts = @()
+    $stat = (git diff HEAD --stat -- $files 2>$null) -join "`n"
+    if ($stat) { $parts += $stat }
+    if ($listOnly.Count -gt 0) { $parts += ("Generated or data files (name only, diff left out):`n" + ($listOnly -join "`n")) }
+    $diff = ''
+    if ($tracked.Count -gt 0) { $diff = (git diff HEAD -- $tracked 2>$null) -join "`n" }
+    foreach ($f in $untracked) {
+        $path = Join-Path $root ($f.Replace('/', '\'))
+        if (Test-Path $path) { $diff += "`n`nnew file " + $f + ":`n" + ((Get-Content $path -TotalCount 80 -ErrorAction SilentlyContinue) -join "`n") }
+    }
+    if ($diff.Length -gt $script:LocalDiffLimit) { $diff = $diff.Substring(0, $script:LocalDiffLimit) + "`n[diff cut]" }
+    $user = ($parts -join "`n`n") + "`n`n" + $diff
+    $styles = (git log --format='- %s' -n 15) -join "`n"
+    $sys = 'You write git commit messages for the Shiftline project (a SimHub plugin). Reply with the message only. Line 1 is the subject: imperative English, at most 72 characters, naming the concrete file, feature or area (an area prefix like "Track data:" is fine). Line 2 is empty. Line 3 is ONE body sentence of at most 100 characters saying what changed and why. No lists, no markdown, no quotes, no trailers. Match the style of these recent subjects:' + "`n" + $styles
+    if (-not (Start-Ollama)) { return $null }
+    $req = @{
+        model = $script:LocalModel; stream = $false; think = $script:LocalThink; keep_alive = $script:LocalKeepAlive
+        options = @{ num_ctx = $script:LocalContext; temperature = 0.2 }
+        messages = @(@{ role = 'system'; content = $sys }, @{ role = 'user'; content = $user })
+    } | ConvertTo-Json -Depth 6
+    Write-Host ('Asking ' + $script:LocalModel + ' ... (the first call loads the model, this can take half a minute)') -ForegroundColor Cyan
+    try {
+        $r = Invoke-RestMethod -Uri ($script:OllamaUrl + '/api/chat') -Method Post -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($req)) -TimeoutSec 300
+    } catch {
+        Write-Host ('Local model not reachable (is Ollama running?): ' + $_.Exception.Message) -ForegroundColor Yellow
+        return $null
+    }
+    $text = Convert-ModelText ([string]$r.message.content)
+    $lines = @($text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if ($lines.Count -eq 0) { Write-Host 'The local model returned nothing.' -ForegroundColor Yellow; return $null }
+    $subject = $lines[0].Trim([char]34, [char]96)
+    $body = ''
+    if ($lines.Count -gt 1) { $body = $lines[1] }
+    Write-Host ('Suggestion from the local model (' + [math]::Round($r.total_duration / 1e9, 1) + ' s):') -ForegroundColor Cyan
+    Write-Host ('  subject: ' + $subject)
+    Write-Host ('  body:    ' + $body)
+    if ($subject.Length -gt 72) { Write-Host ('  the subject has ' + $subject.Length + ' characters (limit 72), shorten it in the next step') -ForegroundColor Yellow }
+    return @{ Subject = $subject; Body = $body }
+}
+
 function Invoke-Commit {
     $ErrorActionPreference = 'Continue'
     Push-Location $root
@@ -309,6 +475,7 @@ function Invoke-Commit {
         if ($behind -and [int]$behind -gt 0) { Write-Host ("origin/$branch has $behind new commits. Run git pull first.") -ForegroundColor Yellow; return }
         $changed = @(Get-ChangedFiles)
         if ($changed.Count -eq 0) { Write-Host 'Nothing to commit.'; return }
+        Start-OllamaPrewarm
 
         # 1. proposals from COMMIT.txt
         $commitFile = Join-Path $dev 'COMMIT.txt'
@@ -329,10 +496,15 @@ function Invoke-Commit {
             Write-Host ('  subject: ' + $b.Subject)
             Write-Host ('  body:    ' + $b.Body)
             Write-Host ('  issue:   ' + $b.Issue)
-            $a = Read-Host 'Enter = use it, e = edit, s = skip this one, n = stop'
+            $a = Read-Host 'Enter = use it, e = edit, l = ask the local model, s = skip this one, n = stop'
             if ($a -eq 'n') { break }
             if ($a -eq 's') { continue }
             $subject = $b.Subject; $body = $b.Body; $issue = $b.Issue
+            if ($a -eq 'l') {
+                $s = Get-LocalSuggestion $b.Files
+                if ($s) { $subject = $s.Subject; $body = $s.Body }
+                $a = 'e'
+            }
             if ($a -eq 'e') {
                 $subject = Ask-Default 'Subject' $subject
                 $body = Ask-Default 'Body' $body
@@ -364,6 +536,11 @@ function Invoke-Commit {
                 }
                 if ($pick.Count -gt 0) {
                     $fb = Get-FallbackSuggestion $pick
+                    $how = Read-Host 'Suggestion: Enter = simple one, l = ask the local model'
+                    if ($how -eq 'l') {
+                        $s = Get-LocalSuggestion $pick
+                        if ($s) { $fb = @{ Subject = $s.Subject; Body = $s.Body } }
+                    }
                     $subject = Ask-Default 'Subject (English)' $fb.Subject
                     $body = Ask-Default 'Body' $fb.Body
                     $issue = Read-Host 'Fixes issue number (optional)'
@@ -736,6 +913,7 @@ function Show-Menu {
         Write-Host '  7  Commit (with trailer, asks before push)'
         Write-Host '  8  Release (version, build, tag, GitHub release)'
         Write-Host '  9  Release dry run (shows the steps, changes nothing)'
+        Write-Host ' 10  Local model (Ollama): status, load, unload, close'
         Write-Host '  q  Quit'
         $choice = Read-Host 'Choice'
         switch ($choice) {
@@ -746,6 +924,7 @@ function Show-Menu {
             '7' { Invoke-Commit }
             '8' { Invoke-Release }
             '9' { Invoke-Release -DryRun }
+            '10' { Show-OllamaMenu }
             'q' { return }
             default { Write-Host 'Unknown choice' }
         }
@@ -759,5 +938,6 @@ switch ($Run) {
     'check' { Invoke-Check }
     'commit' { Invoke-Commit }
     'release' { Invoke-Release -DryRun:$DryRun }
+    'ollama' { Show-OllamaMenu }
     default { throw "Unknown item: $Run" }
 }
