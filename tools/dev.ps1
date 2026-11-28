@@ -36,6 +36,7 @@ $script:LocalKeepAlive = '30m'     # how long the model stays in VRAM after use;
 $script:LocalPrewarm = $true       # item 7 loads the model in the background when Ollama already runs
 $script:OllamaApp = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama app.exe'   # started when Ollama is not running
 $script:LocalDiffLimit = 24000     # characters of diff sent to the model
+$script:NoIssueFiles = '^(tools/|\.github/|docs/|README|\.dev/)'
 $script:ListOnly = '^(plugin/Shiftline/(Settings|TabSettings|TestScenarios)\.cs|data/tracks/)'   # generated or data files: only the name is sent
 
 $script:out = New-Object System.Collections.Generic.List[string]
@@ -82,13 +83,17 @@ function Show-ChatStart {
                     if (-not $groups.ContainsKey($area)) { $groups[$area] = @() }
                     $ms = ''
                     if ($i.milestone) { $ms = ' [' + $i.milestone.title + ']' }
-                    $groups[$area] += ('#' + $i.number + ' ' + $i.title + $ms)
+                    $prio = ($i.labels | Where-Object { $_.name -like 'prio:*' } | Select-Object -First 1).name
+                    $rank = 1; $mark = ''
+                    if ($prio -eq 'prio:high') { $rank = 0; $mark = ' (HIGH)' }
+                    if ($prio -eq 'prio:later') { $rank = 2; $mark = ' (later)' }
+                    $groups[$area] += [pscustomobject]@{ Rank = $rank; Num = [int]$i.number; Text = ('#' + $i.number + ' ' + $i.title + $mark + $ms) }
                 }
                 $keys = $groups.Keys | Sort-Object
                 if ($Chat) { $keys = $keys | Where-Object { $cfg.Areas -contains $_ } }
                 foreach ($k in $keys) {
                     Out-Line ($k + ':')
-                    $groups[$k] | ForEach-Object { Out-Line ('  ' + $_) }
+                    $groups[$k] | Sort-Object Rank, Num | ForEach-Object { Out-Line ('  ' + $_.Text) }
                 }
             } else { Out-Line 'gh returned nothing (not logged in?)' }
         } else { Out-Line 'gh not found' }
@@ -289,10 +294,40 @@ function Ask-Default([string]$prompt, [string]$default) {
     return $v
 }
 
-function Save-Commit([string[]]$files, [string]$subject, [string]$body, [string]$issue) {
+# Decides the issue line of a commit. Dev tooling and docs never ask for an issue.
+# Returns @{ Number; Close }. Close = the commit finishes the issue ("Closes"), otherwise only "Refs".
+function Resolve-Issue([string[]]$files, [string]$issue) {
+    $result = @{ Number = ''; Close = $false }
+    $number = ([string]$issue).TrimStart('#').Trim()
+    if (-not $number) {
+        $other = @($files | Where-Object { $_ -notmatch $script:NoIssueFiles })
+        if ($other.Count -eq 0) { return $result }
+        try {
+            $json = gh issue list --state open --limit 10 --json number,title 2>$null
+            if ($LASTEXITCODE -eq 0 -and $json) {
+                Write-Host ''
+                Write-Host 'Open issues:'
+                foreach ($i in @(($json -join "`n") | ConvertFrom-Json)) { Write-Host ('  #' + $i.number + '  ' + $i.title) }
+            }
+        } catch { }
+        $number = (Read-Host 'Issue number (Enter = none)').TrimStart('#').Trim()
+    }
+    if (-not $number) { return $result }
+    if ($number -notmatch '^\d+$') { Write-Host 'Not a number, no issue linked.' -ForegroundColor Yellow; return $result }
+    $result.Number = $number
+    $done = Read-Host ('Is #' + $number + ' finished with this commit? (y = close it, Enter = no, only link it)')
+    if ($done -eq 'y') { $result.Close = $true }
+    return $result
+}
+
+function Save-Commit([string[]]$files, [string]$subject, [string]$body, [string]$issue, [bool]$close = $false) {
     $msg = $subject + "`n"
     if ($body) { $msg += "`n" + $body + "`n" }
-    if ($issue) { $msg += "`nFixes #" + $issue.TrimStart('#') + "`n" }
+    if ($issue) {
+        $word = 'Refs'
+        if ($close) { $word = 'Closes' }
+        $msg += "`n" + $word + " #" + $issue.TrimStart('#') + "`n"
+    }
     $msg += "`nCo-Authored-By: Claude <noreply@anthropic.com>`n"
     Write-Host ''
     Write-Host 'Files:'
@@ -508,9 +543,9 @@ function Invoke-Commit {
             if ($a -eq 'e') {
                 $subject = Ask-Default 'Subject' $subject
                 $body = Ask-Default 'Body' $body
-                $issue = Ask-Default 'Issue number' $issue
             }
-            if (Save-Commit $b.Files $subject $body $issue) { $committed++; $left.Remove($b) }
+            $iss = Resolve-Issue $b.Files $issue
+            if (Save-Commit $b.Files $subject $body $iss.Number $iss.Close) { $committed++; $left.Remove($b) }
         }
         if ($committed -gt 0 -and (Test-Path $commitFile)) {
             if ($left.Count -eq 0) { Set-Content -Path $commitFile -Value '# all proposals committed' -Encoding UTF8 }
@@ -543,8 +578,8 @@ function Invoke-Commit {
                     }
                     $subject = Ask-Default 'Subject (English)' $fb.Subject
                     $body = Ask-Default 'Body' $fb.Body
-                    $issue = Read-Host 'Fixes issue number (optional)'
-                    if (Save-Commit $pick $subject $body $issue) { $committed++ }
+                    $iss = Resolve-Issue $pick ''
+                    if (Save-Commit $pick $subject $body $iss.Number $iss.Close) { $committed++ }
                 }
             }
         }
